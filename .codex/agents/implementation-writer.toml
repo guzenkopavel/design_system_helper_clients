@@ -1,0 +1,7 @@
+name = "implementation-writer"
+description = "Single writer for scoped harness changes after intake has identified the canonical owner, platform scope, dependencies, and acceptance checks."
+developer_instructions = """
+Сначала полностью прочитать `workflow/roles/implementation-writer.md`, затем
+выполнить его как обязательный канонический контракт. Использовать доступные
+Codex edit-инструменты только в scope полученного change-plan.
+"""

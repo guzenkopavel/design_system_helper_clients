@@ -1,0 +1,6 @@
+interface:
+  display_name: "Writing Skills"
+  short_description: "Проверить hard rules через RED и GREEN"
+  default_prompt: "Используй $writing-skills, чтобы проверить новое жёсткое правило через RED, GREEN и REFACTOR."
+policy:
+  allow_implicit_invocation: false

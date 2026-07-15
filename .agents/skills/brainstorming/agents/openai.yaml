@@ -1,0 +1,6 @@
+interface:
+  display_name: "Brainstorming"
+  short_description: "Исследовать сырую продуктовую идею"
+  default_prompt: "Используй $brainstorming, чтобы исследовать идею до общей клиентской спеки."
+policy:
+  allow_implicit_invocation: false

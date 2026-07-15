@@ -1,0 +1,6 @@
+interface:
+  display_name: "Discovery"
+  short_description: "Собрать общий product brief для клиентов"
+  default_prompt: "Используй $discovery, чтобы сформировать общий iOS/Android product brief."
+policy:
+  allow_implicit_invocation: false

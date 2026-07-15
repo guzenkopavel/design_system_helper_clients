@@ -1,0 +1,6 @@
+interface:
+  display_name: "Harness Review"
+  short_description: "Проверить целостность workflow-харнеса"
+  default_prompt: "Используй $harness-review, чтобы проверить целостность харнеса и platform scope."
+policy:
+  allow_implicit_invocation: false
