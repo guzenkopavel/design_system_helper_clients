@@ -13,7 +13,7 @@ Android-специфика реализации — в [`Android/specs/`](../../
 допускается без shared spec только при доказанном
 `Product impact assessment: NONE`.
 
-Общий lifecycle/system-design уже Android-ready, но Android architecture,
-roles/scripts и runtime implementation в текущем change отсутствуют. Вызов
-`propose android ...` или `plan android ...` обязан вернуть `NOT IMPLEMENTED` и
-не создавать artifacts.
+Общий propose/plan/implement/verify/archive lifecycle уже Android-ready, но
+Android adapter, architecture и implementation addenda отсутствуют. Любой
+Android implementation-lifecycle вызов обязан вернуть `NOT IMPLEMENTED` до
+записей. Product archive всё равно требует явную Android disposition с evidence.

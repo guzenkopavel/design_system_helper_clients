@@ -10,8 +10,11 @@
 | template | `workflow/templates/` | ссылка из phase/skill |
 | process map | `process/` | отсутствует |
 | shared product package | `specs/product/<feature>/` (`concept.md`, `brief.md`, UI-only `ux.md`, `spec.md`) | `brainstorming`, `discovery`, `elaborate` |
-| platform implementation package | `iOS/specs/<feature>/` либо будущий `Android/specs/<feature>/`; intake `product-backed` или доказанный `technical-only` | `propose <platform> <feature>` → `plan <platform> <feature>` |
-| platform lifecycle metadata | `<platform>/specs/<feature>/meta.json` | `validate-platform-change.py` |
+| active platform change | `<platform>/specs/<feature>/changes/<change-id>/`; intake `product-backed` или доказанный `technical-only` | `propose` → `plan` → `implement` → `verify` |
+| platform lifecycle metadata | `<platform>/specs/<feature>/changes/<change-id>/meta.json` | `validate-platform-change.py` |
+| implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
+| product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |
+| verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |
 | iOS architecture rule | `iOS/workflow/rules/` | iOS addenda и platform roles |
 
 Общий канон использовать, когда контракт одинаков для обеих платформ.

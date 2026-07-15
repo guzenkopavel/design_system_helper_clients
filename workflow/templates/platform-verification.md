@@ -1,11 +1,14 @@
-# Verification — <feature> / <platform>
+# Verification — <feature> / <platform> / <change-id>
 
-| Contract ID | Layer | Method | Expected evidence | Status |
+| Contract ID | Layer | Method | Evidence path | Status |
 |---|---|---|---|---|
-| REQ-1 | contract | requirement review | approved review record | pending |
-| AC-1 | UI | simulator scenario | screenshot + assertion | pending |
-| <PLATFORM_PREFIX>-REQ-1 | design | design review | approved design record | pending |
-| <PLATFORM_PREFIX>-AC-1 | unit | test name | passing test output | pending |
+| REQ-1 | contract | requirement review | expected evidence before verify | pending |
+| AC-1 | UI | simulator scenario | expected evidence before verify | pending |
+| <PLATFORM_PREFIX>-REQ-1 | design | design review | expected evidence before verify | pending |
+| <PLATFORM_PREFIX>-AC-1 | unit | test name | expected evidence before verify | pending |
+
+`verify` replaces expected descriptions with concrete package-relative
+`evidence/...` paths and exact `PASS`, `FAIL` or `UNKNOWN`.
 
 ## Build and integration
 ## Platform runtime evidence

@@ -1,6 +1,6 @@
 interface:
   display_name: "Propose"
-  short_description: "Создать платформенную implementation spec"
-  default_prompt: "Use $propose to create an iOS implementation specification for a feature."
+  short_description: "Создать change-aware platform package"
+  default_prompt: "Use $propose with a platform, feature, and optional change ID."
 policy:
   allow_implicit_invocation: false

@@ -1,10 +1,10 @@
 ---
 name: implementation-writer
-description: Единственный writer для scoped изменений харнеса по готовому change-plan.
+description: Единственный scoped writer в harness или platform-implementation mode.
 model: inherit
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-Сначала полностью прочитать `workflow/roles/implementation-writer.md`
-относительно корня репозитория, затем выполнить его как обязательный
-канонический контракт.
+Полностью прочитать `workflow/roles/implementation-writer.md`, потребовать
+явный mode и выполнить канонический контракт. В platform mode загрузить adapter
+и addendum выбранной платформы.

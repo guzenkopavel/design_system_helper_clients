@@ -14,6 +14,9 @@ bindings описаны в
 Для UI/interaction scope пакет включает shared UX; `READY` невозможен без
 applicable reviews и явного human product approval.
 
-После fan-out общие propose/plan phases, lifecycle, templates, roles и
+После fan-out общие propose/plan/implement/verify/archive phases, lifecycle, templates, roles и
 system-design остаются в `workflow/`. Они не содержат Swift, Xcode или Apple SDK.
 Public invocation всегда передаёт `<platform> <feature>`.
+
+Platform package identity дополняется strict kebab-case `change_id`; active
+discovery смотрит только `changes/`, а product discovery исключает `_archive`.

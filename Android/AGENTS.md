@@ -13,6 +13,8 @@ Implementation specs хранить в [`specs/`](specs/). Режим `product-b
 разрешён только при `Product impact assessment: NONE` с evidence неизменности
 observable behavior, REQ и AC; иначе перейти в product elaboration.
 
-Общий propose/plan contract существует, но Android adapter/architecture ещё не
-реализованы. `propose android ...` и `plan android ...` завершаются blocker без
-создания artifacts; iOS rules в Android scope не применять.
+Общий propose/plan/implement/verify/archive contract существует, но Android
+adapter/architecture ещё не реализованы. Любой Android implementation-lifecycle
+вызов завершается `NOT IMPLEMENTED` до записи artifacts; iOS rules в Android
+scope не применять. Product archive требует явную Android disposition с
+evidence даже при отсутствии adapter.

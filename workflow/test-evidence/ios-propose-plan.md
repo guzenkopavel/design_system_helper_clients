@@ -27,6 +27,8 @@ Paths, reversed estimate `1.5–0.5`, unresolved proposal question при пус
 | plan before specified/design | blocker | lifecycle + plan gate |
 | Extended iOS | common system-design + iOS architecture/SDK/verification | validator headings + iOS addendum |
 | plan tasks | self-contained, one layer, ≤2d, DAG/range estimates | validator task schema/count |
+| change identity | strict kebab-case; omitted downstream ID only with one active package | change-aware resolver adversarial fixtures |
+| clean break | package only under `changes/<change-id>/`; no root fallback | validator lookup contract |
 | no iOS codebase yet | existing vs proposed paths separated | retrieval no-hit greenfield label |
 
 `validate-platform-change.py --self-test` содержит позитивные propose/plan
@@ -75,9 +77,9 @@ fixtures и требует RED для каждого adversarial case из audit
 iOS structural/script evidence PASS. Android implementation intentionally
 отсутствует; common contract не содержит iOS canon.
 
-## Artifact-producing E2E
+## Historical artifact-producing E2E
 
-Для полного lifecycle был временно создан синтетический approved shared fixture
+До change-id migration для полного lifecycle был временно создан синтетический approved shared fixture
 `specs/product/harness-e2e-fixture/spec.md`, после чего последовательно запущены
 `propose ios harness-e2e-fixture` и `plan ios harness-e2e-fixture`.
 
@@ -93,8 +95,14 @@ iOS structural/script evidence PASS. Android implementation intentionally
 - `propose` создал пять platform artifacts;
 - `plan` создал `plan/README.md` и `task-001.md`–`task-006.md`;
 - `meta.json` перешёл в `planned`, `tasks_total` стал равен 6;
-- writes были ограничены `iOS/specs/harness-e2e-fixture/`, Android не изменялся;
+- writes были ограничены прежним feature-root package, Android не изменялся;
 - после фиксации evidence shared fixture и весь временный iOS package удалены.
+
+Текущий clean-break contract не принимает этот прежний layout. Новый active
+target — `iOS/specs/<feature>/changes/<change-id>/`; propose omission по
+умолчанию использует feature slug, а plan omission требует ровно один active
+package. Позитивные и adversarial fixtures нового lookup входят в текущий
+`validate-platform-change.py --self-test`.
 
 ## Residual limits
 

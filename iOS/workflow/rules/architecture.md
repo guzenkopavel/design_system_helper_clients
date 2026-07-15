@@ -1,6 +1,6 @@
 # iOS architecture
 
-Индекс iOS-specific architecture baseline для propose/plan.
+Индекс iOS-specific architecture baseline для propose/plan/implement/verify.
 
 | Тема | Файл |
 |---|---|

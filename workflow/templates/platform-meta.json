@@ -1,6 +1,7 @@
 {
   "platform": "<platform-name>",
   "feature": "<feature-slug>",
+  "change_id": "<change-id>",
   "change_type": "product-backed",
   "tier": "standard",
   "status": "draft",
@@ -10,6 +11,11 @@
   "product_impact": "PRESENT",
   "impact_evidence": "<evidence>",
   "blocking_questions": [],
+  "problems": [],
   "design_gate": "pending",
-  "tasks_total": 0
+  "tasks_total": 0,
+  "tasks_done": 0,
+  "verification_status": "pending",
+  "verified_at": null,
+  "verification_state": null
 }

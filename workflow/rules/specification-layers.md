@@ -71,8 +71,12 @@ product elaboration и продолжить как `product-backed`.
 
 После допустимого intake работа размещается по направлениям:
 
-- `iOS/specs/<feature>/` — iOS implementation spec;
-- `Android/specs/<feature>/` — Android implementation spec.
+- `iOS/specs/<feature>/changes/<change-id>/` — active iOS change package;
+- `Android/specs/<feature>/changes/<change-id>/` — future active Android package.
+
+`change_id` отделяет последовательные или параллельные implementation cycles
+одной feature. Product SSOT identity остаётся feature-level. Platform archive
+не меняет shared source, а product archive не переписывает platform packages.
 
 В режиме `product-backed` платформенная спека обязана ссылаться на shared spec
 и не может копировать, ослаблять или переопределять продуктовые требования и
@@ -92,13 +96,13 @@ raw idea
   → discovery
   → elaborate (shared UX when applicable + reviews + human approval)
   → specs/product/<feature>/spec.md: READY
-  → iOS/specs/<feature>/ and/or Android/specs/<feature>/
+  → <platform>/specs/<feature>/changes/<change-id>/
 ```
 
 ```text
 technical platform change
   → product impact assessment: NONE + evidence
-  → iOS/specs/<change>/ or Android/specs/<change>/ (technical-only)
+  → <platform>/specs/<feature>/changes/<change-id>/ (technical-only)
 ```
 
 - Ясная продуктовая мелочь может пропустить brainstorming и начать с discovery

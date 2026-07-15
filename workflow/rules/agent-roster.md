@@ -3,6 +3,8 @@
 | Роль | Канон | Права | Runtime bindings |
 |---|---|---|---|
 | `implementation-writer` | [`workflow/roles/implementation-writer.md`](../roles/implementation-writer.md) | scoped write | [Codex](../../.codex/agents/implementation-writer.toml) · [Claude Code](../../.claude/agents/implementation-writer.md) · [Cursor](../../.cursor/agents/implementation-writer.md) · [OpenCode](../../.opencode/agents/implementation-writer.md) |
+| `implementation-discovery` | [`workflow/roles/implementation-discovery.md`](../roles/implementation-discovery.md) | read-only | [Codex](../../.codex/agents/implementation-discovery.toml) · [Claude Code](../../.claude/agents/implementation-discovery.md) · [Cursor](../../.cursor/agents/implementation-discovery.md) · [OpenCode](../../.opencode/agents/implementation-discovery.md) |
+| `verifier` | [`workflow/roles/verifier.md`](../roles/verifier.md) | read-only production; scoped evidence | [Codex](../../.codex/agents/verifier.toml) · [Claude Code](../../.claude/agents/verifier.md) · [Cursor](../../.cursor/agents/verifier.md) · [OpenCode](../../.opencode/agents/verifier.md) |
 | `harness-auditor` | [`workflow/roles/harness-auditor.md`](../roles/harness-auditor.md) | read-only | [Codex](../../.codex/agents/harness-auditor.toml) · [Claude Code](../../.claude/agents/harness-auditor.md) · [Cursor](../../.cursor/agents/harness-auditor.md) · [OpenCode](../../.opencode/agents/harness-auditor.md) |
 | `repo-navigator` | [`workflow/roles/repo-navigator.md`](../roles/repo-navigator.md) | read-only | [Codex](../../.codex/agents/repo-navigator.toml) · [Claude Code](../../.claude/agents/repo-navigator.md) · [Cursor](../../.cursor/agents/repo-navigator.md) · [OpenCode](../../.opencode/agents/repo-navigator.md) |
 | `specification-writer` | [`workflow/roles/specification-writer.md`](../roles/specification-writer.md) | proposal/spec/verification | [Codex](../../.codex/agents/specification-writer.toml) · [Claude Code](../../.claude/agents/specification-writer.md) · [Cursor](../../.cursor/agents/specification-writer.md) · [OpenCode](../../.opencode/agents/specification-writer.md) |
@@ -14,5 +16,6 @@
 дублировать по платформам, если её контракт одинаков.
 
 Artifact owners работают последовательно: `specification-writer` →
-`architecture-designer` → `implementation-planner`. Одновременная запись одного
-package запрещена.
+`architecture-designer` → `implementation-planner` → `implementation-writer`
+(`platform-implementation`) → `verifier`. Discovery/review роли не пишут
+production; одновременная запись одного package запрещена.

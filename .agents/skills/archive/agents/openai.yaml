@@ -1,0 +1,6 @@
+interface:
+  display_name: "Archive"
+  short_description: "Архивировать implementation или product"
+  default_prompt: "Use $archive in implementation or product mode with explicit identity."
+policy:
+  allow_implicit_invocation: false

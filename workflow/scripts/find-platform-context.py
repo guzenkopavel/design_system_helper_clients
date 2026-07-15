@@ -17,6 +17,7 @@ EXCLUDED = {
     "DerivedData",
     "build",
     "node_modules",
+    "_archive",
 }
 FEATURE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -56,10 +57,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--platform", required=True)
     parser.add_argument("--feature", required=True)
+    parser.add_argument("--change")
     parser.add_argument("--limit", type=int, default=8)
     args = parser.parse_args()
     if not FEATURE_RE.fullmatch(args.feature):
         print("BLOCKED: feature must be a strict kebab-case slug; no files were written.")
+        return 3
+    change_id = args.change or args.feature
+    if not FEATURE_RE.fullmatch(change_id):
+        print("BLOCKED: change_id must be a strict kebab-case slug; no files were written.")
         return 3
     repo = root()
     adapter = load_adapter(repo, args.platform)
@@ -90,7 +96,8 @@ def main() -> int:
         if not base.exists():
             continue
         for current, dirs, files in os.walk(base):
-            dirs[:] = [d for d in dirs if d not in EXCLUDED and not d.startswith(".")]
+            archive_namespace = str(adapter.get("archive_namespace", "archive"))
+            dirs[:] = [d for d in dirs if d not in EXCLUDED and d != archive_namespace and not d.startswith(".")]
             for name in files:
                 path = Path(current) / name
                 if path in seen or path.suffix.lower() not in {
@@ -125,7 +132,7 @@ def main() -> int:
 
     print("Retrieval Packet")
     print(
-        f"Platform: {platform_name}\nFeature: {args.feature}\n"
+        f"Platform: {platform_name}\nFeature: {args.feature}\nChange ID: {change_id}\n"
         "Confidence: evidence-backed paths only"
     )
     limited = sorted(candidates)[: args.limit]
@@ -141,7 +148,7 @@ def main() -> int:
         print(f"- {rel} — {reason}")
     if not source_hits:
         print("- none; treat implementation paths as proposed greenfield paths")
-    proposed = package_root / args.feature
+    proposed = package_root / args.feature / str(adapter.get("active_changes_namespace", "changes")) / change_id
     print("\nExcluded: generated/build/vendor noise and other platform surfaces.")
     print(
         f"Proposed package: {proposed.relative_to(repo)}/ "

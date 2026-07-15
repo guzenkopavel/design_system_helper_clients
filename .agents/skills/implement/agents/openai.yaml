@@ -1,0 +1,6 @@
+interface:
+  display_name: "Implement"
+  short_description: "Выполнить готовые platform tasks"
+  default_prompt: "Use $implement with a platform, feature, optional change ID, and task selection."
+policy:
+  allow_implicit_invocation: false

@@ -13,7 +13,10 @@ Implementation specs хранить в [`specs/`](specs/). Режим `product-b
 разрешён только при `Product impact assessment: NONE` с evidence неизменности
 observable behavior, REQ и AC; иначе перейти в product elaboration.
 
-Платформенный flow запускается как `$propose ios <feature>` → `$plan ios
-<feature>`. Применять [`workflow/phases`](workflow/phases/) и
+Платформенный flow запускается как `$propose ios <feature> [--change ...]` →
+`$plan` → `$implement` → `$verify` → `$archive implementation`. Активный пакет
+живёт в `specs/<feature>/changes/<change-id>/`. Применять
+[`workflow/phases`](workflow/phases/) и
 [`workflow/rules`](workflow/rules/) как addenda к общему процессу. До перехода
-`specified`/`planned` запускать `workflow/scripts/validate-platform-change.py`.
+между lifecycle states запускать общий validator; production scope проверять
+baseline/check guard. Product archive остаётся общей отдельной операцией.

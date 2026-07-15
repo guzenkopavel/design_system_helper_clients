@@ -413,8 +413,8 @@ def check_specification_layers(root: Path) -> list[dict[str, str]]:
         text = rule.read_text(encoding="utf-8")
         for token in (
             "specs/product/<feature>/",
-            "iOS/specs/<feature>/",
-            "Android/specs/<feature>/",
+            "iOS/specs/<feature>/changes/<change-id>/",
+            "Android/specs/<feature>/changes/<change-id>/",
             "ux.md",
             "Product approval: APPROVED",
             "product-backed",
@@ -491,6 +491,60 @@ def check_specification_layers(root: Path) -> list[dict[str, str]]:
     return findings
 
 
+def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    required = (
+        "workflow/phases/implement.md",
+        "workflow/phases/verify.md",
+        "workflow/phases/archive.md",
+        "workflow/rules/verification-evidence.md",
+        "workflow/rules/archive-lifecycle.md",
+        "workflow/roles/implementation-discovery.md",
+        "workflow/roles/verifier.md",
+        "workflow/templates/product-archive-request.json",
+        "workflow/scripts/validate-implementation-scope.py",
+        "workflow/scripts/capture-verification-state.py",
+        "workflow/scripts/archive-change.py",
+        "iOS/workflow/phases/implement.md",
+        "iOS/workflow/phases/verify.md",
+        "iOS/workflow/phases/archive.md",
+    )
+    for value in required:
+        if not (root / value).is_file():
+            findings.append(finding("critical", "implementation-lifecycle", value, "required file is missing"))
+
+    lifecycle = root / "workflow/rules/platform-change-lifecycle.md"
+    if lifecycle.is_file():
+        text = lifecycle.read_text(encoding="utf-8")
+        for token in (
+            "changes/<change-id>/", "archive/<YYYY-MM-DD-change-id>/",
+            "draft → specified → planned → implementing → verified → archived",
+            "tasks_done", "verification_state", "no legacy fallback",
+        ):
+            if token not in text:
+                findings.append(finding("critical", "implementation-lifecycle", relative(lifecycle, root), f"required token is missing: {token}"))
+
+    adapter_path = root / "iOS/workflow/platform-contract.json"
+    if adapter_path.is_file():
+        try:
+            adapter = json.loads(adapter_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            findings.append(finding("critical", "implementation-adapter", relative(adapter_path, root), str(error)))
+        else:
+            for key in (
+                "active_changes_namespace", "archive_namespace", "production_roots",
+                "protected_roots", "production_exclusions", "rule_files",
+            ):
+                if key not in adapter:
+                    findings.append(finding("critical", "implementation-adapter", relative(adapter_path, root), f"missing field: {key}"))
+
+    for name in ("propose", "plan", "implement", "verify", "archive"):
+        metadata = root / ".agents/skills" / name / "agents/openai.yaml"
+        if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
+            findings.append(finding("critical", "manual-only-skill", relative(metadata, root), "allow_implicit_invocation must be false"))
+    return findings
+
+
 def check_naming(root: Path) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     for area in (
@@ -543,6 +597,7 @@ def main() -> int:
     findings.extend(check_dispatch_references(root, markdown_files, agent_names))
     findings.extend(check_platform_contract(root))
     findings.extend(check_specification_layers(root))
+    findings.extend(check_implementation_lifecycle(root))
     findings.extend(check_naming(root))
     findings.sort(key=lambda item: (item["severity"], item["check"], item["file"]))
 

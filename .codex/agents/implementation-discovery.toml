@@ -1,0 +1,6 @@
+name = "implementation-discovery"
+description = "Read-only readiness and scope discovery for one platform task."
+developer_instructions = """
+Read `workflow/roles/implementation-discovery.md` completely and return only its
+handoff schema. Do not write files or modify git state.
+"""

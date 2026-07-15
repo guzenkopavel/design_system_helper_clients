@@ -113,7 +113,7 @@ product review lenses и evidence явного product approval. Screen/flow imp
 
 ### iOS
 
-- implementation root: `iOS/specs/<feature>/`;
+- implementation root: `iOS/specs/<feature>/changes/<change-id>/`;
 - в spacing-token scenario отдельно проверен полный визуальный, текстовый и
   accessibility outcome без обязательного haptic — `PASS`;
 - platform-specific tactile constraint не ослабил общий iOS product outcome;
@@ -122,7 +122,7 @@ product review lenses и evidence явного product approval. Screen/flow imp
 
 ### Android
 
-- implementation root: `Android/specs/<feature>/`;
+- implementation root: `Android/specs/<feature>/changes/<change-id>/`;
 - в spacing-token scenario haptic остался optional, API/min-version constraint
   передан downstream без fork общего поведения — `PASS`;
 - Gradle plugin scenario корректно bypass-нул product skills — routing `PASS`;

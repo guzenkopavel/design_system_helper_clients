@@ -1,0 +1,50 @@
+---
+phase: implement
+writes_artifacts:
+  - task-declared production paths
+  - <platform>/specs/<feature>/changes/<change-id>/evidence/task-NNN.md
+  - <platform>/specs/<feature>/changes/<change-id>/meta.json
+  - <platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md
+requires_verification: focused
+recommended_roles:
+  - implementation-discovery
+  - implementation-writer
+---
+
+# Phase: Implement
+
+Form: `implement <platform> <feature> [--change <change-id>] [--task task-NNN|--all]`.
+Platform and feature are required. Resolve omitted change only when exactly one
+active package exists. Android, unknown platform, traversal and ambiguity block
+before writes.
+
+Accept only `planned` or `implementing`. `implementation-discovery` rereads the
+task, dependencies, declared paths, contracts and adapter rules and returns a
+compact read-only handoff. Select only pending tasks whose dependencies are
+done; `--all` processes ready tasks in DAG order and stops on the first failure.
+
+The `implementation-writer` runs in `platform-implementation` mode and treats
+the task as the primary self-contained input. It may change only task-declared
+production paths plus scoped package evidence/state. Use behavior-first/TDD,
+the platform architecture/testing lenses, and no side features. Capture a scope
+baseline before writes and check it after focused evidence. Every declared Path
+must be inside adapter production roots and outside protected/excluded roots;
+one valid Path never masks an invalid sibling. Implement writes are limited to
+task Paths, task/meta state, `evidence/task-NNN.md` and
+`evidence/scope-baseline-task-NNN.json`.
+
+Set `status: implementing` when work starts. Mark a task `done` and give it a
+concrete package-relative evidence path only after focused checks pass and the
+scope validator is green. Derive `tasks_done` from task files. Implement never
+sets `verified`, never performs broad cleanup, destructive git or commit.
+
+After failed verification, accept only the machine-coherent recovery state from
+Verify: exact FAIL/UNKNOWN rows and `problems`, affected tasks reopened, null
+terminal state. Reimplement those ready tasks, but leave final status assignment
+to a fresh Verify run. When a recovery task passes focused evidence/scope and is
+marked done, invalidate the old verification run before Implement validation:
+reset every verification row to `pending`, clear `problems`, set
+`verification_status: pending`, `verified_at: null`, `verification_state: null`
+and preserve historical evidence files. Other reopened dependents stay pending.
+Only a baseline captured in FAIL/UNKNOWN recovery may authorize this exact
+`verification.md` write; initial implementation never may.

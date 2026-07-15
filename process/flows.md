@@ -42,10 +42,10 @@ intake `technical-only`: `Product impact assessment: NONE` и evidence, что
 observable behavior, REQ и AC не меняются. `PRESENT` или `UNCERTAIN` возвращают
 задачу в product flow.
 
-## Platform implementation elaboration
+## Platform implementation lifecycle
 
 ```text
-propose <platform> <feature>
+propose <platform> <feature> [--change <change-id>]
   → platform/intake gate
   → repo-navigator (read-only)
   → specification-writer
@@ -53,12 +53,25 @@ propose <platform> <feature>
   → platform boundary guard (read-only)
   → validator
   → status: specified
-plan <platform> <feature>
+plan <platform> <feature> [--change <change-id>]
   → implementation-planner
   → task/DAG validator
   → status: planned
-  → STOP before production code
+implement <platform> <feature> [--change <change-id>] [--task ...|--all]
+  → implementation-discovery (read-only)
+  → scope baseline
+  → implementation-writer (platform-implementation)
+  → focused evidence + scope check
+  → status: implementing
+verify <platform> <feature> [--change <change-id>]
+  → verifier (production read-only)
+  → exact PASS evidence + state fingerprint
+  → status: verified
+archive implementation ...
+  → dry-run → collision-safe apply → tombstone
 ```
 
-Сейчас dispatch существует только для iOS. Android использует общий lifecycle
-как future foundation, но любой вызов блокируется без создания artifacts.
+Product archive — отдельная ветка с retirement approval, platform dispositions
+и active-reference scan. Сейчас implementation dispatch существует только для
+iOS. Android использует общий lifecycle как future foundation, но любой
+implementation вызов блокируется до создания artifacts.

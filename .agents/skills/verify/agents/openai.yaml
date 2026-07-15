@@ -1,0 +1,6 @@
+interface:
+  display_name: "Verify"
+  short_description: "Проверить current platform change"
+  default_prompt: "Use $verify with a platform, feature, and optional change ID."
+policy:
+  allow_implicit_invocation: false

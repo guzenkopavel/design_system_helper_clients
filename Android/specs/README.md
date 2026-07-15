@@ -1,7 +1,7 @@
 # Android implementation specifications
 
-Будущий `Android/specs/<feature>/` будет содержать Android implementation
-package. Для
+Будущий `Android/specs/<feature>/changes/<change-id>/` будет содержать Android
+implementation package. Для
 `product-backed` она ссылается на `../../specs/product/<feature>/spec.md` со
 статусами `READY` и `APPROVED`; общие REQ/AC не копируются и не
 переопределяются. Для `technical-only` shared spec может быть `N/A` только при
@@ -11,5 +11,5 @@ elaboration.
 
 Шаблон: [`platform-implementation-spec.md`](../../workflow/templates/platform-implementation-spec.md).
 
-Сейчас Android propose/plan adapter и architecture layer не реализованы. Любой
+Сейчас Android implementation adapter и architecture layer не реализованы. Любой
 вызов должен вернуть `NOT IMPLEMENTED` без создания package.

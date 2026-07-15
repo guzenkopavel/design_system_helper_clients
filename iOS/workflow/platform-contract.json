@@ -3,6 +3,19 @@
   "platform_name": "iOS",
   "platform_root": "iOS",
   "package_root": "iOS/specs",
+  "active_changes_namespace": "changes",
+  "archive_namespace": "archive",
+  "production_roots": [
+    "iOS"
+  ],
+  "protected_roots": [
+    "iOS/specs",
+    "iOS/workflow"
+  ],
+  "production_exclusions": [
+    "iOS/specs",
+    "iOS/workflow"
+  ],
   "contract_prefix": "IOS",
   "boundary_guard": "ios-package-boundary-guard",
   "extended_design_sections": [
@@ -24,6 +37,8 @@
     "iOS/workflow/rules/ui-testing.md",
     "iOS/workflow/rules/ui-test-spec.md",
     "iOS/workflow/rules/accessibility.md",
-    "iOS/workflow/rules/ui-design-system.md"
+    "iOS/workflow/rules/ui-design-system.md",
+    "iOS/workflow/rules/localization.md",
+    "iOS/workflow/rules/xcode.md"
   ]
 }

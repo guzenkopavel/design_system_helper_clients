@@ -2,8 +2,10 @@
 
 - Layer: domain | data | presentation | infrastructure | tests
 - Depends on: task-NNN | none
+- Status: pending
+- Evidence: none
 - Estimate (ideal): 0.5–2 days
-- Paths: proposed: Sources/Feature; existing: path/to/current/file
+- Paths: proposed: <platform-root>/Feature; existing: <platform-root>/current/file
 
 ## Goal
 ## Inline contract context

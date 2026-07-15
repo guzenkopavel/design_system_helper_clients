@@ -42,14 +42,20 @@ product elaboration. Каноническая граница:
 
 ## Платформенная проработка
 
-- `$propose <platform> <feature>` создаёт platform implementation package;
-- `$plan <platform> <feature>` создаёт self-contained execution plan;
+- `$propose <platform> <feature> [--change <change-id>]` создаёт change package;
+- `$plan <platform> <feature> [--change <change-id>]` создаёт execution plan;
+- `$implement <platform> <feature> [--change <change-id>]` выполняет ready tasks;
+- `$verify <platform> <feature> [--change <change-id>]` фиксирует fresh evidence;
+- `$archive implementation ...` и `$archive product ...` архивируют разные SSOT;
 - platform и feature обязательны;
 - сейчас реализован только `ios`; `android` блокируется без записи файлов;
-- iOS package живёт в `iOS/specs/<feature>/` и не копирует shared REQ/AC.
+- активный iOS package живёт в
+  `iOS/specs/<feature>/changes/<change-id>/` и не копирует shared REQ/AC;
+- downstream omission `--change` допустим только при одном active package.
 
-`propose` и `plan` не пишут production code. Общие lifecycle/system-design
-правила находятся в `workflow/`, Apple/Swift/Xcode детали — только в `iOS/`.
+Только `implement` пишет production code в task scope; `verify` не меняет
+production. Общие lifecycle/system-design/archive правила находятся в
+`workflow/`, Apple/Swift/Xcode детали — только в `iOS/`.
 
 ## Инварианты
 

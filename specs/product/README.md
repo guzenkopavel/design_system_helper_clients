@@ -10,3 +10,9 @@
 [`product-brief.md`](../../workflow/templates/product-brief.md) и
 [`product-ux.md`](../../workflow/templates/product-ux.md),
 [`product-spec.md`](../../workflow/templates/product-spec.md).
+
+Архив product SSOT находится только в
+`specs/product/_archive/<feature>/<archive-id>/`; `_archive` исключён из active
+discovery. Архивация требует отдельный retirement request, переносит весь пакет
+как единицу и оставляет `specs/product/<feature>/spec.md` tombstone. Она не
+переписывает platform packages.

@@ -1,8 +1,8 @@
 ---
 phase: plan
 writes_artifacts:
-  - <platform>/specs/<feature>/plan/README.md
-  - <platform>/specs/<feature>/plan/task-NNN.md
+  - <platform>/specs/<feature>/changes/<change-id>/plan/README.md
+  - <platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md
 requires_verification: focused
 recommended_roles:
   - repo-navigator
@@ -11,41 +11,22 @@ recommended_roles:
 
 # Phase: Plan
 
-Преобразовать `specified` implementation package одной платформы в исполнимый
-план. Production code не писать.
+Form: `plan <platform> <feature> [--change <change-id>]`. Resolve an omitted
+change only when exactly one active package exists. Ambiguity, missing adapter
+or unsafe slug blocks before writes.
 
-## Gate
+Require a valid `specified` package with matching platform/feature/change,
+closed blockers and passed design gate. `repo-navigator` and the platform guard
+are read-only; `implementation-planner` is the sole owner of `plan/`.
 
-Форма: `plan <platform> <feature>`. Platform и feature обязательны. Runtime
-выбирает зарегистрированный adapter; unavailable adapter блокирует любые записи.
+Create a DAG of contiguous self-contained `task-NNN.md` files. Each task has one
+layer, no more than two ideal days, explicit existing/proposed paths, inline
+REQ/AC context, dependencies, focused verification, expected result and
+out-of-scope. Machine fields begin as `Status: pending` and `Evidence: none`.
+UI tasks include adapter runtime, accessibility and design-system checks.
 
-До planning требуются:
-
-- совпадающие `platform` и `feature` в `meta.json`;
-- `status: specified`;
-- допустимый product-backed или technical-only intake;
-- закрытые blocking questions;
-- обязательный для tier design и verification mapping.
-
-## Workflow
-
-1. `repo-navigator` возвращает компактный read-only packet и отличает реальные
-   пути от greenfield-предложений.
-2. Выбранный platform boundary guard проверяет placement без записи.
-3. `implementation-planner` единолично создаёт `plan/README.md` и задачи.
-4. Построить DAG. Каждая задача:
-   - ровно один layer;
-   - ≤2 ideal dev-days до множителей;
-   - явные files/zones и пометка `existing` либо `proposed`;
-   - inline релевантные shared/platform requirement и AC context;
-   - dependencies, goal, steps, verification, expected result, out of scope.
-5. UI tasks включают simulator evidence, accessibility, design-system и
-   selector checks. Risky/reversible boundary получает checkpoint.
-6. Оценки — range для выбранной платформы с явными assumptions и mobile
-   multipliers. Не объединять оценки разных платформ.
-7. Выполнить `workflow/scripts/workflow-reflection.py plan`, записать candidate
-   `status: planned`, `tasks_total: N`. Валидатор проверяет нумерацию и sections;
-   при ошибке coordinator возвращает `specified` и `tasks_total: 0`.
-
-Не превращать open question в задачу с выдуманным решением. Spec gaps возвращать
-в propose, а behavioral gaps — в product elaboration.
+Candidate meta is `planned`, `tasks_total` equals the derived file count,
+`tasks_done: 0`, verification remains pending. Validate with `--mode plan
+--change`. On failure return to `specified`, reset counts and report blockers.
+Do not change contracts for planning convenience, write production code or
+commit.

@@ -6,3 +6,5 @@
   forward-tests и platform evidence для product-elaboration skills.
 - [`ios-propose-plan.md`](ios-propose-plan.md) — iOS propose/plan lifecycle,
   validators, runtime wiring и pressure scenarios.
+- [`ios-implement-archive.md`](ios-implement-archive.md) — change-aware
+  implement/verify и dual archive с iOS/Android fail-before-write evidence.

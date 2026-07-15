@@ -73,8 +73,9 @@ UX и design-system intent из `ux.md`, но не платформенная р
 
 ## Stop boundary
 
-После `READY` остановиться. Не создавать `iOS/specs/<feature>/` или
-`Android/specs/<feature>/`, не запускать реализацию и не писать production code.
+После `READY` остановиться. Не создавать platform package в
+`<platform>/specs/<feature>/changes/<change-id>/`, не запускать реализацию и не
+писать production code.
 Следующий отдельный workflow создаёт implementation spec нужного направления
 по [`platform-implementation-spec.md`](../templates/platform-implementation-spec.md)
 и ссылается на общий продуктовый контракт.

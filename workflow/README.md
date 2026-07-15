@@ -14,6 +14,11 @@
   выбранной платформы; сейчас runtime adapter реализован для iOS;
 - [`phases/plan.md`](phases/plan.md) — декомпозировать `specified` package в
   self-contained задачи;
+- [`phases/implement.md`](phases/implement.md) — выполнить ready task в
+  adapter-owned production scope;
+- [`phases/verify.md`](phases/verify.md) — получить fresh terminal evidence;
+- [`phases/archive.md`](phases/archive.md) — collision-safe архивировать
+  implementation change или shared product package;
 - [`phases/harness-change.md`](phases/harness-change.md) — изменить харнес;
 - [`phases/harness-review.md`](phases/harness-review.md) — проверить харнес;
 - [`phases/writing-skills.md`](phases/writing-skills.md) — проверить новое
@@ -25,6 +30,9 @@
   product SSOT и отдельные platform implementation specs;
 - [`rules/platform-change-lifecycle.md`](rules/platform-change-lifecycle.md) —
   platform package, tier и transitions;
+- [`rules/verification-evidence.md`](rules/verification-evidence.md) и
+  [`rules/archive-lifecycle.md`](rules/archive-lifecycle.md) — terminal proof и
+  dual archive;
 - [`rules/system-design.md`](rules/system-design.md) — общая mobile system-design
   база для будущих platform adapters;
 - [`rules/wording-clarity.md`](rules/wording-clarity.md) — cold-readable
@@ -42,7 +50,7 @@
 ## Роли
 
 - [`roles/implementation-writer.md`](roles/implementation-writer.md) — единый
-  контракт writer;
+  контракт writer с harness/platform modes;
 - [`roles/harness-auditor.md`](roles/harness-auditor.md) — единый контракт
   read-only аудитора.
 - [`roles/repo-navigator.md`](roles/repo-navigator.md),
@@ -50,6 +58,9 @@
   [`roles/architecture-designer.md`](roles/architecture-designer.md) и
   [`roles/implementation-planner.md`](roles/implementation-planner.md) — роли
   platform elaboration.
+- [`roles/implementation-discovery.md`](roles/implementation-discovery.md) и
+  [`roles/verifier.md`](roles/verifier.md) — read-only implementation handoff и
+  fresh verification.
 
 ## Ресурсы
 
@@ -68,6 +79,10 @@
 - [`scripts/find-platform-context.py`](scripts/find-platform-context.py) и
   [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
   retrieval и stdlib lifecycle gate.
+- [`scripts/validate-implementation-scope.py`](scripts/validate-implementation-scope.py),
+  [`scripts/capture-verification-state.py`](scripts/capture-verification-state.py)
+  и [`scripts/archive-change.py`](scripts/archive-change.py) — task scope,
+  freshness и collision-safe archive.
 - [`scripts/workflow-reflection.py`](scripts/workflow-reflection.py) — focused
   propose/plan reflection без legacy paths.
 

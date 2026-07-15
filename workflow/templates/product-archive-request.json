@@ -1,0 +1,18 @@
+{
+  "feature": "<feature-slug>",
+  "reason": "completed",
+  "retirement_approval": {
+    "approved_by": "<person-or-role>",
+    "evidence": "<explicit-decision-reference>"
+  },
+  "platforms": {
+    "ios": {
+      "disposition": "archived",
+      "evidence": "iOS/specs/<feature-slug>/archive/<archive-id>/archive-receipt.json"
+    },
+    "android": {
+      "disposition": "archived",
+      "evidence": "Android/specs/<feature-slug>/archive/<archive-id>/archive-receipt.json"
+    }
+  }
+}

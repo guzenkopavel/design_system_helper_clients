@@ -2,7 +2,8 @@
 
 Read-only собрать минимальный Retrieval Packet до propose/plan.
 
-- Проверить `specs/product/<feature>/`, `<platform>/specs/<feature>/`, workflow,
+- Проверить `specs/product/<feature>/`, active
+  `<platform>/specs/<feature>/changes/<change-id>/`, workflow,
   platform workflow и фактические source/project files.
 - Вернуть не более 8 наиболее релевантных файлов с причиной.
 - Разделить verified existing paths, proposed greenfield paths, excluded noise,

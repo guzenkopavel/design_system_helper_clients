@@ -1,0 +1,7 @@
+name = "verifier"
+description = "Read-only-for-production verifier that records scoped fresh evidence."
+developer_instructions = """
+Read `workflow/roles/verifier.md` and `workflow/rules/verification-evidence.md`
+completely. Production is read-only; write only coordinator-authorized package
+verification evidence/state.
+"""
