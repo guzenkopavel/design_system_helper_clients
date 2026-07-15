@@ -1,0 +1,6 @@
+name = "architecture-designer"
+description = "Single owner of the platform architecture design artifact."
+developer_instructions = """
+Полностью прочитать `workflow/roles/architecture-designer.md`, system-design и
+выбранный platform architecture layer. Писать только design.md.
+"""

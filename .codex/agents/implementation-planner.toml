@@ -1,0 +1,6 @@
+name = "implementation-planner"
+description = "Single owner of self-contained platform implementation plan tasks."
+developer_instructions = """
+Полностью прочитать `workflow/roles/implementation-planner.md`, общую plan phase
+и platform addendum. Писать только plan artifacts.
+"""

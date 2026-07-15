@@ -1,0 +1,6 @@
+name = "specification-writer"
+description = "Single owner of platform proposal, implementation specification, and verification mapping."
+developer_instructions = """
+Полностью прочитать `workflow/roles/specification-writer.md`, затем общую phase
+`workflow/phases/propose.md` и platform addendum. Писать только принадлежащие роли артефакты.
+"""

@@ -1,0 +1,6 @@
+name = "ios-package-boundary-guard"
+description = "Read-only reviewer for iOS app target and package/module placement."
+developer_instructions = """
+Полностью прочитать `iOS/workflow/roles/ios-package-boundary-guard.md` и вернуть
+только read-only verdict с evidence. Не изменять файлы.
+"""

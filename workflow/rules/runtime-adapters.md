@@ -15,9 +15,11 @@ Portable skill SSOT находится в `.agents/skills/<name>/SKILL.md`. Не
 Каждый runtime должен:
 
 1. обнаруживать все portable skills, включая `brainstorming`, `discovery`,
-   `elaborate`, `harness-change`, `harness-review` и `writing-skills`;
+   `elaborate`, `propose`, `plan`, `harness-change`, `harness-review` и
+   `writing-skills`;
 2. загружать полный portable `SKILL.md` до действий;
-3. резолвить роли `implementation-writer` и `harness-auditor`;
+3. резолвить все роли из [`agent-roster.md`](agent-roster.md), включая
+   зарегистрированные platform guards;
 4. соблюдать permissions: auditor read-only, writer scoped write;
 5. передавать аргументы пользователя без изменения смысла;
 6. читать общий [`AGENTS.md`](../../AGENTS.md) напрямую или через runtime entry.
@@ -26,6 +28,10 @@ Claude Code не должен создавать одноимённые `.claude
 OpenCode также сканирует этот namespace и может недетерминированно выбрать
 runtime-копию вместо portable SSOT. Явный Claude UX сохраняется через thin
 `.claude/commands/<name>.md`.
+
+`propose` и `plan` — manual-only во всех runtime. Их adapters передают
+`<platform> <feature>` без перестановки; Android пока возвращает unsupported до
+любых записей.
 
 Если конкретная версия runtime обнаруживает skill, но не предоставляет механизм
 custom subagent, выполнить writer и review последовательно в основной сессии.

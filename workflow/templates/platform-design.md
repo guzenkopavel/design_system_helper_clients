@@ -1,0 +1,15 @@
+# Design — <feature> / <platform>
+
+## Current context
+## Proposed architecture and boundaries
+## Data and control flow
+## Dependency injection
+## Error and recovery model
+## Concurrency model
+## Security and data handling
+## Platform SDK considerations
+## Design-system and accessibility
+## Migration and rollout
+## Alternatives and trade-offs
+## System-design checklist
+## Verification strategy

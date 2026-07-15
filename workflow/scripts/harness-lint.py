@@ -243,7 +243,13 @@ def read_agents(root: Path) -> tuple[set[str], list[dict[str, str]]]:
         return names, [
             finding("critical", "roles-root", "workflow/roles", "directory is missing")
         ]
-    canonical_names = {path.stem for path in canonical_root.glob("*.md")}
+    canonical_dirs = [canonical_root]
+    ios_roles = root / "iOS" / "workflow" / "roles"
+    if ios_roles.is_dir():
+        canonical_dirs.append(ios_roles)
+    canonical_names = {
+        path.stem for directory in canonical_dirs for path in directory.glob("*.md")
+    }
 
     for runtime, (directory, suffix) in RUNTIME_AGENT_DIRS.items():
         agents_root = root / directory

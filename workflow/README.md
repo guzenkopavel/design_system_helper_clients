@@ -10,6 +10,10 @@
   iOS и Android;
 - [`phases/elaborate.md`](phases/elaborate.md) — довести общий продуктовый пакет
   до `READY` и остановиться до platform fan-out;
+- [`phases/propose.md`](phases/propose.md) — создать implementation package
+  выбранной платформы; сейчас runtime adapter реализован для iOS;
+- [`phases/plan.md`](phases/plan.md) — декомпозировать `specified` package в
+  self-contained задачи;
 - [`phases/harness-change.md`](phases/harness-change.md) — изменить харнес;
 - [`phases/harness-review.md`](phases/harness-review.md) — проверить харнес;
 - [`phases/writing-skills.md`](phases/writing-skills.md) — проверить новое
@@ -19,6 +23,12 @@
 
 - [`rules/specification-layers.md`](rules/specification-layers.md) — общий
   product SSOT и отдельные platform implementation specs;
+- [`rules/platform-change-lifecycle.md`](rules/platform-change-lifecycle.md) —
+  platform package, tier и transitions;
+- [`rules/system-design.md`](rules/system-design.md) — общая mobile system-design
+  база для будущих platform adapters;
+- [`rules/wording-clarity.md`](rules/wording-clarity.md) — cold-readable
+  requirements, AC и security формулировки;
 - [`rules/orchestration-core.md`](rules/orchestration-core.md) — single-writer,
   bounded loop и no-commit;
 - [`rules/memory-architecture.md`](rules/memory-architecture.md) — SSOT и
@@ -35,6 +45,11 @@
   контракт writer;
 - [`roles/harness-auditor.md`](roles/harness-auditor.md) — единый контракт
   read-only аудитора.
+- [`roles/repo-navigator.md`](roles/repo-navigator.md),
+  [`roles/specification-writer.md`](roles/specification-writer.md),
+  [`roles/architecture-designer.md`](roles/architecture-designer.md) и
+  [`roles/implementation-planner.md`](roles/implementation-planner.md) — роли
+  platform elaboration.
 
 ## Ресурсы
 
@@ -50,6 +65,11 @@
   runtime и platform evidence;
 - [`scripts/harness-lint.py`](scripts/harness-lint.py) — детерминированная
   проверка структуры.
+- [`scripts/find-platform-context.py`](scripts/find-platform-context.py) и
+  [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
+  retrieval и stdlib lifecycle gate.
+- [`scripts/workflow-reflection.py`](scripts/workflow-reflection.py) — focused
+  propose/plan reflection без legacy paths.
 
 Portable skills хранятся в `.agents/skills/`. Runtime-адаптеры хранят только
 обнаружение, invocation policy, permissions и binding ролей. Процессное знание

@@ -13,3 +13,7 @@ bindings описаны в
 [`specification-layers.md`](../../workflow/rules/specification-layers.md).
 Для UI/interaction scope пакет включает shared UX; `READY` невозможен без
 applicable reviews и явного human product approval.
+
+После fan-out общие propose/plan phases, lifecycle, templates, roles и
+system-design остаются в `workflow/`. Они не содержат Swift, Xcode или Apple SDK.
+Public invocation всегда передаёт `<platform> <feature>`.

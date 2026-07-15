@@ -28,3 +28,8 @@ process/   карта сущностей и связей харнеса
 и [`Android/specs/`](Android/specs/): `product-backed` требует общую
 `READY`/`APPROVED`-спеку, а `technical-only` без неё допустим только при
 доказанном отсутствии product impact.
+
+Платформенная проработка вызывается через `propose <platform> <feature>` и
+`plan <platform> <feature>`. Сейчас полностью подключён iOS; Android явно
+отклоняется без записей. Общая lifecycle/system-design база готова к будущему
+Android adapter, а Apple/Swift/Xcode правила изолированы в `iOS/workflow/`.

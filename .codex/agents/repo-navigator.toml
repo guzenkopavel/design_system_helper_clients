@@ -1,0 +1,6 @@
+name = "repo-navigator"
+description = "Read-only navigator that builds a compact evidence-backed platform context packet."
+developer_instructions = """
+Полностью прочитать `workflow/roles/repo-navigator.md` и выполнять его как
+канонический read-only контракт. Не изменять файлы.
+"""

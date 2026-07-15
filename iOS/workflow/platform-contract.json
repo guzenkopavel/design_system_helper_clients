@@ -1,0 +1,29 @@
+{
+  "platform_input": "ios",
+  "platform_name": "iOS",
+  "platform_root": "iOS",
+  "package_root": "iOS/specs",
+  "contract_prefix": "IOS",
+  "boundary_guard": "ios-package-boundary-guard",
+  "extended_design_sections": [
+    "System-design review",
+    "Apple SDK considerations",
+    "Concurrency model",
+    "Platform verification gates"
+  ],
+  "ui_task_checks": [
+    "simulator",
+    "accessibility",
+    "design-system"
+  ],
+  "rule_files": [
+    "iOS/workflow/rules/architecture.md",
+    "iOS/workflow/rules/ios-pitfalls.md",
+    "iOS/workflow/rules/swift-concurrency.md",
+    "iOS/workflow/rules/unit-testing.md",
+    "iOS/workflow/rules/ui-testing.md",
+    "iOS/workflow/rules/ui-test-spec.md",
+    "iOS/workflow/rules/accessibility.md",
+    "iOS/workflow/rules/ui-design-system.md"
+  ]
+}

@@ -40,6 +40,17 @@ product elaboration. Каноническая граница:
 Без явного product approval с evidence общий пакет остаётся
 `DRAFT / PENDING APPROVAL` независимо от полноты остальных артефактов.
 
+## Платформенная проработка
+
+- `$propose <platform> <feature>` создаёт platform implementation package;
+- `$plan <platform> <feature>` создаёт self-contained execution plan;
+- platform и feature обязательны;
+- сейчас реализован только `ios`; `android` блокируется без записи файлов;
+- iOS package живёт в `iOS/specs/<feature>/` и не копирует shared REQ/AC.
+
+`propose` и `plan` не пишут production code. Общие lifecycle/system-design
+правила находятся в `workflow/`, Apple/Swift/Xcode детали — только в `iOS/`.
+
 ## Инварианты
 
 - Знание хранить в одном каноническом месте; адаптеры должны только связывать

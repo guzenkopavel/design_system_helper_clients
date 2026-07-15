@@ -10,7 +10,9 @@
 | template | `workflow/templates/` | ссылка из phase/skill |
 | process map | `process/` | отсутствует |
 | shared product package | `specs/product/<feature>/` (`concept.md`, `brief.md`, UI-only `ux.md`, `spec.md`) | `brainstorming`, `discovery`, `elaborate` |
-| platform implementation spec | `iOS/specs/<change>/` или `Android/specs/<change>/`; intake `product-backed` либо доказанный `technical-only` | будущий platform specification flow |
+| platform implementation package | `iOS/specs/<feature>/` либо будущий `Android/specs/<feature>/`; intake `product-backed` или доказанный `technical-only` | `propose <platform> <feature>` → `plan <platform> <feature>` |
+| platform lifecycle metadata | `<platform>/specs/<feature>/meta.json` | `validate-platform-change.py` |
+| iOS architecture rule | `iOS/workflow/rules/` | iOS addenda и platform roles |
 
 Общий канон использовать, когда контракт одинаков для обеих платформ.
 Платформенный канон использовать только для реальных различий SDK, build/test

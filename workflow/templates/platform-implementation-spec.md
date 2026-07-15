@@ -1,46 +1,29 @@
-# <Feature> — <iOS|Android> implementation specification
+# Implementation spec — <feature> / <platform>
 
-- **Direction:** `<iOS|Android>`
-- **Change type:** `product-backed | technical-only`
-- **Shared product spec:** `specs/product/<feature>/spec.md | NOT APPLICABLE`
-- **Product status at intake:** `READY | N/A`
-- **Product approval at intake:** `APPROVED | N/A`
+## Intake reference
 
-Для `product-backed` обязательны путь, `READY` и `APPROVED`; не копируйте
-product requirements и acceptance criteria, а ссылайтесь на их IDs.
+- Change type: product-backed | technical-only
+- Shared product spec: path | N/A
+- Product Impact Assessment: NONE | PRESENT | UNCERTAIN
+- Evidence:
 
-Для `technical-only` значения могут быть `NOT APPLICABLE` / `N/A` только при
-доказанном `Product impact assessment: NONE`.
+## Shared contract references
 
-## Product Impact Assessment
+Перечислить только IDs `REQ-*`/`AC-*` и ссылку на shared spec. Не копировать
+observable формулировки.
 
-- **Result:** `NONE | PRESENT | UNCERTAIN`
-- **Observable behavior evidence:** <почему пользовательское поведение не меняется>
-- **Requirements evidence:** <почему product REQ не меняются>
-- **Acceptance criteria evidence:** <почему product AC не меняются>
+## Platform requirements
 
-`technical-only` разрешён только при `NONE` и заполненном evidence. При
-`PRESENT` или `UNCERTAIN` остановиться и перейти в product elaboration; этот
-режим не является обходом product gates для behavioral changes.
+### <PLATFORM_PREFIX>-REQ-1 — <name>
 
-## Platform Scope
+Технический platform contract.
 
-## Architecture and Design
+## Platform acceptance criteria
 
-## SDK, Framework and Module Decisions
+### <PLATFORM_PREFIX>-AC-1 — <observable technical outcome>
 
-## Platform Constraints
+`Covers: <PLATFORM_PREFIX>-REQ-1`
 
-Если constraint конфликтует с product intent, верните вопрос в shared product
-spec вместо локального переопределения.
-
-## Requirement-to-Test Traceability
-
-| Product requirement | Platform tests | Coverage status |
-|---|---|---|
-
-## Implementation Plan
-
-## Migration and Rollout
-
-## Risks and Open Questions
+## Constraints
+## Integration points
+## Open questions

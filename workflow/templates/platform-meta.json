@@ -1,0 +1,15 @@
+{
+  "platform": "<platform-name>",
+  "feature": "<feature-slug>",
+  "change_type": "product-backed",
+  "tier": "standard",
+  "status": "draft",
+  "shared_product_spec": "specs/product/<feature-slug>/spec.md",
+  "product_status": "READY",
+  "product_approval": "APPROVED",
+  "product_impact": "PRESENT",
+  "impact_evidence": "<evidence>",
+  "blocking_questions": [],
+  "design_gate": "pending",
+  "tasks_total": 0
+}

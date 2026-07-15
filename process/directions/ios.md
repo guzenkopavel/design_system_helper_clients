@@ -11,3 +11,11 @@ iOS-специфика реализации — в [`iOS/specs/`](../../iOS/spec
 в режиме `product-backed` ссылается на общий `READY`/`APPROVED`-контракт и не
 переопределяет его. `technical-only` допускается без shared spec только при
 доказанном `Product impact assessment: NONE`.
+
+Публичные входы: `$propose ios <feature>` и `$plan ios <feature>`. Общий процесс
+расширяется [`iOS/workflow/phases/`](../../iOS/workflow/phases/) и iOS rules;
+пакет проходит stdlib validator до `specified`/`planned`.
+
+Machine adapter: [`platform-contract.json`](../../iOS/workflow/platform-contract.json)
+задаёт iOS name/root, `IOS` contract prefix, boundary guard и Extended gates;
+общий validator не hardcode'ит эти значения.
