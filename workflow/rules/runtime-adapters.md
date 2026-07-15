@@ -16,7 +16,7 @@ Portable skill SSOT находится в `.agents/skills/<name>/SKILL.md`. Не
 
 1. обнаруживать все portable skills, включая `brainstorming`, `discovery`,
    `elaborate`, `propose`, `plan`, `implement`, `verify`, `archive`,
-   `harness-change`, `harness-review` и `writing-skills`;
+   `deep-code-review`, `harness-change`, `harness-review` и `writing-skills`;
 2. загружать полный portable `SKILL.md` до действий;
 3. резолвить все роли из [`agent-roster.md`](agent-roster.md), включая
    зарегистрированные platform guards;
@@ -29,12 +29,17 @@ OpenCode также сканирует этот namespace и может неде
 runtime-копию вместо portable SSOT. Явный Claude UX сохраняется через thin
 `.claude/commands/<name>.md`.
 
-`propose`, `plan`, `implement`, `verify` и `archive` — manual-only во всех
+`propose`, `plan`, `implement`, `verify`, `archive` и `deep-code-review` — manual-only во всех
 runtime. Их adapters передают identity/flags без перестановки. Platform
 implementation lifecycle всегда требует `<platform> <feature>`; Android пока
 поддерживает propose/plan/implement, а verify/implementation archive возвращают
 unsupported до любых записей по machine capability. Product archive не принимает platform,
 но требует validated retirement request.
+
+`deep-code-review review|feedback|bug` требует platform identity и одинаковый
+read-only role contract во всех runtime; `security` не принимает platform.
+Runtime не добавляет fix mode и не превращает same-context fallback в
+independent review.
 
 Если конкретная версия runtime обнаруживает skill, но не предоставляет механизм
 custom subagent, выполнить writer и review последовательно в основной сессии.

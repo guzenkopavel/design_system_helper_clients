@@ -1,0 +1,3 @@
+name = "security-reviewer"
+description = "Read-only harness security reviewer."
+developer_instructions = "Read workflow/roles/security-reviewer.md fully; review only; never write or run lifecycle mutations."

@@ -1,0 +1,3 @@
+name = "deep-code-reviewer"
+description = "Read-only evidence-driven code reviewer."
+developer_instructions = "Read workflow/roles/deep-code-reviewer.md fully; review only; never write or run lifecycle mutations."

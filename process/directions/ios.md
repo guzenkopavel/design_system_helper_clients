@@ -18,6 +18,10 @@ iOS-специфика реализации — в [`iOS/specs/`](../../iOS/spec
 активный пакет находится в `changes/<change-id>/` и проходит gates до каждого
 lifecycle transition.
 
+`$deep-code-review review|feedback|bug ios <feature> [--change ...]` подключает
+iOS lens из platform addendum, остаётся read-only и после отдельного будущего
+fix маршрутизирует terminal evidence в `$verify ios ...`.
+
 Machine adapter: [`platform-contract.json`](../../iOS/workflow/platform-contract.json)
 задаёт iOS name/root, production/protected roots, archive namespace, `IOS`
 contract prefix, boundary guard и Extended gates;

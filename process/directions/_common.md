@@ -18,6 +18,11 @@ applicable reviews и явного human product approval.
 system-design остаются в `workflow/`. Они не содержат Swift, Xcode или Apple SDK.
 Public invocation всегда передаёт `<platform> <feature>`.
 
+Общий `deep-code-review` задаёт read-only modes, finding schema, feedback triage,
+bug proof и security scan. Для `review|feedback|bug` он также требует
+`<platform> <feature>` и подключает addendum выбранного клиента; `security`
+сканирует только harness surfaces без platform identity и без изменений.
+
 Platform package identity дополняется strict kebab-case `change_id`; active
 discovery смотрит только `changes/`, а product discovery исключает `_archive`.
 

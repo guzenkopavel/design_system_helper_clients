@@ -28,6 +28,11 @@ iOS adapter выбирает phase base и только evidence-selected engine
 невыбранный corpus не загружается и не делает evidence stale. Реальные Xcode,
 Swift language mode, targets, schemes и simulator runtime всегда обнаруживаются.
 
+Для `$deep-code-review ... ios ...` применять общий read-only контракт и
+[`workflow/phases/deep-code-review.md`](workflow/phases/deep-code-review.md).
+После отдельного lifecycle fix fresh terminal evidence получает `$verify ios`;
+сам review ничего не исправляет.
+
 Перед разрешённым commit общий staged gate применяет iOS `pre_commit` profile из
 [`workflow/platform-contract.json`](workflow/platform-contract.json) и addendum
 [`workflow/phases/pre-commit-check.md`](workflow/phases/pre-commit-check.md).

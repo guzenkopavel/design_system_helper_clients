@@ -22,6 +22,9 @@
 | pre-commit gate | `workflow/phases/pre-commit-check.md` + `workflow/scripts/pre-commit-check.py` | portable skill + `.githooks/pre-commit` |
 | runtime hook policy | `workflow/rules/hook-contract.md` + `workflow/hooks/hook-runner.py` | thin Codex/Claude/Cursor/OpenCode bindings |
 | platform pre-commit profile | `<platform>/workflow/platform-contract.json#pre_commit` | platform addendum + common staged gate |
+| deep review invocation | `workflow/phases/deep-code-review.md` + common review rules | manual-only portable `deep-code-review`; read-only runtime roles |
+| harness security scan | `workflow/scripts/harness-security-audit.py` | `deep-code-review security` + non-recursive `harness-lint` check |
+| deep review mutation guard | private `0600` ephemeral state outside repo; no repository artifact | mandatory `start`/`check` around every deep-code-review mode |
 
 Общий канон использовать, когда контракт одинаков для обеих платформ.
 Платформенный канон использовать только для реальных различий SDK, build/test

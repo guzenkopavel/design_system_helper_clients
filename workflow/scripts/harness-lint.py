@@ -916,6 +916,23 @@ def self_test_android_lint(root: Path) -> int:
     runner_text = (root / "workflow/hooks/hook-runner.py").read_text(encoding="utf-8")
     assert hook_runner_findings(runner_text) == []
     assert any(item["check"] == "runtime-hook-schema" for item in hook_runner_findings(runner_text.replace("nested_shell_command", "removed_shell_inspection")))
+    unknown_scan = {
+        "status": "UNKNOWN", "critical": 0, "coverage_complete": False,
+        "coverage_issues": [{
+            "category": "read-error", "path": "workflow/phases/example.md",
+            "message": "Declared text surface cannot be read.",
+        }],
+        "findings": [],
+    }
+    unknown_findings = security_audit_payload_findings(
+        "workflow/scripts/harness-security-audit.py", unknown_scan, 3,
+    )
+    assert any(item["check"] == "harness-security-coverage" for item in unknown_findings)
+    assert security_audit_payload_findings(
+        "workflow/scripts/harness-security-audit.py",
+        {"status": "PASS", "critical": 0, "coverage_complete": True, "coverage_issues": [], "findings": []},
+        0,
+    ) == []
     for start in (root, root / "iOS", root / "Android"):
         result = subprocess.run(
             ["python3", str(root / "workflow/hooks/hook-runner.py"), "--runtime", "opencode", "--event", "pre-tool", "--root", str(root)],
@@ -927,12 +944,185 @@ def self_test_android_lint(root: Path) -> int:
         "workflow/scripts/pre-commit-check.py",
         "workflow/hooks/hook-runner.py",
         "workflow/scripts/configure-git-hooks.sh",
+        "workflow/scripts/validate-deep-code-review.py",
+        "workflow/scripts/read-deep-code-review-report.py",
+        "workflow/scripts/harness-security-audit.py",
+        "workflow/scripts/deep-code-review-readonly-guard.py",
     ):
         command = ["bash", script, "--self-test"] if script.endswith(".sh") else ["python3", script, "--self-test"]
         result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
         assert result.returncode == 0, f"{script} self-test failed: {result.stdout} {result.stderr}"
-    print("harness-lint self-test: PASS (Android corpus/profile + pre-commit/hook mutations)")
+    print("harness-lint self-test: PASS (profiles + hooks + deep review security mutations)")
     return 0
+
+
+def check_deep_code_review(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    required = (
+        ".agents/skills/deep-code-review/SKILL.md",
+        ".agents/skills/deep-code-review/agents/openai.yaml",
+        ".claude/commands/deep-code-review.md",
+        ".opencode/commands/deep-code-review.md",
+        "workflow/phases/deep-code-review.md",
+        "workflow/rules/code-review.md",
+        "workflow/rules/bug-investigation.md",
+        "workflow/rules/security-review.md",
+        "workflow/roles/deep-code-reviewer.md",
+        "workflow/roles/bug-investigator.md",
+        "workflow/roles/security-reviewer.md",
+        "workflow/scripts/validate-deep-code-review.py",
+        "workflow/scripts/deep_code_review_report.py",
+        "workflow/scripts/read-deep-code-review-report.py",
+        "workflow/scripts/harness-security-audit.py",
+        "workflow/scripts/deep-code-review-readonly-guard.py",
+        "iOS/workflow/phases/deep-code-review.md",
+        "Android/workflow/phases/deep-code-review.md",
+    )
+    for raw in required:
+        if not (root / raw).is_file():
+            findings.append(finding("critical", "deep-code-review-contract", raw, "required file is missing"))
+
+    phase_path = root / "workflow/phases/deep-code-review.md"
+    if phase_path.is_file():
+        phase = phase_path.read_text(encoding="utf-8")
+        required_tokens = (
+            "writes_artifacts: []", "review <platform> <feature>",
+            "feedback <platform> <feature>", "bug <platform> <feature>",
+            "security [--json]", "Fresh-eyes independence: UNAVAILABLE",
+            "accepted", "rejected", "duplicate", "needs-evidence",
+            "No edits made", "terminal Verify unavailable",
+            "deep-code-review-readonly-guard.py start",
+            "deep-code-review-readonly-guard.py check <token>",
+            "read-deep-code-review-report.py <path>",
+        )
+        for token in required_tokens:
+            if token not in phase:
+                findings.append(finding("critical", "deep-code-review-contract", relative(phase_path, root), f"missing invariant: {token}"))
+
+    skill_meta = root / ".agents/skills/deep-code-review/agents/openai.yaml"
+    if skill_meta.is_file() and "allow_implicit_invocation: false" not in skill_meta.read_text(encoding="utf-8"):
+        findings.append(finding("critical", "deep-code-review-manual-only", relative(skill_meta, root), "implicit invocation must be disabled"))
+
+    validator_path = root / "workflow/scripts/validate-deep-code-review.py"
+    if validator_path.is_file():
+        validator = validator_path.read_text(encoding="utf-8")
+        for token in ("platform_root", "pre_commit", "secret_globs", "report_sha256", "report_size"):
+            if token not in validator:
+                findings.append(finding("critical", "deep-code-review-path-contract", relative(validator_path, root), f"validator misses {token}"))
+    guard_path = root / "workflow/scripts/deep-code-review-readonly-guard.py"
+    if guard_path.is_file():
+        guard = guard_path.read_text(encoding="utf-8")
+        for token in ("GIT_OPTIONAL_LOCKS", "--cached", "--others", "MAX_FILES", "MAX_TOTAL_BYTES", "MAX_STATE_BYTES", "O_NOFOLLOW", "0o600"):
+            if token not in guard:
+                findings.append(finding("critical", "deep-code-review-readonly-guard", relative(guard_path, root), f"guard misses {token}"))
+    report_helper = root / "workflow/scripts/deep_code_review_report.py"
+    report_reader = root / "workflow/scripts/read-deep-code-review-report.py"
+    if report_helper.is_file():
+        helper = report_helper.read_text(encoding="utf-8")
+        for token in ("O_NOFOLLOW", "MAX_REPORT_BYTES", "os.fstat", "sha256"):
+            if token not in helper:
+                findings.append(finding("critical", "deep-code-review-report-reader", relative(report_helper, root), f"report helper misses {token}"))
+    if report_reader.is_file():
+        reader = report_reader.read_text(encoding="utf-8")
+        for token in ("expected_sha256", "expected_size", "read_report_snapshot"):
+            if token not in reader:
+                findings.append(finding("critical", "deep-code-review-report-reader", relative(report_reader, root), f"report reader misses {token}"))
+    scanner_path = root / "workflow/scripts/harness-security-audit.py"
+    if scanner_path.is_file():
+        scanner = scanner_path.read_text(encoding="utf-8")
+        for token in ("O_NOFOLLOW", "candidate-set-race", "os.fstat", "coverage_issues"):
+            if token not in scanner:
+                findings.append(finding("critical", "harness-security-coverage", relative(scanner_path, root), f"scanner misses {token}"))
+
+    roles = ("deep-code-reviewer", "bug-investigator", "security-reviewer")
+    binding_requirements = {
+        "codex": (".codex/agents/{role}.toml", "never write"),
+        "claude": (".claude/agents/{role}.md", "permissionMode: plan"),
+        "cursor": (".cursor/agents/{role}.md", "readonly: true"),
+        "opencode": (".opencode/agents/{role}.md", "edit: deny"),
+    }
+    for role in roles:
+        canonical = root / f"workflow/roles/{role}.md"
+        if canonical.is_file() and "read-only" not in canonical.read_text(encoding="utf-8").casefold():
+            findings.append(finding("critical", "deep-code-review-read-only", relative(canonical, root), "canonical role must be explicitly read-only"))
+        for runtime, (template, marker) in binding_requirements.items():
+            raw = template.format(role=role)
+            path = root / raw
+            if not path.is_file():
+                findings.append(finding("critical", "deep-code-review-role-binding", raw, f"{runtime} binding is missing"))
+            elif marker not in path.read_text(encoding="utf-8"):
+                findings.append(finding("critical", "deep-code-review-read-only", raw, f"missing read-only marker: {marker}"))
+
+    for legacy in ("deep-review", "receiving-code-review", "bug-resolver", "security-audit"):
+        path = root / ".agents/skills" / legacy
+        if path.exists():
+            findings.append(finding("critical", "deep-code-review-duplicate", relative(path, root), "legacy duplicate skill is forbidden"))
+
+    ios = root / "iOS/workflow/phases/deep-code-review.md"
+    android = root / "Android/workflow/phases/deep-code-review.md"
+    if ios.is_file():
+        text = ios.read_text(encoding="utf-8")
+        if "verify ios" not in text or re.search(r"\b(?:Android|Gradle|Kotlin|Compose)\b", text):
+            findings.append(finding("critical", "deep-code-review-platform-isolation", relative(ios, root), "iOS addendum has wrong terminal route or Android leakage"))
+    if android.is_file():
+        text = android.read_text(encoding="utf-8")
+        if "terminal Verify unavailable" not in text or re.search(r"\b(?:Swift|SwiftUI|UIKit|Xcode)\b", text):
+            findings.append(finding("critical", "deep-code-review-platform-isolation", relative(android, root), "Android addendum has wrong terminal route or iOS leakage"))
+    return findings
+
+
+def check_security_audit(root: Path) -> list[dict[str, str]]:
+    script = root / "workflow/scripts/harness-security-audit.py"
+    if not script.is_file():
+        return [finding("critical", "harness-security-audit", relative(script, root), "scanner is unavailable")]
+    completed = subprocess.run(
+        [sys.executable, str(script), "--root", str(root), "--json"],
+        cwd=root, capture_output=True, text=True, check=False,
+    )
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return [finding("critical", "harness-security-audit", relative(script, root), "scanner returned invalid output")]
+    return security_audit_payload_findings(relative(script, root), payload, completed.returncode)
+
+
+def security_audit_payload_findings(
+    script: Path | str, payload: object, returncode: int,
+) -> list[dict[str, str]]:
+    if not isinstance(payload, dict):
+        return [finding("critical", "harness-security-audit", script, "scanner payload must be an object")]
+    findings: list[dict[str, str]] = []
+    scanner_findings = payload.get("findings", [])
+    if not isinstance(scanner_findings, list):
+        findings.append(finding("critical", "harness-security-audit", script, "scanner findings schema is invalid"))
+        scanner_findings = []
+    for item in scanner_findings:
+        if not isinstance(item, dict):
+            findings.append(finding("critical", "harness-security-audit", script, "scanner finding schema is invalid"))
+            continue
+        severity = "critical" if item.get("severity") == "critical" else "warning"
+        label = f"{item.get('path', '?')}:{item.get('line', '?')}"
+        findings.append(finding(severity, "harness-security-audit", label, str(item.get("message", "security finding"))))
+    status = payload.get("status")
+    expected_exit = {"PASS": 0, "FAIL": 2, "UNKNOWN": 3}
+    if status not in expected_exit or returncode != expected_exit.get(status):
+        findings.append(finding("critical", "harness-security-audit", script, "scanner status/exit contract is invalid"))
+    coverage = payload.get("coverage_issues", [])
+    if not isinstance(coverage, list):
+        findings.append(finding("critical", "harness-security-coverage", script, "coverage_issues schema is invalid"))
+        coverage = []
+    for item in coverage:
+        if not isinstance(item, dict):
+            findings.append(finding("critical", "harness-security-coverage", script, "coverage issue schema is invalid"))
+            continue
+        label = str(item.get("path", script))
+        detail = str(item.get("message", "harness security coverage is incomplete"))
+        findings.append(finding("critical", "harness-security-coverage", label, detail))
+    if status == "UNKNOWN" and not coverage:
+        findings.append(finding("critical", "harness-security-coverage", script, "scanner returned UNKNOWN without a coverage issue"))
+    if payload.get("coverage_complete") is not (not coverage):
+        findings.append(finding("critical", "harness-security-coverage", script, "coverage_complete contradicts coverage issues"))
+    return findings
 
 
 def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
@@ -1176,6 +1366,8 @@ def main() -> int:
     findings.extend(check_platform_contract(root))
     findings.extend(check_specification_layers(root))
     findings.extend(check_implementation_lifecycle(root))
+    findings.extend(check_deep_code_review(root))
+    findings.extend(check_security_audit(root))
     findings.extend(check_engineering_rule_profiles(root))
     findings.extend(check_naming(root))
     findings.sort(key=lambda item: (item["severity"], item["check"], item["file"]))

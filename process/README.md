@@ -6,7 +6,8 @@
 ## Навигация
 
 - [`entities.md`](entities.md) — типы сущностей и владельцы;
-- [`flows.md`](flows.md) — поток изменения и ревью харнеса;
+- [`flows.md`](flows.md) — потоки изменения харнеса, platform lifecycle и
+  manual read-only deep code review;
 - [`directions/_common.md`](directions/_common.md) — общий слой;
 - [`directions/ios.md`](directions/ios.md) — iOS placement;
 - [`directions/android.md`](directions/android.md) — Android placement.

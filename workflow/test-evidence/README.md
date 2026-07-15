@@ -18,3 +18,5 @@
   implement/verify и dual archive с iOS/Android fail-before-write evidence.
 - [`pre-commit-and-hooks.md`](pre-commit-and-hooks.md) — staged-index gate,
   tracked Git hook, runtime guards и отдельные iOS/Android pressure scenarios.
+- [`deep-code-review.md`](deep-code-review.md) — единый manual-only read-only
+  review/feedback/bug/security contract, runtime parity и pressure evidence.

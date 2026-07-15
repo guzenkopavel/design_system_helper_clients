@@ -19,6 +19,8 @@
 - [`phases/verify.md`](phases/verify.md) — получить fresh terminal evidence;
 - [`phases/archive.md`](phases/archive.md) — collision-safe архивировать
   implementation change или shared product package;
+- [`phases/deep-code-review.md`](phases/deep-code-review.md) — manual-only
+  read-only review, feedback triage, bug investigation и harness security audit;
 - [`phases/harness-change.md`](phases/harness-change.md) — изменить харнес;
 - [`phases/harness-review.md`](phases/harness-review.md) — проверить харнес;
 - [`phases/writing-skills.md`](phases/writing-skills.md) — проверить новое
@@ -54,6 +56,10 @@
   граница канон↔адаптер;
 - [`rules/platform-scope.md`](rules/platform-scope.md) — common/iOS/Android/
   cross-platform;
+- [`rules/code-review.md`](rules/code-review.md),
+  [`rules/bug-investigation.md`](rules/bug-investigation.md) и
+  [`rules/security-review.md`](rules/security-review.md) — evidence-driven
+  review/investigation без исправлений;
 - [`rules/runtime-adapters.md`](rules/runtime-adapters.md) — Codex, Claude Code,
   Cursor и OpenCode;
 - [`rules/pre-commit-integrity.md`](rules/pre-commit-integrity.md) и
@@ -75,6 +81,10 @@
 - [`roles/implementation-discovery.md`](roles/implementation-discovery.md) и
   [`roles/verifier.md`](roles/verifier.md) — read-only implementation handoff и
   fresh verification.
+- [`roles/deep-code-reviewer.md`](roles/deep-code-reviewer.md),
+  [`roles/bug-investigator.md`](roles/bug-investigator.md) и
+  [`roles/security-reviewer.md`](roles/security-reviewer.md) — read-only роли
+  единого deep review.
 
 ## Ресурсы
 
@@ -92,6 +102,12 @@
   runtime и platform evidence;
 - [`scripts/harness-lint.py`](scripts/harness-lint.py) — детерминированная
   проверка структуры.
+- [`scripts/validate-deep-code-review.py`](scripts/validate-deep-code-review.py),
+  [`scripts/read-deep-code-review-report.py`](scripts/read-deep-code-review-report.py),
+  [`scripts/deep-code-review-readonly-guard.py`](scripts/deep-code-review-readonly-guard.py)
+  и [`scripts/harness-security-audit.py`](scripts/harness-security-audit.py) —
+  fail-closed invocation contract, identity-bound report reader, machine
+  pre/post mutation guard и bounded redacted security scan;
 - [`scripts/find-platform-context.py`](scripts/find-platform-context.py) и
   [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
   profile-aware retrieval и stdlib lifecycle gate;

@@ -97,3 +97,23 @@ Product archive — отдельная ветка с retirement approval, platfo
 и active-reference scan. Каждый implementation шаг проверяет adapter capability.
 Для Android цепочка сейчас заканчивается после Implement в
 `implementing/pending`; Verify и implementation archive недоступны.
+
+## Manual deep code review
+
+```text
+deep-code-review review|feedback|bug <platform> <feature> [--change ...]
+  → fail-closed identity/path validation
+  → common read-only role + platform addendum
+  → evidence-backed DCR findings
+  → No edits made
+  → explicit lifecycle route only when a later fix is requested
+
+deep-code-review security [--json]
+  → redacted deterministic scan
+  → contextual validation by security-reviewer
+  → PASS | findings | UNKNOWN when scanner unavailable
+```
+
+Этот flow не меняет production/package/evidence и не запускает lifecycle.
+Android review остаётся платформенным, но после будущего fix не заявляет
+terminal Verify: capability отсутствует.

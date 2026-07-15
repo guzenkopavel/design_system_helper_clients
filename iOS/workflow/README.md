@@ -10,6 +10,8 @@
 - [`phases/implement.md`](phases/implement.md)
 - [`phases/verify.md`](phases/verify.md)
 - [`phases/archive.md`](phases/archive.md)
+- [`phases/deep-code-review.md`](phases/deep-code-review.md) — read-only iOS
+  review lenses и route в terminal Verify только после отдельного fix
 
 ## Rule profiles
 
