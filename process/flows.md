@@ -18,6 +18,21 @@ request
 Runtime выбирает только способ обнаружения skill и вызова роли. Канонический
 flow не меняется между Codex, Claude Code, Cursor и OpenCode.
 
+## Explicit commit flow
+
+```text
+explicit commit intent
+  → scoped staging (separate authorization)
+  → pre-commit-check over staged index
+  → platform profile + task/evidence trail + harness lint when applicable
+  → stable staged fingerprint: PASS
+  → tracked Git hook reruns the same canonical gate
+  → commit under the original explicit authorization
+```
+
+Runtime hooks дают ранние deny/warnings для опасных команд и edits, но не stage,
+commit, push и не заменяют tracked Git hook. Изменение index инвалидирует PASS.
+
 ## Product elaboration
 
 ```text

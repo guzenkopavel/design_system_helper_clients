@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pre-commit Check"
+  short_description: "Проверить staged index перед commit"
+  default_prompt: "Use $pre-commit-check on the current staged index; report PASS/FAIL/UNKNOWN without staging or committing."
+policy:
+  allow_implicit_invocation: true

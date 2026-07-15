@@ -19,6 +19,9 @@
 | product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |
 | verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |
 | iOS engineering rule | `iOS/workflow/rules/` | iOS addenda, adapter profiles и platform roles |
+| pre-commit gate | `workflow/phases/pre-commit-check.md` + `workflow/scripts/pre-commit-check.py` | portable skill + `.githooks/pre-commit` |
+| runtime hook policy | `workflow/rules/hook-contract.md` + `workflow/hooks/hook-runner.py` | thin Codex/Claude/Cursor/OpenCode bindings |
+| platform pre-commit profile | `<platform>/workflow/platform-contract.json#pre_commit` | platform addendum + common staged gate |
 
 Общий канон использовать, когда контракт одинаков для обеих платформ.
 Платформенный канон использовать только для реальных различий SDK, build/test

@@ -10,6 +10,11 @@ import re
 PHASES = ("propose", "plan", "implement", "verify")
 CAPABILITIES = ("propose", "plan", "implement", "verify", "archive-implementation")
 SCOPE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+PRE_COMMIT_KEYS = {
+    "source_suffixes", "generated_globs", "secret_globs",
+    "security_sensitive_globs", "ui_globs", "localization_globs",
+    "project_globs", "tool_globs",
+}
 
 
 class RuleProfileError(ValueError):
@@ -31,6 +36,38 @@ def require_capability(adapter: dict[str, object], capability: str) -> None:
     capabilities = validate_capabilities(adapter)
     if capability not in capabilities:
         raise RuleProfileError(f"NOT IMPLEMENTED: platform capability '{capability}' is unavailable; no files were written")
+
+
+def _safe_glob(raw: object) -> bool:
+    if not isinstance(raw, str) or not raw or Path(raw).is_absolute() or ".." in Path(raw).parts:
+        return False
+    return re.fullmatch(r"[A-Za-z0-9_./*?+-]+", raw) is not None
+
+
+def validate_pre_commit_profile(adapter: dict[str, object]) -> dict[str, object]:
+    profile = adapter.get("pre_commit")
+    if not isinstance(profile, dict) or set(profile) != PRE_COMMIT_KEYS:
+        raise RuleProfileError("pre_commit must contain the exact canonical schema keys")
+    suffixes = profile["source_suffixes"]
+    if (
+        not isinstance(suffixes, list) or not suffixes
+        or len(suffixes) != len(set(suffixes))
+        or not all(isinstance(item, str) and re.fullmatch(r"\.[a-z0-9]+", item) for item in suffixes)
+    ):
+        raise RuleProfileError("pre_commit.source_suffixes must be a sorted unique extension list")
+    for key in PRE_COMMIT_KEYS - {"source_suffixes", "tool_globs"}:
+        values = profile[key]
+        if not isinstance(values, list) or not values or len(values) != len(set(values)) or not all(_safe_glob(item) for item in values):
+            raise RuleProfileError(f"pre_commit.{key} must be a unique non-empty safe glob list")
+    tools = profile["tool_globs"]
+    if not isinstance(tools, dict) or not tools:
+        raise RuleProfileError("pre_commit.tool_globs must be a non-empty object")
+    for tool, globs in tools.items():
+        if not isinstance(tool, str) or not SCOPE_RE.fullmatch(tool):
+            raise RuleProfileError(f"invalid pre_commit tool name: {tool}")
+        if not isinstance(globs, list) or not globs or len(globs) != len(set(globs)) or not all(_safe_glob(item) for item in globs):
+            raise RuleProfileError(f"pre_commit.tool_globs.{tool} must be a unique non-empty safe glob list")
+    return profile
 
 
 def _safe_rule(repo: Path, raw: object, label: str, require_files: bool) -> str:

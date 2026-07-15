@@ -24,3 +24,8 @@ contract prefix, boundary guard и Extended gates;
 phase/scope rule profiles, context file suffixes и полный catalog. Общий resolver/validator не
 hardcode'ит эти значения. Performance topics, UI/simulator, package,
 concurrency, localization, delivery и DX загружаются только выбранными scopes.
+
+`pre_commit` profile этого adapter владеет iOS source, project, signing,
+security, UI и localization globs. Общий gate не содержит Apple-specific
+значений; iOS evidence трактуется по
+[`pre-commit-check.md`](../../iOS/workflow/phases/pre-commit-check.md).

@@ -16,6 +16,7 @@ from platform_rule_profiles import (
     applicable_rules,
     semantic_projection,
     require_capability,
+    validate_pre_commit_profile,
     validate_profiles,
 )
 
@@ -96,6 +97,7 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
         "context_file_suffixes", "context_excluded_directories",
         "context_always_include_globs",
         "lifecycle_capabilities",
+        "pre_commit",
     }
     missing = sorted(required - set(adapter))
     if missing:
@@ -139,6 +141,7 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
             raise AdapterError(f"unsafe context_always_include_globs pattern: {pattern}")
     try:
         _catalog, _phases, scopes = validate_profiles(repo, adapter)
+        validate_pre_commit_profile(adapter)
     except RuleProfileError as error:
         raise AdapterError(str(error)) from error
     task_checks = adapter["scope_task_checks"]
@@ -770,6 +773,16 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
         "context_file_suffixes": [".md", ".json", ".swift"],
         "context_excluded_directories": [".build"],
         "context_always_include_globs": ["TestClient/**/Package.swift"],
+        "pre_commit": {
+            "source_suffixes": [".swift"],
+            "generated_globs": ["TestClient/**/build/**"],
+            "secret_globs": ["TestClient/**/*.key"],
+            "security_sensitive_globs": ["TestClient/**/Config.json"],
+            "ui_globs": ["TestClient/**/*View.swift"],
+            "localization_globs": ["TestClient/**/*.strings"],
+            "project_globs": ["TestClient/**/Package.swift"],
+            "tool_globs": {"build-tool": ["TestClient/**/Package.swift"]},
+        },
     }
     (adapter_dir / "platform-contract.json").write_text(json.dumps(adapter), encoding="utf-8")
     (adapter_dir / "base.md").write_text("Current lifecycle base rule.\n", encoding="utf-8")

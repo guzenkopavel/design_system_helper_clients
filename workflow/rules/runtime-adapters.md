@@ -40,3 +40,20 @@ unsupported до любых записей по machine capability. Product arch
 custom subagent, выполнить writer и review последовательно в основной сессии.
 Перед review прекратить любые записи, явно отметить fallback в отчёте и не
 заявлять независимое ревью.
+
+## Hook adapters
+
+Hook policy принадлежит [`hook-contract.md`](hook-contract.md) и исполняется
+только [`../hooks/hook-runner.py`](../hooks/hook-runner.py). Thin bindings:
+
+| Runtime | Binding | Enforcement |
+|---|---|---|
+| Codex | `.codex/hooks.json` | deny зависит от поддержки exit `2`; post output остаётся generic/advisory |
+| Claude Code | `.claude/settings.json` | blocking `PreToolUse`; native `PostToolUse.additionalContext` warning |
+| Cursor | `.cursor/hooks.json` | `preToolUse` permission/fail-closed deny; `postToolUse.additional_context` warning |
+| OpenCode | `.opencode/plugins/harness-hooks.ts` | auto-loaded worktree-root plugin превращает deny/failure в error и показывает warning |
+
+Адаптеры передают JSON stdin и не содержат собственных Git, secret, platform
+или task-coverage правил. Независимо от runtime, финальная обязательная граница —
+tracked [`.githooks/pre-commit`](../../.githooks/pre-commit), запускающий staged
+gate. Наличие tracked hook не означает его автоматическую установку.

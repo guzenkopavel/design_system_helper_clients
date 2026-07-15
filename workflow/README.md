@@ -23,6 +23,8 @@
 - [`phases/harness-review.md`](phases/harness-review.md) — проверить харнес;
 - [`phases/writing-skills.md`](phases/writing-skills.md) — проверить новое
   жёсткое правило, skill или роль через RED → GREEN → REFACTOR.
+- [`phases/pre-commit-check.md`](phases/pre-commit-check.md) — проверить уже
+  staged index после явного commit intent, не выполняя delivery-действий.
 
 ## Правила
 
@@ -54,6 +56,9 @@
   cross-platform;
 - [`rules/runtime-adapters.md`](rules/runtime-adapters.md) — Codex, Claude Code,
   Cursor и OpenCode;
+- [`rules/pre-commit-integrity.md`](rules/pre-commit-integrity.md) и
+  [`rules/hook-contract.md`](rules/hook-contract.md) — index gate, tracked Git
+  hook и единый runtime hook contract;
 - [`rules/agent-roster.md`](rules/agent-roster.md) — роли харнеса.
 
 ## Роли
@@ -100,6 +105,11 @@
   nontrivial test/build commands.
 - [`scripts/workflow-reflection.py`](scripts/workflow-reflection.py) — focused
   propose/plan reflection без legacy paths.
+- [`scripts/pre-commit-check.py`](scripts/pre-commit-check.py) и
+  [`hooks/hook-runner.py`](hooks/hook-runner.py) — обязательный staged gate и
+  ранние runtime guards без дублирования policy.
+- [`scripts/configure-git-hooks.sh`](scripts/configure-git-hooks.sh) — read-only
+  `--check` и только явно вызываемый collision-safe `--install` tracked hooks.
 
 Portable skills хранятся в `.agents/skills/`. Runtime-адаптеры хранят только
 обнаружение, invocation policy, permissions и binding ролей. Процессное знание

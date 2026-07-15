@@ -15,7 +15,13 @@ import tomllib
 from pathlib import Path
 from urllib.parse import unquote
 
-from platform_rule_profiles import PHASES, RuleProfileError, validate_capabilities, validate_profiles
+from platform_rule_profiles import (
+    PHASES,
+    RuleProfileError,
+    validate_capabilities,
+    validate_pre_commit_profile,
+    validate_profiles,
+)
 
 
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -351,6 +357,181 @@ def check_runtime_config(root: Path) -> list[dict[str, str]]:
                         "permission.skill.* should be 'allow'",
                     )
                 )
+    return findings
+
+
+PRE_COMMIT_REQUIRED = (
+    ".agents/skills/pre-commit-check/SKILL.md",
+    ".agents/skills/pre-commit-check/agents/openai.yaml",
+    ".claude/commands/pre-commit-check.md",
+    ".opencode/commands/pre-commit-check.md",
+    "workflow/phases/pre-commit-check.md",
+    "workflow/rules/pre-commit-integrity.md",
+    "workflow/rules/hook-contract.md",
+    "workflow/scripts/pre-commit-check.py",
+    "workflow/scripts/configure-git-hooks.sh",
+    "workflow/hooks/hook-runner.py",
+    ".githooks/pre-commit",
+    ".codex/hooks.json",
+    ".claude/settings.json",
+    ".cursor/hooks.json",
+    ".opencode/plugins/harness-hooks.ts",
+    "iOS/workflow/phases/pre-commit-check.md",
+    "Android/workflow/phases/pre-commit-check.md",
+)
+
+
+def pre_commit_adapter_findings(
+    root: Path, platform: str, adapter_path: Path, adapter: dict[str, object]
+) -> list[dict[str, str]]:
+    label = relative(adapter_path, root) if adapter_path.is_absolute() else adapter_path
+    try:
+        profile = validate_pre_commit_profile(adapter)
+    except RuleProfileError as error:
+        return [finding("critical", "pre-commit-adapter", label, str(error))]
+    other = "Android/" if platform == "iOS" else "iOS/"
+    if other in json.dumps(profile):
+        return [finding("critical", "pre-commit-platform-leakage", label, f"profile leaks {other} globs")]
+    own = f"{platform}/"
+    globs = [
+        item for key, value in profile.items() if key not in {"source_suffixes", "tool_globs"}
+        for item in value
+    ]
+    globs.extend(item for values in profile["tool_globs"].values() for item in values)
+    if any(not item.startswith(own) for item in globs):
+        return [finding("critical", "pre-commit-platform-leakage", label, f"profile globs must remain under {own}")]
+    return []
+
+
+def cursor_hook_findings(config: object, label: str = ".cursor/hooks.json") -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    if not isinstance(config, dict) or config.get("version") != 1 or not isinstance(config.get("hooks"), dict):
+        return [finding("critical", "cursor-hook-schema", label, "version 1 hooks object is required")]
+    hooks = config["hooks"]
+    if set(hooks) != {"preToolUse", "postToolUse"}:
+        findings.append(finding("critical", "cursor-hook-event", label, "exact preToolUse/postToolUse events are required"))
+    expected = {"preToolUse": "pre-tool", "postToolUse": "post-edit"}
+    for event, runner_event in expected.items():
+        entries = hooks.get(event)
+        if not isinstance(entries, list) or not entries:
+            findings.append(finding("critical", "cursor-hook-schema", label, f"{event} entries are missing"))
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("failClosed") is not True:
+                findings.append(finding("critical", "cursor-hook-fail-closed", label, f"{event} must set failClosed true"))
+                continue
+            if not isinstance(entry.get("matcher"), str) or not entry["matcher"]:
+                findings.append(finding("critical", "cursor-hook-schema", label, f"{event} matcher is missing"))
+            command = entry.get("command", "")
+            if "workflow/hooks/hook-runner.py" not in command or f"--event {runner_event}" not in command:
+                findings.append(finding("critical", "cursor-hook-binding", label, f"{event} runner binding is invalid"))
+    return findings
+
+
+def opencode_hook_findings(
+    text: str, label: str = ".opencode/plugins/harness-hooks.ts", *, singular_exists: bool = False
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    if singular_exists:
+        findings.append(finding("critical", "opencode-hook-location", ".opencode/plugin", "singular plugin directory is not auto-loaded"))
+    required = (
+        "workflow/hooks/hook-runner.py", "tool.execute.before", "tool.execute.after",
+        "async ({ worktree })", "cwd: root", "runHook(worktree",
+        "tool_input: output.args", "tool_input: input.args",
+        "console.warn", 'report.decision === "warn"',
+    )
+    for token in required:
+        if token not in text:
+            findings.append(finding("critical", "opencode-hook-binding", label, f"missing native binding token: {token}"))
+    if "/Users/" in text:
+        findings.append(finding("critical", "runtime-hook-binding", label, "absolute local path is forbidden"))
+    return findings
+
+
+def hook_runner_findings(text: str, label: str = "workflow/hooks/hook-runner.py") -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    required = (
+        "MAX_SHELL_DEPTH", "nested_shell_command",
+        're.fullmatch(r"-[A-Za-z]+", token)',
+        'Path(segment[index]).name not in {"sh", "bash"}',
+        'runtime == "cursor"', '"permission":', '"additional_context":',
+        'runtime == "claude"', '"hookSpecificOutput":', '"additionalContext":',
+        '"hookEventName": "PreToolUse"', '"hookEventName": "PostToolUse"',
+        '"filePath"',
+    )
+    for token in required:
+        if token not in text:
+            findings.append(finding("critical", "runtime-hook-schema", label, f"missing runtime behavior token: {token}"))
+    return findings
+
+
+def check_pre_commit_hooks(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for value in PRE_COMMIT_REQUIRED:
+        path = root / value
+        if not path.is_file():
+            findings.append(finding("critical", "pre-commit-files", value, "required pre-commit/hook artifact is missing"))
+
+    hook = root / ".githooks/pre-commit"
+    if hook.is_file():
+        text = hook.read_text(encoding="utf-8")
+        if not os.access(hook, os.X_OK):
+            findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "tracked hook is not executable"))
+        if "workflow/scripts/pre-commit-check.py" not in text or "--staged" not in text:
+            findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "hook must invoke the canonical staged gate"))
+        if "--no-verify" in text or "git commit" in text:
+            findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "hook must not bypass or perform commit"))
+
+    installer = root / "workflow/scripts/configure-git-hooks.sh"
+    if installer.is_file():
+        text = installer.read_text(encoding="utf-8")
+        if not os.access(installer, os.X_OK):
+            findings.append(finding("critical", "hook-installer", relative(installer, root), "installer/check script is not executable"))
+        for token in ("--check", "--install", "core.hooksPath", "refusing to overwrite"):
+            if token not in text:
+                findings.append(finding("critical", "hook-installer", relative(installer, root), f"missing collision-safe token: {token}"))
+
+    for platform in ("iOS", "Android"):
+        adapter_path = root / platform / "workflow/platform-contract.json"
+        if not adapter_path.is_file():
+            continue
+        try:
+            adapter = json.loads(adapter_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            findings.append(finding("critical", "pre-commit-adapter", relative(adapter_path, root), str(error)))
+            continue
+        findings.extend(pre_commit_adapter_findings(root, platform, adapter_path, adapter))
+
+    runner_pointer = "workflow/hooks/hook-runner.py"
+    for value in (".codex/hooks.json", ".claude/settings.json", ".cursor/hooks.json"):
+        path = root / value
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            findings.append(finding("critical", "runtime-hook-config", value, str(error)))
+            continue
+        serialized = json.dumps(data)
+        if runner_pointer not in serialized:
+            findings.append(finding("critical", "runtime-hook-binding", value, "common hook runner pointer is missing"))
+        if "/Users/" in serialized:
+            findings.append(finding("critical", "runtime-hook-binding", value, "absolute local path is forbidden"))
+        if value == ".cursor/hooks.json":
+            findings.extend(cursor_hook_findings(data))
+    runner = root / "workflow/hooks/hook-runner.py"
+    if runner.is_file():
+        runner_text = runner.read_text(encoding="utf-8")
+        findings.extend(hook_runner_findings(runner_text, relative(runner, root).as_posix()))
+    plugin = root / ".opencode/plugins/harness-hooks.ts"
+    if plugin.is_file():
+        text = plugin.read_text(encoding="utf-8")
+        findings.extend(opencode_hook_findings(
+            text, relative(plugin, root).as_posix(),
+            singular_exists=(root / ".opencode/plugin").exists(),
+        ))
+    elif (root / ".opencode/plugin").exists():
+        findings.append(finding("critical", "opencode-hook-location", ".opencode/plugin", "singular plugin directory is not auto-loaded"))
     return findings
 
 
@@ -693,7 +874,64 @@ def self_test_android_lint(root: Path) -> int:
         fixture_rule.parent.mkdir(parents=True)
         fixture_rule.write_text("Project requires Kotlin 1.9+ and 85% coverage.\n", encoding="utf-8")
         assert len(android_assumption_findings(fixture_root)) == 2
-    print("harness-lint Android self-test: PASS (corpus/profile/capability/dependency/assumption mutations)")
+
+    ios_path = root / "iOS/workflow/platform-contract.json"
+    ios_adapter = json.loads(ios_path.read_text(encoding="utf-8"))
+    assert pre_commit_adapter_findings(root, "iOS", ios_path, ios_adapter) == []
+    assert pre_commit_adapter_findings(root, "Android", path, adapter) == []
+    missing_pre_commit = copy.deepcopy(adapter)
+    missing_pre_commit.pop("pre_commit")
+    assert any(
+        item["check"] == "pre-commit-adapter"
+        for item in pre_commit_adapter_findings(root, "Android", path, missing_pre_commit)
+    )
+    leaked_pre_commit = copy.deepcopy(adapter)
+    leaked_pre_commit["pre_commit"]["generated_globs"].append("iOS/**/build/**")
+    assert any(
+        item["check"] == "pre-commit-platform-leakage"
+        for item in pre_commit_adapter_findings(root, "Android", path, leaked_pre_commit)
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        missing_root = Path(tmp).resolve()
+        missing = check_pre_commit_hooks(missing_root)
+        assert any(item["file"] == ".githooks/pre-commit" for item in missing)
+        assert any(item["file"] == ".claude/commands/pre-commit-check.md" for item in missing)
+    cursor_path = root / ".cursor/hooks.json"
+    cursor_config = json.loads(cursor_path.read_text(encoding="utf-8"))
+    assert cursor_hook_findings(cursor_config) == []
+    cursor_bad_event = copy.deepcopy(cursor_config)
+    cursor_bad_event["hooks"]["beforeFileEdit"] = cursor_bad_event["hooks"].pop("preToolUse")
+    assert any(item["check"] == "cursor-hook-event" for item in cursor_hook_findings(cursor_bad_event))
+    cursor_open = copy.deepcopy(cursor_config)
+    cursor_open["hooks"]["preToolUse"][0].pop("failClosed")
+    assert any(item["check"] == "cursor-hook-fail-closed" for item in cursor_hook_findings(cursor_open))
+    opencode_path = root / ".opencode/plugins/harness-hooks.ts"
+    opencode_text = opencode_path.read_text(encoding="utf-8")
+    assert opencode_hook_findings(opencode_text) == []
+    assert any(item["check"] == "opencode-hook-location" for item in opencode_hook_findings(opencode_text, singular_exists=True))
+    assert any(item["check"] == "opencode-hook-binding" for item in opencode_hook_findings(opencode_text.replace("tool_input: output.args", "tool_input: input")))
+    assert any(item["check"] == "opencode-hook-binding" for item in opencode_hook_findings(opencode_text.replace("async ({ worktree })", "async ({ directory })")))
+    assert any(item["check"] == "opencode-hook-binding" for item in opencode_hook_findings(opencode_text.replace("tool_input: input.args", "tool_input: output.args")))
+    assert any(item["check"] == "opencode-hook-binding" for item in opencode_hook_findings(opencode_text.replace("console.warn", "void")))
+    runner_text = (root / "workflow/hooks/hook-runner.py").read_text(encoding="utf-8")
+    assert hook_runner_findings(runner_text) == []
+    assert any(item["check"] == "runtime-hook-schema" for item in hook_runner_findings(runner_text.replace("nested_shell_command", "removed_shell_inspection")))
+    for start in (root, root / "iOS", root / "Android"):
+        result = subprocess.run(
+            ["python3", str(root / "workflow/hooks/hook-runner.py"), "--runtime", "opencode", "--event", "pre-tool", "--root", str(root)],
+            cwd=start, input=json.dumps({"tool": "write", "args": {"filePath": "workflow/README.md"}}),
+            capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 0, f"OpenCode worktree-root payload failed from {start}: {result.stdout} {result.stderr}"
+    for script in (
+        "workflow/scripts/pre-commit-check.py",
+        "workflow/hooks/hook-runner.py",
+        "workflow/scripts/configure-git-hooks.sh",
+    ):
+        command = ["bash", script, "--self-test"] if script.endswith(".sh") else ["python3", script, "--self-test"]
+        result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
+        assert result.returncode == 0, f"{script} self-test failed: {result.stdout} {result.stderr}"
+    print("harness-lint self-test: PASS (Android corpus/profile + pre-commit/hook mutations)")
     return 0
 
 
@@ -933,6 +1171,7 @@ def main() -> int:
     agent_names, agent_findings = read_agents(root)
     findings.extend(agent_findings)
     findings.extend(check_runtime_config(root))
+    findings.extend(check_pre_commit_hooks(root))
     findings.extend(check_dispatch_references(root, markdown_files, agent_names))
     findings.extend(check_platform_contract(root))
     findings.extend(check_specification_layers(root))

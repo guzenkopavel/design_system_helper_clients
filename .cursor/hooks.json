@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "Shell|Write|StrReplace|Delete",
+        "command": "python3 workflow/hooks/hook-runner.py --runtime cursor --event pre-tool",
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Write|StrReplace|Delete",
+        "command": "python3 workflow/hooks/hook-runner.py --runtime cursor --event post-edit",
+        "failClosed": true
+      }
+    ]
+  }
+}

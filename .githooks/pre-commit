@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+repo="$(git rev-parse --show-toplevel)"
+exec python3 "$repo/workflow/scripts/pre-commit-check.py" --staged

@@ -27,3 +27,11 @@ iOS adapter выбирает phase base и только evidence-selected engine
 Точный lifecycle union хранится в meta и участвует в verification fingerprint;
 невыбранный corpus не загружается и не делает evidence stale. Реальные Xcode,
 Swift language mode, targets, schemes и simulator runtime всегда обнаруживаются.
+
+Перед разрешённым commit общий staged gate применяет iOS `pre_commit` profile из
+[`workflow/platform-contract.json`](workflow/platform-contract.json) и addendum
+[`workflow/phases/pre-commit-check.md`](workflow/phases/pre-commit-check.md).
+Project/security edits разрешаются pre-tool guard только при покрытии active
+task с явными engineering scopes; pre-edit не требует ещё не созданный
+post-edit evidence. Секреты и signing material не читаются и не допускаются в
+index.

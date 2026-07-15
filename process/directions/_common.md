@@ -25,3 +25,7 @@ Adapter catalog распределяется по exact phase bases и named eng
 Package фиксирует evidence-selected scopes и полный lifecycle union; общий
 resolver используется retrieval, validator и fingerprint logic. Условные
 delivery/DX rules не дают права коммитить или менять ветки.
+
+Общий pre-commit gate анализирует staged blobs, fingerprint и task trail; общий
+hook runner защищает dangerous Git и edit boundaries. Платформенные suffix/glob
+категории принадлежат adapter `pre_commit`, а runtime bindings остаются thin.

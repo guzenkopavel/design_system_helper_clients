@@ -10,10 +10,12 @@
     "iOS"
   ],
   "protected_roots": [
+    "iOS/AGENTS.md",
     "iOS/specs",
     "iOS/workflow"
   ],
   "production_exclusions": [
+    "iOS/AGENTS.md",
     "iOS/specs",
     "iOS/workflow"
   ],
@@ -104,6 +106,20 @@
     "iOS/**/.swiftlint.yml",
     "iOS/**/.swiftformat"
   ],
+  "pre_commit": {
+    "source_suffixes": [".h", ".m", ".mm", ".swift"],
+    "generated_globs": ["iOS/**/DerivedData/**", "iOS/**/.build/**", "iOS/**/build/**", "iOS/**/*.generated.swift"],
+    "secret_globs": ["iOS/**/*.p8", "iOS/**/*.p12", "iOS/**/*.mobileprovision", "iOS/**/*.pem", "iOS/**/*.key"],
+    "security_sensitive_globs": ["iOS/**/*.entitlements", "iOS/**/Info.plist", "iOS/**/project.pbxproj", "iOS/**/*.xcconfig"],
+    "ui_globs": ["iOS/**/*View.swift", "iOS/**/Views/**", "iOS/**/*.storyboard", "iOS/**/*.xib"],
+    "localization_globs": ["iOS/**/*.strings", "iOS/**/*.stringsdict", "iOS/**/*.xcstrings"],
+    "project_globs": ["iOS/**/project.pbxproj", "iOS/**/contents.xcworkspacedata", "iOS/**/Package.swift"],
+    "tool_globs": {
+      "xcode": ["iOS/**/project.pbxproj", "iOS/**/contents.xcworkspacedata"],
+      "spm": ["iOS/**/Package.swift"],
+      "swiftlint": ["iOS/**/.swiftlint.yml", "iOS/**/.swiftlint.yaml"]
+    }
+  },
   "rule_files": [
     "workflow/rules/specification-layers.md",
     "workflow/rules/system-design.md",
