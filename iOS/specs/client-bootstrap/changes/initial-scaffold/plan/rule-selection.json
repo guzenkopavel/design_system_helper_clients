@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "engineering_scopes": [
+    "application",
+    "ui",
+    "xcode"
+  ],
+  "applicable_rule_files": [
+    "workflow/rules/specification-layers.md",
+    "workflow/rules/system-design.md",
+    "iOS/workflow/rules/architecture.md",
+    "workflow/rules/coding-standards.md",
+    "workflow/rules/tdd-first.md",
+    "workflow/rules/test-execution.md",
+    "workflow/rules/verification-matrix.md",
+    "workflow/rules/code-comments.md",
+    "iOS/workflow/rules/swift-style.md",
+    "workflow/rules/verification-evidence.md",
+    "iOS/workflow/rules/app-development.md",
+    "iOS/workflow/rules/ios-pitfalls.md",
+    "iOS/workflow/rules/architecture/feature-first.md",
+    "iOS/workflow/rules/architecture/dependency-injection.md",
+    "iOS/workflow/rules/architecture/use-cases.md",
+    "iOS/workflow/rules/architecture/error-handling.md",
+    "iOS/workflow/rules/architecture/naming.md",
+    "iOS/workflow/rules/architecture/legacy.md",
+    "iOS/workflow/rules/architecture/types-clean-code.md",
+    "iOS/workflow/rules/unit-testing.md",
+    "iOS/workflow/rules/accessibility.md",
+    "iOS/workflow/rules/ui-design-system.md",
+    "iOS/workflow/rules/ui-testing.md",
+    "iOS/workflow/rules/ui-test-spec.md",
+    "iOS/workflow/rules/simulator.md",
+    "iOS/workflow/rules/architecture/mvvm.md",
+    "iOS/workflow/rules/xcode.md"
+  ],
+  "fingerprint": "9c0d92c4f6052457205f9b0ce188e6c3416fe1bfa138fe2460cb5f9c767fefbd"
+}

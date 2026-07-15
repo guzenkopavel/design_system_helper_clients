@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "engineering_scopes": [
+    "application",
+    "compose",
+    "gradle",
+    "ui"
+  ],
+  "applicable_rule_files": [
+    "workflow/rules/specification-layers.md",
+    "workflow/rules/system-design.md",
+    "Android/workflow/rules/architecture.md",
+    "workflow/rules/coding-standards.md",
+    "workflow/rules/tdd-first.md",
+    "workflow/rules/test-execution.md",
+    "workflow/rules/verification-matrix.md",
+    "workflow/rules/code-comments.md",
+    "Android/workflow/rules/kotlin-style.md",
+    "Android/workflow/rules/android-pitfalls.md",
+    "Android/workflow/rules/architecture/data-layer.md",
+    "Android/workflow/rules/architecture/ui-layer.md",
+    "Android/workflow/rules/architecture/domain-layer.md",
+    "Android/workflow/rules/architecture/dependency-injection.md",
+    "Android/workflow/rules/unit-testing.md",
+    "Android/workflow/rules/compose.md",
+    "Android/workflow/rules/gradle-build.md",
+    "Android/workflow/rules/ui-testing.md",
+    "Android/workflow/rules/accessibility.md",
+    "Android/workflow/rules/ui-design-system.md",
+    "Android/workflow/rules/emulator.md"
+  ],
+  "fingerprint": "eb33fd76462204561a5549a5455e5396198d1826c31b6d9dd400ac6d9eb26539"
+}

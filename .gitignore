@@ -8,3 +8,8 @@ __pycache__/
 .gradle/
 DerivedData/
 build/
+
+# Machine-local IDE and build daemon state
+**/xcuserdata/
+**/*.xcuserstate
+**/gradle-daemon-jvm.properties
