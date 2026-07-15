@@ -40,7 +40,7 @@ Workflow:
    `<package_root>/<feature>/changes/<change-id>/`.
 4. Reference shared IDs without copying their observable text. Use adapter
    prefix for platform REQ/AC and trace every ID in verification.
-5. Record sorted unique scopes and the exact derived lifecycle union of all four
+5. Record sorted unique scopes and the exact derived union of adapter-supported
    phase bases plus those scopes in `applicable_rule_files`. Proposal records
    selection evidence, considered exclusions and the exact list; design maps
    applicable rules to decisions or explicit N/A.

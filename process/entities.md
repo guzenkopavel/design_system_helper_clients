@@ -13,6 +13,7 @@
 | active platform change | `<platform>/specs/<feature>/changes/<change-id>/`; intake `product-backed` или доказанный `technical-only` | `propose` → `plan` → `implement` → `verify` |
 | platform lifecycle metadata | `<platform>/specs/<feature>/changes/<change-id>/meta.json` | `validate-platform-change.py` |
 | engineering rule profile | adapter `phase_rule_profiles` + `scope_rule_profiles`; package `engineering_scopes` + exact `applicable_rule_files` | `platform_rule_profiles.py` |
+| lifecycle capability | ordered adapter `lifecycle_capabilities`; unsupported operations fail before writes | all platform lifecycle scripts |
 | planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
 | product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |

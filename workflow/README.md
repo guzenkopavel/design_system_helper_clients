@@ -91,7 +91,7 @@
   [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
   profile-aware retrieval и stdlib lifecycle gate;
 - [`scripts/platform_rule_profiles.py`](scripts/platform_rule_profiles.py) —
-  единый resolver phase/scope rule profiles;
+  единый resolver capabilities и phase/scope rule profiles;
 - [`scripts/validate-implementation-scope.py`](scripts/validate-implementation-scope.py),
   [`scripts/capture-verification-state.py`](scripts/capture-verification-state.py)
   и [`scripts/archive-change.py`](scripts/archive-change.py) — task scope,

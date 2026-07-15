@@ -1,6 +1,6 @@
 # Android implementation specifications
 
-Будущий `Android/specs/<feature>/changes/<change-id>/` будет содержать Android
+`Android/specs/<feature>/changes/<change-id>/` содержит Android
 implementation package. Для
 `product-backed` она ссылается на `../../specs/product/<feature>/spec.md` со
 статусами `READY` и `APPROVED`; общие REQ/AC не копируются и не
@@ -11,5 +11,6 @@ elaboration.
 
 Шаблон: [`platform-implementation-spec.md`](../../workflow/templates/platform-implementation-spec.md).
 
-Сейчас Android implementation adapter и architecture layer не реализованы. Любой
-вызов должен вернуть `NOT IMPLEMENTED` без создания package.
+Adapter поддерживает Propose, Plan и Implement. После завершения tasks package
+остаётся `implementing` с pending verification. Verify и implementation archive
+возвращают `NOT IMPLEMENTED` до создания соответствующих capabilities.

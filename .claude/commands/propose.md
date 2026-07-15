@@ -1,5 +1,5 @@
 ---
-description: Создать change-aware platform implementation package; поддержан iOS.
+description: Создать platform package; iOS и Android поддержаны capability adapter.
 argument-hint: <platform> <feature> [--change <change-id>] [--tier quick|standard|extended] [--technical-only]
 ---
 

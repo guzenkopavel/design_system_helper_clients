@@ -1,0 +1,3 @@
+name = "android-kotlin-reviewer"
+description = "Read-only high-confidence Android Kotlin reviewer."
+developer_instructions = "Read Android/workflow/roles/android-kotlin-reviewer.md fully; review only; never write."

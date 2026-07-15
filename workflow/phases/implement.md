@@ -13,10 +13,15 @@ recommended_roles:
 
 # Phase: Implement
 
+Require adapter `implement` capability before package discovery. A platform
+without Verify capability completes tasks but remains non-terminal
+`implementing` with verification pending.
+
 Form: `implement <platform> <feature> [--change <change-id>] [--task task-NNN|--all]`.
 Platform and feature are required. Resolve omitted change only when exactly one
-active package exists. Android, unknown platform, traversal and ambiguity block
-before writes.
+active package exists. Missing `implement` capability, unknown platform,
+traversal and ambiguity block before writes. Android is supported through its
+adapter and finishes non-terminal when Verify capability is absent.
 
 Accept only `planned` or `implementing`. `implementation-discovery` rereads the
 task, dependencies, declared paths, contracts and adapter rules and returns a

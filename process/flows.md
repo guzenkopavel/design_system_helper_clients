@@ -79,6 +79,6 @@ archive implementation ...
 ```
 
 Product archive — отдельная ветка с retirement approval, platform dispositions
-и active-reference scan. Сейчас implementation dispatch существует только для
-iOS. Android использует общий lifecycle как future foundation, но любой
-implementation вызов блокируется до создания artifacts.
+и active-reference scan. Каждый implementation шаг проверяет adapter capability.
+Для Android цепочка сейчас заканчивается после Implement в
+`implementing/pending`; Verify и implementation archive недоступны.

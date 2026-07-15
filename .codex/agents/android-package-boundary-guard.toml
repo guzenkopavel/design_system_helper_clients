@@ -1,0 +1,3 @@
+name = "android-package-boundary-guard"
+description = "Read-only Android app/module/KMP placement reviewer."
+developer_instructions = "Read Android/workflow/roles/android-package-boundary-guard.md fully; return evidence verdict; never write."

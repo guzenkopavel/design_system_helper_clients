@@ -1,5 +1,5 @@
 ---
-description: Выполнить готовые задачи change-aware platform package; поддержан iOS.
+description: Выполнить platform tasks; iOS и Android поддержаны capability adapter.
 argument-hint: <platform> <feature> [--change <change-id>] [--task task-NNN|--all]
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Выполнить одну или все готовые задачи change-aware platform package в разрешённом scope. Использовать только по явному вызову implement с platform identity; iOS поддержан, Android блокируется до записей.
+description: Выполнить ready tasks platform package при поддержанной implement capability.
 ---
 
 # Implement
@@ -25,4 +25,5 @@ recovery task сбросить все verification rows/meta в pending/null, н
 historical evidence; только recovery baseline разрешает запись verification.md.
 Никогда не выставлять `verified`, не добавлять side features и не коммитить.
 
-Manual-only; Android/unknown/ambiguous/unsafe завершаются с нулём записей.
+Manual-only; unsupported capability, unknown/ambiguous/unsafe identity
+завершаются с нулём записей. Android dispatch выполняется через adapter.

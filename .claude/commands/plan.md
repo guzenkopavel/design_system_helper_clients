@@ -1,5 +1,5 @@
 ---
-description: Создать change-aware self-contained platform plan; поддержан iOS.
+description: Создать platform plan; iOS и Android поддержаны capability adapter.
 argument-hint: <platform> <feature> [--change <change-id>]
 ---
 

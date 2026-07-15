@@ -1,7 +1,12 @@
 # Test evidence
 
+- [`android-propose-plan-implement.md`](android-propose-plan-implement.md) —
+  Android capabilities, profiles, fail-closed unsupported lifecycle и runtime roles.
+
 - [`ios-engineering-rules.md`](ios-engineering-rules.md) — selective
-  phase/scope engineering corpus, fingerprint и watchdog RED/GREEN.
+  phase/scope engineering corpus, fingerprint и watchdog RED/GREEN; утверждение
+  об отсутствующем Android adapter относится к историческому snapshot до
+  `android-propose-plan-implement.md`.
 
 - [`harness-bootstrap.md`](harness-bootstrap.md) — bootstrap харнеса,
   multi-runtime parity и проверки базовых hard rules;

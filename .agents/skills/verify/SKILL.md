@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Свежо проверить реализованный change-aware platform package и зафиксировать fingerprinted evidence. Использовать только по явному вызову verify с platform identity; iOS поддержан, Android блокируется до записей.
+description: Проверить package при поддержанной verify capability; Android пока fail closed.
 ---
 
 # Verify

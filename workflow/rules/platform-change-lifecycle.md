@@ -1,5 +1,11 @@
 # Platform change lifecycle
 
+Adapter `lifecycle_capabilities` is a canonical ordered prefix/dependency set:
+plan requires propose, implement requires plan, verify requires implement, and
+implementation archive requires verify. Unsupported operations fail before
+package discovery or writes. Phase profiles and applicable rule union include
+only supported engineering phases. Product archive is a separate shared flow.
+
 ## Identity and layout
 
 Platform implementation identity is the tuple `platform + feature + change_id`.

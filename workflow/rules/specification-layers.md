@@ -72,7 +72,8 @@ product elaboration и продолжить как `product-backed`.
 После допустимого intake работа размещается по направлениям:
 
 - `iOS/specs/<feature>/changes/<change-id>/` — active iOS change package;
-- `Android/specs/<feature>/changes/<change-id>/` — future active Android package.
+- `Android/specs/<feature>/changes/<change-id>/` — active Android package for
+  propose/plan/implement capabilities.
 
 `change_id` отделяет последовательные или параллельные implementation cycles
 одной feature. Product SSOT identity остаётся feature-level. Platform archive

@@ -8,11 +8,29 @@ from typing import Iterable
 import re
 
 PHASES = ("propose", "plan", "implement", "verify")
+CAPABILITIES = ("propose", "plan", "implement", "verify", "archive-implementation")
 SCOPE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class RuleProfileError(ValueError):
     pass
+
+
+def validate_capabilities(adapter: dict[str, object]) -> list[str]:
+    raw = adapter.get("lifecycle_capabilities")
+    if not isinstance(raw, list) or not raw or raw != [item for item in CAPABILITIES if item in raw]:
+        raise RuleProfileError("lifecycle_capabilities must be a non-empty canonical ordered subset")
+    required = {"plan": "propose", "implement": "plan", "verify": "implement", "archive-implementation": "verify"}
+    for capability, dependency in required.items():
+        if capability in raw and dependency not in raw:
+            raise RuleProfileError(f"lifecycle capability {capability} requires {dependency}")
+    return raw
+
+
+def require_capability(adapter: dict[str, object], capability: str) -> None:
+    capabilities = validate_capabilities(adapter)
+    if capability not in capabilities:
+        raise RuleProfileError(f"NOT IMPLEMENTED: platform capability '{capability}' is unavailable; no files were written")
 
 
 def _safe_rule(repo: Path, raw: object, label: str, require_files: bool) -> str:
@@ -44,12 +62,14 @@ def validate_profiles(
     repo: Path, adapter: dict[str, object], require_files: bool = True
 ) -> tuple[list[str], dict[str, list[str]], dict[str, list[str]]]:
     catalog = _rule_list(repo, adapter.get("rule_files"), "rule_files", require_files)
+    capabilities = validate_capabilities(adapter)
+    supported_phases = [phase for phase in PHASES if phase in capabilities]
     phase_value = adapter.get("phase_rule_profiles")
-    if not isinstance(phase_value, dict) or set(phase_value) != set(PHASES):
-        raise RuleProfileError("phase_rule_profiles must contain exact propose/plan/implement/verify keys")
+    if not isinstance(phase_value, dict) or list(phase_value) != supported_phases:
+        raise RuleProfileError("phase_rule_profiles must exactly match supported engineering capabilities in canonical order")
     phases = {
         phase: _rule_list(repo, phase_value[phase], f"phase_rule_profiles.{phase}", require_files)
-        for phase in PHASES
+        for phase in supported_phases
     }
     scope_value = adapter.get("scope_rule_profiles")
     if not isinstance(scope_value, dict) or not scope_value:
@@ -59,6 +79,16 @@ def validate_profiles(
         if not isinstance(scope, str) or not SCOPE_RE.fullmatch(scope):
             raise RuleProfileError(f"invalid engineering scope: {scope}")
         scopes[scope] = _rule_list(repo, rules, f"scope_rule_profiles.{scope}", require_files)
+    dependencies = adapter.get("scope_dependencies", {})
+    if not isinstance(dependencies, dict) or set(dependencies) - set(scopes):
+        raise RuleProfileError("scope_dependencies keys must be known engineering scopes")
+    for scope, required_scopes in dependencies.items():
+        if (
+            not isinstance(required_scopes, list) or not required_scopes
+            or required_scopes != sorted(set(required_scopes))
+            or not all(isinstance(item, str) and item in scopes and item != scope for item in required_scopes)
+        ):
+            raise RuleProfileError(f"scope_dependencies.{scope} must be a sorted unique list of other known scopes")
     profiled = {rule for rules in phases.values() for rule in rules}
     profiled.update(rule for rules in scopes.values() for rule in rules)
     unknown = sorted(profiled - set(catalog))
@@ -68,6 +98,19 @@ def validate_profiles(
     if unused:
         raise RuleProfileError(f"rule_files entries are not assigned to a profile: {', '.join(unused)}")
     return catalog, phases, scopes
+
+
+def validate_scope_dependencies(
+    adapter: dict[str, object], selected: list[str]
+) -> None:
+    dependencies = adapter.get("scope_dependencies", {})
+    selected_set = set(selected)
+    for scope in selected:
+        missing = set(dependencies.get(scope, [])) - selected_set
+        if missing:
+            raise RuleProfileError(
+                f"engineering scope {scope} requires scopes: {', '.join(sorted(missing))}"
+            )
 
 
 def normalize_scopes(raw_scopes: Iterable[object], known: dict[str, list[str]]) -> list[str]:
@@ -96,7 +139,9 @@ def rules_for_phase(
     _catalog, phases, scope_profiles = validate_profiles(repo, adapter, require_files)
     if phase not in PHASES:
         raise RuleProfileError(f"unknown lifecycle phase: {phase}")
+    require_capability(adapter, phase)
     scopes = normalize_scopes(raw_scopes, scope_profiles)
+    validate_scope_dependencies(adapter, scopes)
     return scopes, _ordered_union([phases[phase], *(scope_profiles[scope] for scope in scopes)])
 
 
@@ -106,7 +151,8 @@ def applicable_rules(
 ) -> tuple[list[str], list[str]]:
     _catalog, phases, scope_profiles = validate_profiles(repo, adapter, require_files)
     scopes = normalize_scopes(raw_scopes, scope_profiles)
-    groups = [phases[phase] for phase in PHASES]
+    validate_scope_dependencies(adapter, scopes)
+    groups = [phases[phase] for phase in PHASES if phase in phases]
     groups.extend(scope_profiles[scope] for scope in scopes)
     return scopes, _ordered_union(groups)
 
@@ -116,6 +162,7 @@ def semantic_projection(
 ) -> dict[str, object]:
     _catalog, phases, scope_profiles = validate_profiles(repo, adapter)
     scopes = normalize_scopes(raw_scopes, scope_profiles)
+    validate_scope_dependencies(adapter, scopes)
     identity_fields = (
         "platform_input", "platform_name", "platform_root", "package_root",
         "active_changes_namespace", "archive_namespace", "production_roots",
@@ -124,10 +171,14 @@ def semantic_projection(
         "context_excluded_directories", "context_always_include_globs",
     )
     return {
-        "contract": {field: adapter[field] for field in identity_fields},
-        "phase_rule_profiles": {phase: phases[phase] for phase in PHASES},
+        "contract": {**{field: adapter[field] for field in identity_fields}, "lifecycle_capabilities": validate_capabilities(adapter)},
+        "phase_rule_profiles": {phase: phases[phase] for phase in PHASES if phase in phases},
         "scope_rule_profiles": {scope: scope_profiles[scope] for scope in scopes},
         "scope_task_checks": {
             scope: adapter.get("scope_task_checks", {}).get(scope, []) for scope in scopes
+        },
+        "scope_dependencies": {
+            scope: adapter.get("scope_dependencies", {}).get(scope, []) for scope in scopes
+            if scope in adapter.get("scope_dependencies", {})
         },
     }

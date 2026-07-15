@@ -185,6 +185,7 @@ def validate_implementation_receipt(
 def implementation_preflight(root: Path, platform: str, feature: str, change: str | None) -> tuple[dict[str, object], str, Path, Path, list[str]]:
     validator = load_validator(); repo = root.resolve()
     adapter = validator.load_adapter(repo, platform)
+    validator.require_capability(adapter, "archive-implementation")
     change_id, package = validator.resolve_change(repo, adapter, feature, change, "archive")
     errors = validator.validate_package(repo, adapter, feature, change_id, "archive")
     archive_id = f"{date.today().isoformat()}-{change_id}"

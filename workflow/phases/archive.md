@@ -17,7 +17,8 @@ Public forms:
 Both are deterministic, collision-safe and dry-run first. Implementation mode
 requires validator `archive` success, then invokes `archive-change.py
 implementation ... --apply`, preserves the original verification fingerprint
-after relocation and emits `archive-receipt.json`. Product mode requires a complete retirement
+after relocation and emits `archive-receipt.json`; it first requires
+`archive-implementation` capability. Product mode is capability-independent and requires a complete retirement
 request, scans every adapter and conventional platform package root for active
 references, then invokes `archive-change.py product ... --apply`.
 

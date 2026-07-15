@@ -1,5 +1,5 @@
 ---
-description: Свежо проверить change-aware platform package; поддержан iOS.
+description: Проверить platform package; Android blocked без verify capability.
 argument-hint: <platform> <feature> [--change <change-id>]
 ---
 

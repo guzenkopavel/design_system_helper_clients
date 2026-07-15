@@ -1,5 +1,6 @@
 {
   "platform_input": "ios",
+  "lifecycle_capabilities": ["propose", "plan", "implement", "verify", "archive-implementation"],
   "platform_name": "iOS",
   "platform_root": "iOS",
   "package_root": "iOS/specs",

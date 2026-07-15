@@ -15,6 +15,7 @@ from platform_rule_profiles import (
     RuleProfileError,
     applicable_rules,
     semantic_projection,
+    require_capability,
     validate_profiles,
 )
 
@@ -94,6 +95,7 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
         "phase_rule_profiles", "scope_rule_profiles", "scope_task_checks",
         "context_file_suffixes", "context_excluded_directories",
         "context_always_include_globs",
+        "lifecycle_capabilities",
     }
     missing = sorted(required - set(adapter))
     if missing:
@@ -453,6 +455,10 @@ def validate_state(repo: Path, adapter: dict[str, object], package: Path, meta: 
 
 
 def validate_package(repo: Path, adapter: dict[str, object], feature: str, change_id: str, mode: str) -> list[str]:
+    try:
+        require_capability(adapter, "archive-implementation" if mode == "archive" else mode)
+    except RuleProfileError as error:
+        return [str(error)]
     errors: list[str] = []
     package = changes_root(repo, adapter, feature) / change_id
     meta_path = package / "meta.json"
@@ -647,6 +653,12 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
         if task_scopes - package_scopes:
             errors.append(f"{task['id']} contains scope not sealed in package")
+        for scope in sorted(task_scopes):
+            missing_dependencies = set(adapter.get("scope_dependencies", {}).get(scope, [])) - task_scopes
+            if missing_dependencies:
+                errors.append(
+                    f"{task['id']} scope {scope} requires task scopes: {', '.join(sorted(missing_dependencies))}"
+                )
         if task["layer"] == "presentation" and "ui" not in task_scopes:
             errors.append(f"{task['id']} presentation task must include ui engineering scope")
         task_check_text = "\n".join(
@@ -719,6 +731,7 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
     adapter_dir = repo / "TestClient" / "workflow"; adapter_dir.mkdir(parents=True)
     adapter = {
         "platform_input": "test-client", "platform_name": "TestClient", "platform_root": "TestClient",
+        "lifecycle_capabilities": ["propose", "plan", "implement", "verify", "archive-implementation"],
         "package_root": "TestClient/specs", "active_changes_namespace": "changes", "archive_namespace": "archive",
         "production_roots": ["TestClient"], "protected_roots": ["TestClient/specs", "TestClient/workflow"],
         "production_exclusions": ["TestClient/specs", "TestClient/workflow"], "contract_prefix": "TST",
@@ -783,6 +796,30 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
 def self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); adapter, package, meta = write_fixture(repo)
+        for capabilities in (
+            ["plan", "propose"],
+            ["propose", "implement"],
+            ["propose", "plan", "implement", "archive-implementation"],
+            ["propose", "plan", "implement", "verify", "archive-implementation", "unknown"],
+        ):
+            malformed = dict(adapter); malformed["lifecycle_capabilities"] = capabilities
+            try:
+                validate_profiles(repo, malformed)
+                raise AssertionError("malformed capabilities passed")
+            except RuleProfileError:
+                pass
+        mutated = dict(adapter); mutated["lifecycle_capabilities"] = ["propose", "plan", "implement"]
+        try:
+            validate_profiles(repo, mutated)
+            raise AssertionError("disabled phase profile passed")
+        except RuleProfileError:
+            pass
+        disabled = dict(adapter)
+        disabled["lifecycle_capabilities"] = ["propose", "plan", "implement"]
+        disabled["phase_rule_profiles"] = {
+            phase: adapter["phase_rule_profiles"][phase] for phase in ("propose", "plan", "implement")
+        }
+        assert any("capability 'verify'" in error for error in validate_package(repo, disabled, "sample", "sample", "verify"))
         assert validate_package(repo, adapter, "sample", "sample", "propose") == []
         bad_meta = dict(meta); bad_meta["engineering_scopes"] = ["unknown"]
         (package / "meta.json").write_text(json.dumps(bad_meta))
@@ -1048,9 +1085,10 @@ def main() -> int:
     repo=args.root.resolve()
     try:
         adapter=load_adapter(repo,args.platform)
+        require_capability(adapter, "archive-implementation" if args.mode == "archive" else args.mode)
         change, _package=resolve_change(repo,adapter,args.feature,args.change,args.mode)
         errors=validate_package(repo,adapter,args.feature,change,args.mode)
-    except AdapterError as error:
+    except (AdapterError, RuleProfileError) as error:
         print(f"BLOCKED: {error}."); return 4
     if errors:
         print(f"Platform package: INVALID ({len(errors)} blocker)")

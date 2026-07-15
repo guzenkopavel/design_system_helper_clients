@@ -4,16 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import tomllib
 from pathlib import Path
 from urllib.parse import unquote
 
-from platform_rule_profiles import PHASES, RuleProfileError, validate_profiles
+from platform_rule_profiles import PHASES, RuleProfileError, validate_capabilities, validate_profiles
 
 
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -249,6 +251,9 @@ def read_agents(root: Path) -> tuple[set[str], list[dict[str, str]]]:
     ios_roles = root / "iOS" / "workflow" / "roles"
     if ios_roles.is_dir():
         canonical_dirs.append(ios_roles)
+    android_roles = root / "Android" / "workflow" / "roles"
+    if android_roles.is_dir():
+        canonical_dirs.append(android_roles)
     canonical_names = {
         path.stem for directory in canonical_dirs for path in directory.glob("*.md")
     }
@@ -542,11 +547,154 @@ def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
                 if key not in adapter:
                     findings.append(finding("critical", "implementation-adapter", relative(adapter_path, root), f"missing field: {key}"))
 
+    expected_capabilities = {
+        "iOS": ["propose", "plan", "implement", "verify", "archive-implementation"],
+        "Android": ["propose", "plan", "implement"],
+    }
+    for platform, expected in expected_capabilities.items():
+        path = root / platform / "workflow/platform-contract.json"
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            capabilities = validate_capabilities(data)
+            validate_profiles(root, data)
+        except (OSError, json.JSONDecodeError, RuleProfileError) as error:
+            findings.append(finding("critical", "implementation-capabilities", relative(path, root), str(error)))
+            continue
+        if capabilities != expected:
+            findings.append(finding("critical", "implementation-capabilities", relative(path, root), f"expected exact capabilities: {expected}"))
+        serialized = json.dumps(data)
+        other = "Android/" if platform == "iOS" else "iOS/"
+        if other in serialized:
+            findings.append(finding("critical", "implementation-capabilities", relative(path, root), f"adapter leaks {other} rules"))
+
     for name in ("propose", "plan", "implement", "verify", "archive"):
         metadata = root / ".agents/skills" / name / "agents/openai.yaml"
         if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
             findings.append(finding("critical", "manual-only-skill", relative(metadata, root), "allow_implicit_invocation must be false"))
     return findings
+
+
+ANDROID_REQUIRED_RULES = {
+    "Android/workflow/rules/architecture.md",
+    "Android/workflow/rules/architecture/data-layer.md",
+    "Android/workflow/rules/architecture/ui-layer.md",
+    "Android/workflow/rules/architecture/domain-layer.md",
+    "Android/workflow/rules/architecture/dependency-injection.md",
+    "Android/workflow/rules/architecture/modularization.md",
+    "Android/workflow/rules/kotlin-style.md",
+    "Android/workflow/rules/coroutines-flows.md",
+    "Android/workflow/rules/compose.md",
+    "Android/workflow/rules/gradle-build.md",
+    "Android/workflow/rules/android-pitfalls.md",
+    "Android/workflow/rules/unit-testing.md",
+    "Android/workflow/rules/ui-testing.md",
+    "Android/workflow/rules/accessibility.md",
+    "Android/workflow/rules/ui-design-system.md",
+    "Android/workflow/rules/localization.md",
+    "Android/workflow/rules/emulator.md",
+    "Android/workflow/rules/multiplatform.md",
+}
+
+ANDROID_FIXED_ASSUMPTIONS = (
+    "kotlin 1.9+", "85% coverage", "mandatory compose", "mandatory hilt",
+    "always use hilt", "always use compose", "./gradlew build",
+)
+ANDROID_PLATFORM_LEAKAGE = re.compile(r"\b(?:Swift|Xcode|UIKit|SwiftUI|Apple SDK)\b", re.IGNORECASE)
+
+
+def android_profile_findings(
+    root: Path, adapter_path: Path, adapter: dict[str, object]
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    label = relative(adapter_path, root)
+    try:
+        catalog, phases, scopes = validate_profiles(root, adapter)
+    except RuleProfileError as error:
+        return [finding("critical", "android-engineering-profiles", label, str(error))]
+    actual_rules = {
+        path.relative_to(root).as_posix()
+        for path in (root / "Android/workflow/rules").rglob("*.md")
+    }
+    missing_files = sorted(ANDROID_REQUIRED_RULES - actual_rules)
+    uncatalogued = sorted(actual_rules - set(catalog))
+    if missing_files:
+        findings.append(finding("critical", "android-engineering-rules", label, f"required Android rules missing: {', '.join(missing_files)}"))
+    if uncatalogued:
+        findings.append(finding("critical", "android-engineering-profiles", label, f"Android rules missing from catalog: {', '.join(uncatalogued)}"))
+    if list(phases) != ["propose", "plan", "implement"]:
+        findings.append(finding("critical", "android-engineering-profiles", label, "Android phases must be exact propose/plan/implement"))
+    if adapter.get("scope_dependencies", {}).get("compose") != ["ui"]:
+        findings.append(finding("critical", "android-engineering-dependency", label, "compose scope must require ui"))
+    if "Android/workflow/rules/compose.md" in scopes.get("ui", []):
+        findings.append(finding("critical", "android-engineering-dependency", label, "ui must not imply compose"))
+    if "Android/workflow/rules/multiplatform.md" in scopes.get("application", []) or "Android/workflow/rules/multiplatform.md" in scopes.get("ui", []):
+        findings.append(finding("critical", "android-engineering-dependency", label, "multiplatform must remain evidence-selected"))
+    checks = adapter.get("scope_task_checks", {})
+    required_checks = {
+        "ui": {"emulator", "accessibility", "design-system"},
+        "compose": {"Compose state"}, "multiplatform": {"source set"},
+        "concurrency": {"cancellation", "lifecycle"}, "gradle": {"Gradle task"},
+    }
+    for scope, expected in required_checks.items():
+        if not expected <= set(checks.get(scope, [])):
+            findings.append(finding("critical", "android-engineering-dependency", label, f"scope_task_checks.{scope} misses obligations"))
+    return findings
+
+
+def android_assumption_findings(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for path in (root / "Android/workflow/rules").rglob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        lowered = text.casefold()
+        for token in ANDROID_FIXED_ASSUMPTIONS:
+            if token.casefold() in lowered:
+                findings.append(finding("critical", "android-fixed-assumption", relative(path, root), f"fixed source assumption: {token}"))
+        if ANDROID_PLATFORM_LEAKAGE.search(text):
+            findings.append(finding("critical", "android-platform-leakage", relative(path, root), "Android rule names an iOS-only technology"))
+    return findings
+
+
+def self_test_android_lint(root: Path) -> int:
+    path = root / "Android/workflow/platform-contract.json"
+    adapter = json.loads(path.read_text(encoding="utf-8"))
+    assert android_profile_findings(root, path, adapter) == []
+
+    missing_catalog = copy.deepcopy(adapter)
+    missing_catalog["rule_files"].remove("Android/workflow/rules/compose.md")
+    assert any(
+        item["check"] == "android-engineering-profiles"
+        for item in android_profile_findings(root, path, missing_catalog)
+    )
+
+    missing_mapping = copy.deepcopy(adapter)
+    missing_mapping["scope_rule_profiles"]["compose"] = ["Android/workflow/rules/ui-testing.md"]
+    assert any(
+        item["check"] == "android-engineering-profiles"
+        for item in android_profile_findings(root, path, missing_mapping)
+    )
+
+    disabled_verify = copy.deepcopy(adapter)
+    disabled_verify["phase_rule_profiles"]["verify"] = ["workflow/rules/test-execution.md"]
+    assert any(
+        item["check"] == "android-engineering-profiles"
+        for item in android_profile_findings(root, path, disabled_verify)
+    )
+
+    broken_compose = copy.deepcopy(adapter)
+    broken_compose["scope_dependencies"] = {}
+    assert any(
+        item["check"] == "android-engineering-dependency"
+        for item in android_profile_findings(root, path, broken_compose)
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_root = Path(tmp).resolve()
+        fixture_rule = fixture_root / "Android/workflow/rules/fixed.md"
+        fixture_rule.parent.mkdir(parents=True)
+        fixture_rule.write_text("Project requires Kotlin 1.9+ and 85% coverage.\n", encoding="utf-8")
+        assert len(android_assumption_findings(fixture_root)) == 2
+    print("harness-lint Android self-test: PASS (corpus/profile/capability/dependency/assumption mutations)")
+    return 0
 
 
 def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
@@ -681,7 +829,10 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "jour" + "io", "design_system_" + "helper", "Tui" + "st",
         "Swin" + "ject", "Mae" + "stro", "Liquid " + "Glass",
     )
-    scan_roots = [root / "workflow/rules", root / "iOS/workflow/rules"]
+    scan_roots = [
+        root / "workflow/rules", root / "iOS/workflow/rules",
+        root / "Android/workflow/rules",
+    ]
     for scan_root in scan_roots:
         for path in scan_root.rglob("*.md"):
             lowered = path.read_text(encoding="utf-8").casefold()
@@ -706,6 +857,27 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         for token in ('".sw' + 'ift"', '".xcode' + 'proj"', '".kot' + 'lin"', '".gra' + 'dle"'):
             if token in script_text:
                 findings.append(finding("critical", "common-platform-leakage", relative(context_script, root), f"context suffix must be adapter-owned: {token}"))
+    android_adapter_path = root / "Android/workflow/platform-contract.json"
+    if not android_adapter_path.is_file():
+        findings.append(finding("critical", "android-engineering-profiles", relative(android_adapter_path, root), "Android adapter is missing"))
+    else:
+        try:
+            android_adapter = json.loads(android_adapter_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            findings.append(finding("critical", "android-engineering-profiles", relative(android_adapter_path, root), str(error)))
+        else:
+            findings.extend(android_profile_findings(root, android_adapter_path, android_adapter))
+    findings.extend(android_assumption_findings(root))
+    for runtime in (".claude", ".opencode"):
+        for command in ("propose", "plan", "implement"):
+            path = root / runtime / "commands" / f"{command}.md"
+            text = path.read_text(encoding="utf-8") if path.is_file() else ""
+            if "Android" not in text or "поддержан iOS" in text:
+                findings.append(finding("critical", "android-runtime-capability", relative(path, root), f"{command} command must describe Android capability support"))
+        verify_path = root / runtime / "commands/verify.md"
+        verify_text = verify_path.read_text(encoding="utf-8") if verify_path.is_file() else ""
+        if "Android" not in verify_text or "capability" not in verify_text:
+            findings.append(finding("critical", "android-runtime-capability", relative(verify_path, root), "verify command must describe Android capability blocker"))
     return findings
 
 
@@ -748,9 +920,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--warn-as-error", action="store_true")
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
     root = repository_root()
+    if args.self_test:
+        return self_test_android_lint(root)
     markdown_files = iter_files(root, (".md",))
     findings: list[dict[str, str]] = []
     findings.extend(check_links(root, markdown_files))

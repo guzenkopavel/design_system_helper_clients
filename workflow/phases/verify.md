@@ -11,6 +11,8 @@ recommended_roles:
 
 # Phase: Verify
 
+Require adapter `verify` capability before package discovery or baseline writes.
+
 Form: `verify <platform> <feature> [--change <change-id>]`. Resolve identity and
 adapter before writes. Require all tasks done with focused evidence and no
 blockers/problems.

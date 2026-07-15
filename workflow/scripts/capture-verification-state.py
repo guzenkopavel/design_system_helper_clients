@@ -25,6 +25,7 @@ def capture(root: Path, platform: str, feature: str, change: str | None, write: 
     validator = load_validator()
     repo = root.resolve()
     adapter = validator.load_adapter(repo, platform)
+    validator.require_capability(adapter, "verify")
     change_id, package = validator.resolve_change(repo, adapter, feature, change, "verify")
     meta_path = package / "meta.json"
     if not meta_path.is_file():

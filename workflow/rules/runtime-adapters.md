@@ -32,7 +32,8 @@ runtime-копию вместо portable SSOT. Явный Claude UX сохран
 `propose`, `plan`, `implement`, `verify` и `archive` — manual-only во всех
 runtime. Их adapters передают identity/flags без перестановки. Platform
 implementation lifecycle всегда требует `<platform> <feature>`; Android пока
-возвращает unsupported до любых записей. Product archive не принимает platform,
+поддерживает propose/plan/implement, а verify/implementation archive возвращают
+unsupported до любых записей по machine capability. Product archive не принимает platform,
 но требует validated retirement request.
 
 Если конкретная версия runtime обнаруживает skill, но не предоставляет механизм

@@ -155,6 +155,7 @@ def is_explicit_protected_exception(path: str, boundaries: list[dict[str, str]])
 def create_baseline(repo: Path, platform: str, feature: str, change: str | None, task: str, target: Path) -> list[str]:
     validator = load_validator()
     adapter = validator.load_adapter(repo, platform)
+    validator.require_capability(adapter, "implement")
     change_id, package = validator.resolve_change(repo, adapter, feature, change, "implement")
     package_errors = validator.validate_package(repo, adapter, feature, change_id, "implement")
     allowed, scope_errors = task_scope(repo, adapter, package, task)
@@ -189,6 +190,7 @@ def check_baseline(repo: Path, target: Path, expected_sha256: str) -> list[str]:
     validator = load_validator()
     try:
         adapter = validator.load_adapter(repo, str(data.get("platform", "")))
+        validator.require_capability(adapter, "implement")
         _change_id, package = validator.resolve_change(
             repo, adapter, str(data.get("feature", "")),
             str(data.get("change_id", "")), "implement",
@@ -226,6 +228,7 @@ def create_verify_baseline(
 ) -> list[str]:
     validator = load_validator()
     adapter = validator.load_adapter(repo, platform)
+    validator.require_capability(adapter, "verify")
     change_id, package = validator.resolve_change(repo, adapter, feature, change, "implement")
     errors = validator.validate_package(repo, adapter, feature, change_id, "implement")
     tasks, task_errors = validator.parse_tasks(repo, package); errors.extend(task_errors)
@@ -269,6 +272,7 @@ def check_verify_baseline(repo: Path, target: Path, expected_sha256: str) -> lis
     validator = load_validator()
     try:
         adapter = validator.load_adapter(repo, str(data.get("platform", "")))
+        validator.require_capability(adapter, "verify")
         _change_id, package = validator.resolve_change(
             repo, adapter, str(data.get("feature", "")), str(data.get("change_id", "")), "implement"
         )

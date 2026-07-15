@@ -1,0 +1,3 @@
+name = "android-build-diagnostician"
+description = "Read-only Android build failure diagnostician."
+developer_instructions = "Read Android/workflow/roles/android-build-diagnostician.md fully; diagnose and return fix packet; never write."

@@ -11,7 +11,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from platform_rule_profiles import RuleProfileError, rules_for_phase, validate_profiles
+from platform_rule_profiles import RuleProfileError, require_capability, rules_for_phase, validate_profiles
 
 BASE_EXCLUDED = {".git", "_archive"}
 FEATURE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -173,9 +173,10 @@ def main() -> int:
         print("BLOCKED: platform adapter contains an unsafe path; no files were written.")
         return 4
     try:
+        require_capability(adapter, args.phase)
         scopes, exact_rules = rules_for_phase(repo, adapter, args.phase, args.scope)
     except RuleProfileError as error:
-        print(f"BLOCKED: {error}; no files were written.")
+        print(f"BLOCKED: {error}.")
         return 4
     try:
         candidates = collect_candidates(repo, adapter, args.feature, platform_root, package_root)

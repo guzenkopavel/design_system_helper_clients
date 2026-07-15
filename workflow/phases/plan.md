@@ -21,12 +21,13 @@ Require a valid `specified` package with matching platform/feature/change,
 closed blockers and passed design gate. `repo-navigator` and the platform guard
 are read-only; `implementation-planner` is the sole owner of `plan/`.
 
-Revalidate selected engineering scopes against current evidence. Plan may add or
+Require `plan` capability before discovery. Revalidate selected engineering scopes against current evidence. Plan may add or
 refine scopes before `planned`; it must recompute the exact lifecycle
 `applicable_rule_files` union. After
 `planned`, Implement/Verify cannot invent a scope. Record final selection and
 evidence in plan README and seal the exact arrays/fingerprint in
 `plan/rule-selection.json`; set meta `rule_selection_snapshot` to that path.
+Disabled downstream phases do not enter the sealed union.
 If a new scope lacks exact design coverage or invalidates an architecture decision,
 return to Propose/architecture owner instead of editing design from Plan. Load
 the exact plan profile and selected scope rules through

@@ -13,9 +13,8 @@ Android-специфика реализации — в [`Android/specs/`](../../
 допускается без shared spec только при доказанном
 `Product impact assessment: NONE`.
 
-Общий propose/plan/implement/verify/archive lifecycle уже Android-ready, но
-Android adapter, architecture и implementation addenda отсутствуют. Любой
-Android implementation-lifecycle вызов обязан вернуть `NOT IMPLEMENTED` до
-записей. Product archive всё равно требует явную Android disposition с evidence.
-Общий profile contract готов для будущего adapter, но iOS rule paths/scopes в
-Android не наследуются и не считаются provisional defaults.
+Android adapter и addenda поддерживают `propose/plan/implement`. Verify и
+implementation archive отсутствуют в `lifecycle_capabilities` и блокируются до
+записи. Product archive остаётся отдельным shared lifecycle. Compose/KMP и
+tooling scopes выбираются только по repository evidence; iOS rules не
+наследуются.

@@ -48,14 +48,14 @@ product elaboration. Каноническая граница:
 - `$verify <platform> <feature> [--change <change-id>]` фиксирует fresh evidence;
 - `$archive implementation ...` и `$archive product ...` архивируют разные SSOT;
 - platform и feature обязательны;
-- сейчас реализован только `ios`; `android` блокируется без записи файлов;
-- активный iOS package живёт в
-  `iOS/specs/<feature>/changes/<change-id>/` и не копирует shared REQ/AC;
+- iOS поддерживает полный lifecycle; Android — только `propose/plan/implement`,
+  а `verify` и implementation archive блокируются capability gate до записи;
+- активный package живёт в adapter `package_root` и не копирует shared REQ/AC;
 - downstream omission `--change` допустим только при одном active package.
 
 Только `implement` пишет production code в task scope; `verify` не меняет
 production. Общие lifecycle/system-design/archive правила находятся в
-`workflow/`, Apple/Swift/Xcode детали — только в `iOS/`.
+`workflow/`, платформенные детали — только в соответствующем корне.
 
 Каждый platform package хранит evidence-selected `engineering_scopes` и точный
 derived `applicable_rule_files`. Propose выбирает scopes, Plan может уточнить их
