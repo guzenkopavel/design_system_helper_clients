@@ -57,6 +57,11 @@ product elaboration. Каноническая граница:
 production. Общие lifecycle/system-design/archive правила находятся в
 `workflow/`, Apple/Swift/Xcode детали — только в `iOS/`.
 
+Каждый platform package хранит evidence-selected `engineering_scopes` и точный
+derived `applicable_rule_files`. Propose выбирает scopes, Plan может уточнить их
+до `planned`, Implement/Verify используют неизменный набор. Flat adapter catalog
+не загружается глобально; nontrivial checks выполняются с finite watchdog.
+
 ## Инварианты
 
 - Знание хранить в одном каноническом месте; адаптеры должны только связывать

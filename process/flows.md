@@ -48,23 +48,30 @@ observable behavior, REQ и AC не меняются. `PRESENT` или `UNCERTAI
 propose <platform> <feature> [--change <change-id>]
   → platform/intake gate
   → repo-navigator (read-only)
+  → evidence-selected engineering scopes + exact propose profile
   → specification-writer
   → architecture-designer when required
   → platform boundary guard (read-only)
   → validator
   → status: specified
 plan <platform> <feature> [--change <change-id>]
+  → revalidate/refine scopes + exact plan profile
   → implementation-planner
+  → seal plan/rule-selection.json
   → task/DAG validator
   → status: planned
 implement <platform> <feature> [--change <change-id>] [--task ...|--all]
   → implementation-discovery (read-only)
+  → exact implement profile + immutable scopes
   → scope baseline
   → implementation-writer (platform-implementation)
-  → focused evidence + scope check
+  → bounded focused evidence + scope check
   → status: implementing
 verify <platform> <feature> [--change <change-id>]
+  → verify production-scope baseline
   → verifier (production read-only)
+  → exact verify profile + independently derived method matrix
+  → verify production-scope check
   → exact PASS evidence + state fingerprint
   → status: verified
 archive implementation ...

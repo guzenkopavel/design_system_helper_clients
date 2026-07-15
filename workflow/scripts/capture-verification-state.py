@@ -68,6 +68,19 @@ def self_test() -> int:
         state_file = evidence / "verification-state.json"; state_file.write_text("{}\n")
         excluded_state = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
         assert excluded_state == before, "verification-state.json must not self-reference"
+        selected_rule = repo / "TestClient/workflow/application.md"
+        selected_rule.write_text("Changed selected rule.\n")
+        selected = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        assert selected["fingerprint"] != before["fingerprint"], "selected rule must stale fingerprint"
+        selected_rule.write_text("Current selected application rule.\n")
+        unselected_rule = repo / "TestClient/workflow/performance-a.md"
+        unselected_rule.write_text("Changed unselected rule.\n")
+        unselected = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        assert unselected == before, "unselected rule must not stale fingerprint"
+        unselected_rule.write_text("Unselected performance rule A.\n")
+        adapter["scope_rule_profiles"]["performance"].reverse()
+        unselected_profile = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        assert unselected_profile == before, "unselected scope mapping must not stale fingerprint"
     print("capture-verification-state self-test: PASS (deterministic and stale-sensitive)")
     return 0
 

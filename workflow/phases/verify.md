@@ -15,11 +15,29 @@ Form: `verify <platform> <feature> [--change <change-id>]`. Resolve identity and
 adapter before writes. Require all tasks done with focused evidence and no
 blockers/problems.
 
+Before dispatching `verifier`, capture
+`evidence/verify-scope-baseline.json` with
+`validate-implementation-scope.py verify-snapshot`. Coordinator retains the
+emitted SHA-256 token outside repository state and passes it to `verify-check`
+as `--expected-sha256`; baseline rewriting is therefore a failure. Immediately
+after verifier writes rows/new evidence and permitted verification meta fields,
+run `verify-check`. It rejects every production, task, plan, contract, adapter or
+rule change and overwrite of pre-existing evidence while preserving unrelated
+dirty/index state that existed before the baseline. Only after this guard is green may
+the coordinator persist recovery task reopening or terminal state capture.
+
 The read-only-for-production `verifier` rereads current shared/platform
 contracts, task files, realized code and applicable platform rules. It reruns
 each declared method and writes only scoped evidence under package `evidence/`.
 Every verification row receives exact `PASS`, `FAIL` or `UNKNOWN`; concrete
 evidence paths are mandatory.
+
+Resolve `--phase verify` with the unchanged meta scopes and reject any mismatch
+with the stored applicable lifecycle union. Independently derive methods from
+the verification matrix and selected scope risks. Nontrivial commands use the
+watchdog with discovered plan budgets. Runtime, UI, accessibility, localization,
+concurrency and performance evidence is required only when selected/applicable;
+unavailable required infrastructure yields `UNKNOWN`, never an invented PASS.
 
 If any row is non-PASS, persist a recovery state: keep `status: implementing`,
 set `verification_status: FAIL` when at least one row is FAIL and otherwise

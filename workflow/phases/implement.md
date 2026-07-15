@@ -27,11 +27,22 @@ The `implementation-writer` runs in `platform-implementation` mode and treats
 the task as the primary self-contained input. It may change only task-declared
 production paths plus scoped package evidence/state. Use behavior-first/TDD,
 the platform architecture/testing lenses, and no side features. Capture a scope
-baseline before writes and check it after focused evidence. Every declared Path
+baseline before writes, retain the emitted SHA-256 token in coordinator memory
+outside repository state, and pass it as `--expected-sha256` to the post-write
+check. Every declared Path
 must be inside adapter production roots and outside protected/excluded roots;
 one valid Path never masks an invalid sibling. Implement writes are limited to
 task Paths, task/meta state, `evidence/task-NNN.md` and
-`evidence/scope-baseline-task-NNN.json`.
+`evidence/scope-baseline-task-NNN.json`; the writer must not rewrite that
+coordinator-owned baseline. The guard also preserves staged/unstaged/untracked
+state for paths outside task scope.
+
+Before the baseline, resolve `--phase implement` with the exact immutable scopes
+from meta and require the returned lifecycle union to match
+`applicable_rule_files`. Apply behavior-first/TDD, coding/comments and only the
+resolver-selected platform scope rules. A nontrivial test/build command is
+run through `workflow/scripts/test-watchdog.sh` using the plan budget; any
+override records a reason and remains finite.
 
 Set `status: implementing` when work starts. Mark a task `done` and give it a
 concrete package-relative evidence path only after focused checks pass and the

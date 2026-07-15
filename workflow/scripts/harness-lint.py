@@ -13,6 +13,8 @@ import tomllib
 from pathlib import Path
 from urllib.parse import unquote
 
+from platform_rule_profiles import PHASES, RuleProfileError, validate_profiles
+
 
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 DISPATCH_RE = re.compile(
@@ -534,6 +536,8 @@ def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
             for key in (
                 "active_changes_namespace", "archive_namespace", "production_roots",
                 "protected_roots", "production_exclusions", "rule_files",
+                "context_file_suffixes", "context_excluded_directories",
+                "context_always_include_globs", "scope_task_checks",
             ):
                 if key not in adapter:
                     findings.append(finding("critical", "implementation-adapter", relative(adapter_path, root), f"missing field: {key}"))
@@ -542,6 +546,166 @@ def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
         metadata = root / ".agents/skills" / name / "agents/openai.yaml"
         if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
             findings.append(finding("critical", "manual-only-skill", relative(metadata, root), "allow_implicit_invocation must be false"))
+    return findings
+
+
+def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    required = (
+        "workflow/rules/coding-standards.md", "workflow/rules/code-comments.md",
+        "workflow/rules/tdd-first.md", "workflow/rules/test-execution.md",
+        "workflow/rules/verification-matrix.md", "workflow/rules/git-conventions.md",
+        "workflow/rules/branching.md", "workflow/rules/developer-experience.md",
+        "workflow/scripts/test-watchdog.sh",
+        "iOS/workflow/rules/swift-style.md", "iOS/workflow/rules/app-development.md",
+        "iOS/workflow/rules/package-development.md", "iOS/workflow/rules/simulator.md",
+        "iOS/workflow/rules/performance.md",
+        "iOS/workflow/rules/performance/app-launch.md",
+        "iOS/workflow/rules/performance/concurrency.md",
+        "iOS/workflow/rules/performance/measure-first.md",
+        "iOS/workflow/rules/performance/memory.md",
+        "iOS/workflow/rules/performance/networking.md",
+        "iOS/workflow/rules/performance/profiling.md",
+        "iOS/workflow/rules/performance/swiftui-rendering.md",
+    )
+    for value in required:
+        path = root / value
+        if not path.is_file():
+            findings.append(finding("critical", "engineering-rules", value, "required engineering canon is missing"))
+
+    adapter_path = root / "iOS/workflow/platform-contract.json"
+    if not adapter_path.is_file():
+        return findings
+    try:
+        adapter = json.loads(adapter_path.read_text(encoding="utf-8"))
+        catalog, phases, scopes = validate_profiles(root, adapter)
+    except (json.JSONDecodeError, RuleProfileError) as error:
+        findings.append(finding("critical", "engineering-profiles", relative(adapter_path, root), str(error)))
+        return findings
+    if tuple(phases) != PHASES:
+        findings.append(finding("critical", "engineering-profiles", relative(adapter_path, root), "phase profile order/keys are not canonical"))
+    ios_rules = {
+        path.relative_to(root).as_posix()
+        for path in (root / "iOS/workflow/rules").rglob("*.md")
+    }
+    missing_catalog = sorted(ios_rules - set(catalog))
+    if missing_catalog:
+        findings.append(finding("critical", "engineering-profiles", relative(adapter_path, root), f"iOS rules missing from catalog: {', '.join(missing_catalog)}"))
+    dependencies = {
+        "ui": {
+            "iOS/workflow/rules/accessibility.md",
+            "iOS/workflow/rules/ui-design-system.md",
+            "iOS/workflow/rules/ui-testing.md",
+            "iOS/workflow/rules/ui-test-spec.md",
+            "iOS/workflow/rules/simulator.md",
+            "iOS/workflow/rules/architecture/mvvm.md",
+        },
+        "concurrency": {
+            "iOS/workflow/rules/swift-concurrency.md",
+            "iOS/workflow/rules/performance/concurrency.md",
+        },
+        "networking": {"iOS/workflow/rules/performance/networking.md"},
+    }
+    for scope, expected in dependencies.items():
+        if not expected <= set(scopes.get(scope, [])):
+            findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), f"scope {scope} misses required rules"))
+    performance_expected = {
+        "iOS/workflow/rules/performance.md",
+        "iOS/workflow/rules/performance/measure-first.md",
+        "iOS/workflow/rules/performance/profiling.md",
+    }
+    if set(scopes.get("performance", [])) != performance_expected:
+        findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "performance base must remain selective"))
+    if "iOS/workflow/rules/architecture/mvvm.md" in scopes.get("application", []):
+        findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "MVVM belongs to ui, not application base"))
+    if "iOS/workflow/rules/unit-testing.md" in phases.get("verify", []):
+        findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "unit testing must not load for every verify scope"))
+    for scope, rule in (
+        ("startup", "iOS/workflow/rules/performance/app-launch.md"),
+        ("memory", "iOS/workflow/rules/performance/memory.md"),
+        ("rendering", "iOS/workflow/rules/performance/swiftui-rendering.md"),
+    ):
+        if scopes.get(scope) != [rule]:
+            findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), f"{scope} topic profile is invalid"))
+    if "iOS/workflow/rules/localization.md" in scopes.get("ui", []):
+        findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "ui must not imply the separate localization scope"))
+    suffixes = adapter.get("context_file_suffixes")
+    if not isinstance(suffixes, list) or not suffixes or not all(
+        isinstance(item, str) and re.fullmatch(r"\.[a-z0-9]+", item) for item in suffixes
+    ):
+        findings.append(finding("critical", "engineering-profiles", relative(adapter_path, root), "context_file_suffixes is invalid"))
+    if not isinstance(adapter.get("context_excluded_directories"), list) or not isinstance(adapter.get("context_always_include_globs"), list):
+        findings.append(finding("critical", "engineering-profiles", relative(adapter_path, root), "adapter-owned context exclusions/globs are missing"))
+    task_checks = adapter.get("scope_task_checks")
+    if not isinstance(task_checks, dict) or task_checks.get("ui") != adapter.get("ui_task_checks") or task_checks.get("localization") != ["localization"]:
+        findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "scope_task_checks must preserve exact UI and conditional localization gates"))
+    required_task_checks = {
+        "package": {"package consumer", "package build"},
+        "networking": {"cache policy", "retry policy"},
+        "concurrency": {"cancellation", "isolation"},
+        "performance": {"performance budget"},
+        "startup": {"launch budget"},
+    }
+    for scope, expected_checks in required_task_checks.items():
+        if not isinstance(task_checks, dict) or not expected_checks <= set(task_checks.get(scope, [])):
+            findings.append(finding(
+                "critical", "engineering-profile-dependency", relative(adapter_path, root),
+                f"scope_task_checks.{scope} misses deterministic task obligations",
+            ))
+
+    template = root / "workflow/templates/platform-meta.json"
+    if template.is_file():
+        text = template.read_text(encoding="utf-8")
+        for token in ('"engineering_scopes"', '"applicable_rule_files"', '"rule_selection_snapshot"'):
+            if token not in text:
+                findings.append(finding("critical", "engineering-meta", relative(template, root), f"missing field: {token}"))
+    selection_template = root / "workflow/templates/platform-rule-selection.json"
+    if not selection_template.is_file():
+        findings.append(finding("critical", "engineering-meta", "workflow/templates/platform-rule-selection.json", "planned selection snapshot template is missing"))
+    wiring = {
+        "workflow/phases/propose.md": ("engineering_scopes", "applicable_rule_files", "--phase propose"),
+        "workflow/phases/plan.md": ("--phase plan", "watchdog", "performance", "rule-selection.json", "scope_task_checks"),
+        "workflow/phases/implement.md": ("--phase implement", "test-watchdog.sh", "TDD"),
+        "workflow/phases/verify.md": ("--phase verify", "verification matrix", "UNKNOWN"),
+    }
+    for value, tokens in wiring.items():
+        path = root / value
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                findings.append(finding("critical", "engineering-wiring", value, f"missing token: {token}"))
+
+    forbidden = (
+        "jour" + "io", "design_system_" + "helper", "Tui" + "st",
+        "Swin" + "ject", "Mae" + "stro", "Liquid " + "Glass",
+    )
+    scan_roots = [root / "workflow/rules", root / "iOS/workflow/rules"]
+    for scan_root in scan_roots:
+        for path in scan_root.rglob("*.md"):
+            lowered = path.read_text(encoding="utf-8").casefold()
+            for token in forbidden:
+                if token.casefold() in lowered:
+                    findings.append(finding("critical", "source-assumption", relative(path, root), f"forbidden source-only assumption: {token}"))
+    common_neutral_files = [root / value for value in required if value.startswith("workflow/rules/")]
+    common_neutral_files.append(root / "workflow/phases/implement.md")
+    platform_tokens = re.compile(
+        r"\b(?:Swift|Xcode|UIKit|SwiftUI|Apple SDK|Simulator|Kotlin|Gradle|Android SDK)\b",
+        re.IGNORECASE,
+    )
+    for common_path in common_neutral_files:
+        if common_path.is_file() and platform_tokens.search(common_path.read_text(encoding="utf-8")):
+            findings.append(finding(
+                "critical", "common-platform-leakage", relative(common_path, root),
+                "platform-neutral common canon names a platform-only technology",
+            ))
+    context_script = root / "workflow/scripts/find-platform-context.py"
+    if context_script.is_file():
+        script_text = context_script.read_text(encoding="utf-8")
+        for token in ('".sw' + 'ift"', '".xcode' + 'proj"', '".kot' + 'lin"', '".gra' + 'dle"'):
+            if token in script_text:
+                findings.append(finding("critical", "common-platform-leakage", relative(context_script, root), f"context suffix must be adapter-owned: {token}"))
     return findings
 
 
@@ -598,6 +762,7 @@ def main() -> int:
     findings.extend(check_platform_contract(root))
     findings.extend(check_specification_layers(root))
     findings.extend(check_implementation_lifecycle(root))
+    findings.extend(check_engineering_rule_profiles(root))
     findings.extend(check_naming(root))
     findings.sort(key=lambda item: (item["severity"], item["check"], item["file"]))
 

@@ -29,16 +29,214 @@
     "accessibility",
     "design-system"
   ],
+  "scope_task_checks": {
+    "ui": [
+      "simulator",
+      "accessibility",
+      "design-system"
+    ],
+    "application": [
+      "application boundary"
+    ],
+    "package": [
+      "package consumer",
+      "package build"
+    ],
+    "networking": [
+      "cache policy",
+      "retry policy"
+    ],
+    "concurrency": [
+      "cancellation",
+      "isolation"
+    ],
+    "localization": [
+      "localization"
+    ],
+    "performance": [
+      "performance budget"
+    ],
+    "startup": [
+      "launch budget"
+    ],
+    "memory": [
+      "memory budget"
+    ],
+    "rendering": [
+      "rendering budget"
+    ],
+    "xcode": [
+      "build configuration"
+    ],
+    "simulator": [
+      "runtime destination"
+    ],
+    "delivery": [
+      "delivery authorization"
+    ],
+    "developer-experience": [
+      "feedback baseline"
+    ]
+  },
+  "context_file_suffixes": [
+    ".md",
+    ".json",
+    ".swift",
+    ".xcodeproj",
+    ".xcworkspace",
+    ".pbxproj",
+    ".toml",
+    ".yaml",
+    ".yml"
+  ],
+  "context_excluded_directories": [
+    ".build",
+    ".swiftpm",
+    "DerivedData",
+    "build"
+  ],
+  "context_always_include_globs": [
+    "iOS/**/project.pbxproj",
+    "iOS/**/*.xcscheme",
+    "iOS/**/contents.xcworkspacedata",
+    "iOS/**/Package.swift",
+    "iOS/**/.swiftlint.yml",
+    "iOS/**/.swiftformat"
+  ],
   "rule_files": [
+    "workflow/rules/specification-layers.md",
+    "workflow/rules/system-design.md",
+    "workflow/rules/coding-standards.md",
+    "workflow/rules/code-comments.md",
+    "workflow/rules/tdd-first.md",
+    "workflow/rules/test-execution.md",
+    "workflow/rules/verification-matrix.md",
+    "workflow/rules/verification-evidence.md",
+    "workflow/rules/git-conventions.md",
+    "workflow/rules/branching.md",
+    "workflow/rules/developer-experience.md",
     "iOS/workflow/rules/architecture.md",
+    "iOS/workflow/rules/architecture/feature-first.md",
+    "iOS/workflow/rules/architecture/dependency-injection.md",
+    "iOS/workflow/rules/architecture/use-cases.md",
+    "iOS/workflow/rules/architecture/error-handling.md",
+    "iOS/workflow/rules/architecture/mvvm.md",
+    "iOS/workflow/rules/architecture/naming.md",
+    "iOS/workflow/rules/architecture/legacy.md",
+    "iOS/workflow/rules/architecture/types-clean-code.md",
     "iOS/workflow/rules/ios-pitfalls.md",
     "iOS/workflow/rules/swift-concurrency.md",
+    "iOS/workflow/rules/swift-style.md",
+    "iOS/workflow/rules/app-development.md",
+    "iOS/workflow/rules/package-development.md",
     "iOS/workflow/rules/unit-testing.md",
     "iOS/workflow/rules/ui-testing.md",
     "iOS/workflow/rules/ui-test-spec.md",
     "iOS/workflow/rules/accessibility.md",
     "iOS/workflow/rules/ui-design-system.md",
     "iOS/workflow/rules/localization.md",
-    "iOS/workflow/rules/xcode.md"
-  ]
+    "iOS/workflow/rules/xcode.md",
+    "iOS/workflow/rules/simulator.md",
+    "iOS/workflow/rules/performance.md",
+    "iOS/workflow/rules/performance/measure-first.md",
+    "iOS/workflow/rules/performance/app-launch.md",
+    "iOS/workflow/rules/performance/concurrency.md",
+    "iOS/workflow/rules/performance/memory.md",
+    "iOS/workflow/rules/performance/networking.md",
+    "iOS/workflow/rules/performance/profiling.md",
+    "iOS/workflow/rules/performance/swiftui-rendering.md"
+  ],
+  "phase_rule_profiles": {
+    "propose": [
+      "workflow/rules/specification-layers.md",
+      "workflow/rules/system-design.md",
+      "iOS/workflow/rules/architecture.md"
+    ],
+    "plan": [
+      "workflow/rules/coding-standards.md",
+      "workflow/rules/tdd-first.md",
+      "workflow/rules/test-execution.md",
+      "workflow/rules/verification-matrix.md",
+      "iOS/workflow/rules/architecture.md"
+    ],
+    "implement": [
+      "workflow/rules/coding-standards.md",
+      "workflow/rules/code-comments.md",
+      "workflow/rules/tdd-first.md",
+      "workflow/rules/test-execution.md",
+      "iOS/workflow/rules/swift-style.md"
+    ],
+    "verify": [
+      "workflow/rules/test-execution.md",
+      "workflow/rules/verification-matrix.md",
+      "workflow/rules/verification-evidence.md"
+    ]
+  },
+  "scope_rule_profiles": {
+    "application": [
+      "iOS/workflow/rules/app-development.md",
+      "iOS/workflow/rules/ios-pitfalls.md",
+      "iOS/workflow/rules/architecture/feature-first.md",
+      "iOS/workflow/rules/architecture/dependency-injection.md",
+      "iOS/workflow/rules/architecture/use-cases.md",
+      "iOS/workflow/rules/architecture/error-handling.md",
+      "iOS/workflow/rules/architecture/naming.md",
+      "iOS/workflow/rules/architecture/legacy.md",
+      "iOS/workflow/rules/architecture/types-clean-code.md",
+      "iOS/workflow/rules/unit-testing.md"
+    ],
+    "ui": [
+      "iOS/workflow/rules/accessibility.md",
+      "iOS/workflow/rules/ui-design-system.md",
+      "iOS/workflow/rules/ui-testing.md",
+      "iOS/workflow/rules/ui-test-spec.md",
+      "iOS/workflow/rules/simulator.md",
+      "iOS/workflow/rules/architecture/mvvm.md"
+    ],
+    "concurrency": [
+      "iOS/workflow/rules/swift-concurrency.md",
+      "iOS/workflow/rules/performance/concurrency.md"
+    ],
+    "performance": [
+      "iOS/workflow/rules/performance.md",
+      "iOS/workflow/rules/performance/measure-first.md",
+      "iOS/workflow/rules/performance/profiling.md"
+    ],
+    "startup": [
+      "iOS/workflow/rules/performance/app-launch.md"
+    ],
+    "memory": [
+      "iOS/workflow/rules/performance/memory.md"
+    ],
+    "rendering": [
+      "iOS/workflow/rules/performance/swiftui-rendering.md"
+    ],
+    "networking": [
+      "iOS/workflow/rules/performance/networking.md"
+    ],
+    "package": [
+      "iOS/workflow/rules/package-development.md",
+      "iOS/workflow/rules/architecture/dependency-injection.md",
+      "iOS/workflow/rules/architecture/error-handling.md",
+      "iOS/workflow/rules/architecture/naming.md",
+      "iOS/workflow/rules/architecture/types-clean-code.md",
+      "iOS/workflow/rules/unit-testing.md"
+    ],
+    "localization": [
+      "iOS/workflow/rules/localization.md"
+    ],
+    "xcode": [
+      "iOS/workflow/rules/xcode.md"
+    ],
+    "simulator": [
+      "iOS/workflow/rules/simulator.md"
+    ],
+    "delivery": [
+      "workflow/rules/git-conventions.md",
+      "workflow/rules/branching.md"
+    ],
+    "developer-experience": [
+      "workflow/rules/developer-experience.md"
+    ]
+  }
 }

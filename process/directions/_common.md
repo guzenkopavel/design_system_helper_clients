@@ -20,3 +20,8 @@ Public invocation всегда передаёт `<platform> <feature>`.
 
 Platform package identity дополняется strict kebab-case `change_id`; active
 discovery смотрит только `changes/`, а product discovery исключает `_archive`.
+
+Adapter catalog распределяется по exact phase bases и named engineering scopes.
+Package фиксирует evidence-selected scopes и полный lifecycle union; общий
+resolver используется retrieval, validator и fingerprint logic. Условные
+delivery/DX rules не дают права коммитить или менять ветки.

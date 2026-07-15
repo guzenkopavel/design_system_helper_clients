@@ -1,6 +1,7 @@
 # task-NNN — <name>
 
 - Layer: domain | data | presentation | infrastructure | tests
+- Engineering scopes: ["<sealed-package-scope>"]
 - Depends on: task-NNN | none
 - Status: pending
 - Evidence: none
@@ -11,5 +12,10 @@
 ## Inline contract context
 ## Steps
 ## Verification
+
+- Discovered command:
+- Watchdog max/stall/output budget for nontrivial checks:
+- Applicable rule/check mapping:
+
 ## Expected result
 ## Out of scope

@@ -7,3 +7,17 @@ Presentation → Domain contracts ← Data implementations. Domain не импо
 
 Не создавать пустые слои ради формы. Placement подтверждать существующим
 project/package layout; greenfield path маркировать `proposed`.
+
+## Boundary checklist
+
+- Feature public API содержит только входы, результаты и route contracts,
+  необходимые потребителю.
+- Domain models не являются aliases transport/persistence DTO.
+- Data adapters реализуют domain-owned contracts и нормализуют внешние ошибки.
+- Presentation не импортируется из Domain/Data.
+- Общая primitive выносится только после доказанных двух владельцев и
+  одинаковой семантики, а не одинакового синтаксиса.
+- Cross-feature workflow координируется на composition/navigation boundary.
+
+Plan разделяет задачи по observable vertical slices, если это позволяет ранний
+RED→GREEN. Массовое создание папок до первого поведения запрещено.

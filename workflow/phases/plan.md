@@ -1,7 +1,9 @@
 ---
 phase: plan
 writes_artifacts:
+  - <platform>/specs/<feature>/changes/<change-id>/meta.json
   - <platform>/specs/<feature>/changes/<change-id>/plan/README.md
+  - <platform>/specs/<feature>/changes/<change-id>/plan/rule-selection.json
   - <platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md
 requires_verification: focused
 recommended_roles:
@@ -19,11 +21,30 @@ Require a valid `specified` package with matching platform/feature/change,
 closed blockers and passed design gate. `repo-navigator` and the platform guard
 are read-only; `implementation-planner` is the sole owner of `plan/`.
 
+Revalidate selected engineering scopes against current evidence. Plan may add or
+refine scopes before `planned`; it must recompute the exact lifecycle
+`applicable_rule_files` union. After
+`planned`, Implement/Verify cannot invent a scope. Record final selection and
+evidence in plan README and seal the exact arrays/fingerprint in
+`plan/rule-selection.json`; set meta `rule_selection_snapshot` to that path.
+If a new scope lacks exact design coverage or invalidates an architecture decision,
+return to Propose/architecture owner instead of editing design from Plan. Load
+the exact plan profile and selected scope rules through
+`find-platform-context.py --phase plan`.
+
 Create a DAG of contiguous self-contained `task-NNN.md` files. Each task has one
 layer, no more than two ideal days, explicit existing/proposed paths, inline
 REQ/AC context, dependencies, focused verification, expected result and
 out-of-scope. Machine fields begin as `Status: pending` and `Evidence: none`.
 UI tasks include adapter runtime, accessibility and design-system checks.
+Tasks translate applicable code/TDD/test/performance rules into concrete paths,
+commands, budgets and expected evidence. Nontrivial test commands receive
+explicit watchdog max/stall/output limits; commands are discovered, not guessed.
+Every task declares a sorted JSON `Engineering scopes` subset of the sealed
+package scopes. Together tasks cover every selected scope. Adapter
+`scope_task_checks` supplies conditional keywords/checks; any task tagged `ui`,
+`localization` or a performance topic must carry its checks regardless of layer,
+and every presentation task must include `ui`.
 
 Candidate meta is `planned`, `tasks_total` equals the derived file count,
 `tasks_done: 0`, verification remains pending. Validate with `--mode plan

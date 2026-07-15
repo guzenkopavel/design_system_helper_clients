@@ -21,4 +21,6 @@ lifecycle transition.
 Machine adapter: [`platform-contract.json`](../../iOS/workflow/platform-contract.json)
 задаёт iOS name/root, production/protected roots, archive namespace, `IOS`
 contract prefix, boundary guard и Extended gates;
-общий validator не hardcode'ит эти значения.
+phase/scope rule profiles, context file suffixes и полный catalog. Общий resolver/validator не
+hardcode'ит эти значения. Performance topics, UI/simulator, package,
+concurrency, localization, delivery и DX загружаются только выбранными scopes.

@@ -12,10 +12,12 @@
 | shared product package | `specs/product/<feature>/` (`concept.md`, `brief.md`, UI-only `ux.md`, `spec.md`) | `brainstorming`, `discovery`, `elaborate` |
 | active platform change | `<platform>/specs/<feature>/changes/<change-id>/`; intake `product-backed` или доказанный `technical-only` | `propose` → `plan` → `implement` → `verify` |
 | platform lifecycle metadata | `<platform>/specs/<feature>/changes/<change-id>/meta.json` | `validate-platform-change.py` |
+| engineering rule profile | adapter `phase_rule_profiles` + `scope_rule_profiles`; package `engineering_scopes` + exact `applicable_rule_files` | `platform_rule_profiles.py` |
+| planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
 | product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |
 | verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |
-| iOS architecture rule | `iOS/workflow/rules/` | iOS addenda и platform roles |
+| iOS engineering rule | `iOS/workflow/rules/` | iOS addenda, adapter profiles и platform roles |
 
 Общий канон использовать, когда контракт одинаков для обеих платформ.
 Платформенный канон использовать только для реальных различий SDK, build/test

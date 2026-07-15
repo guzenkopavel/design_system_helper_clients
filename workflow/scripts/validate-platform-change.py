@@ -11,6 +11,13 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
+from platform_rule_profiles import (
+    RuleProfileError,
+    applicable_rules,
+    semantic_projection,
+    validate_profiles,
+)
+
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TASK_RE = re.compile(r"^task-\d{3}$")
 PLACEHOLDER_RE = re.compile(r"\b(?:TODO|TBD|FIXME)\b|<[^>\n]+>|\{\{|\}\}|\.\.\.", re.I)
@@ -23,6 +30,7 @@ REQUIRED_META = {
     "product_impact", "impact_evidence", "blocking_questions", "problems",
     "design_gate", "tasks_total", "tasks_done", "verification_status",
     "verified_at", "verification_state",
+    "engineering_scopes", "applicable_rule_files", "rule_selection_snapshot",
 }
 COMMON_DESIGN = (
     "Current context", "Proposed architecture and boundaries",
@@ -83,6 +91,9 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
         "active_changes_namespace", "archive_namespace", "production_roots",
         "protected_roots", "production_exclusions", "contract_prefix",
         "boundary_guard", "extended_design_sections", "ui_task_checks", "rule_files",
+        "phase_rule_profiles", "scope_rule_profiles", "scope_task_checks",
+        "context_file_suffixes", "context_excluded_directories",
+        "context_always_include_globs",
     }
     missing = sorted(required - set(adapter))
     if missing:
@@ -100,6 +111,46 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
             raise AdapterError(f"{field} must be strict kebab-case")
     if not re.fullmatch(r"[A-Z][A-Z0-9]*", str(adapter["contract_prefix"])):
         raise AdapterError("contract_prefix must be uppercase alphanumeric")
+    suffixes = adapter["context_file_suffixes"]
+    if (
+        not isinstance(suffixes, list) or not suffixes
+        or not all(isinstance(item, str) and re.fullmatch(r"\.[a-z0-9]+", item) for item in suffixes)
+        or len(suffixes) != len(set(suffixes))
+    ):
+        raise AdapterError("context_file_suffixes must be a unique non-empty list of lowercase extensions")
+    excluded = adapter["context_excluded_directories"]
+    if (
+        not isinstance(excluded, list)
+        or not all(isinstance(item, str) and re.fullmatch(r"[A-Za-z0-9._-]+", item) for item in excluded)
+        or len(excluded) != len(set(excluded))
+    ):
+        raise AdapterError("context_excluded_directories must be a unique list of directory names")
+    globs = adapter["context_always_include_globs"]
+    if not isinstance(globs, list) or not globs:
+        raise AdapterError("context_always_include_globs must be a non-empty list")
+    for pattern in globs:
+        if (
+            not isinstance(pattern, str) or Path(pattern).is_absolute()
+            or ".." in Path(pattern).parts
+            or not re.fullmatch(r"[A-Za-z0-9_./*?-]+", pattern)
+        ):
+            raise AdapterError(f"unsafe context_always_include_globs pattern: {pattern}")
+    try:
+        _catalog, _phases, scopes = validate_profiles(repo, adapter)
+    except RuleProfileError as error:
+        raise AdapterError(str(error)) from error
+    task_checks = adapter["scope_task_checks"]
+    if not isinstance(task_checks, dict) or set(task_checks) - set(scopes):
+        raise AdapterError("scope_task_checks keys must be known engineering scopes")
+    for scope, checks in task_checks.items():
+        if (
+            not isinstance(checks, list) or not checks
+            or not all(isinstance(item, str) and item.strip() for item in checks)
+            or len(checks) != len(set(checks))
+        ):
+            raise AdapterError(f"scope_task_checks.{scope} must be a unique non-empty list")
+    if task_checks.get("ui") != adapter["ui_task_checks"]:
+        raise AdapterError("scope_task_checks.ui must exactly match ui_task_checks")
     return adapter
 
 
@@ -172,6 +223,32 @@ def field_value(text: str, label: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def rule_selection_snapshot(meta: dict[str, object]) -> dict[str, object]:
+    selection = {
+        "engineering_scopes": meta.get("engineering_scopes"),
+        "applicable_rule_files": meta.get("applicable_rule_files"),
+    }
+    encoded = json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
+    return {"schema_version": 1, **selection, "fingerprint": hashlib.sha256(encoded).hexdigest()}
+
+
+def validate_rule_selection_snapshot(package: Path, meta: dict[str, object]) -> list[str]:
+    errors: list[str] = []
+    if meta.get("rule_selection_snapshot") != "plan/rule-selection.json":
+        return ["rule_selection_snapshot must be exactly plan/rule-selection.json after Plan"]
+    path = package / "plan/rule-selection.json"
+    if not path.is_file():
+        return ["planned rule selection snapshot is missing"]
+    try:
+        recorded = json.loads(read(path))
+    except (OSError, json.JSONDecodeError):
+        return ["planned rule selection snapshot JSON is invalid"]
+    expected = rule_selection_snapshot(meta)
+    if recorded != expected:
+        errors.append("planned rule selection snapshot is stale or tampered")
+    return errors
+
+
 def valid_human(value: str | None, minimum: int = 3) -> bool:
     if value is None or PLACEHOLDER_RE.search(value):
         return False
@@ -223,7 +300,7 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
         if PLACEHOLDER_RE.search(body):
             errors.append(f"{path.name} contains unresolved placeholder")
         fields: dict[str, str] = {}
-        for name in ("Layer", "Depends on", "Status", "Evidence", "Estimate (ideal)", "Paths"):
+        for name in ("Layer", "Engineering scopes", "Depends on", "Status", "Evidence", "Estimate (ideal)", "Paths"):
             match = re.search(rf"(?mi)^-\s*{re.escape(name)}:\s*(.+)$", body)
             if match:
                 fields[name] = match.group(1).strip()
@@ -235,6 +312,17 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
         layer = fields.get("Layer", "").casefold()
         if layer not in {"domain", "data", "presentation", "infrastructure", "tests"}:
             errors.append(f"{path.name} must declare one allowed Layer")
+        try:
+            task_scopes = json.loads(fields.get("Engineering scopes", ""))
+        except json.JSONDecodeError:
+            task_scopes = None
+        if (
+            not isinstance(task_scopes, list) or not task_scopes
+            or not all(isinstance(item, str) and SLUG_RE.fullmatch(item) for item in task_scopes)
+            or task_scopes != sorted(set(task_scopes))
+        ):
+            errors.append(f"{path.name} Engineering scopes must be a sorted unique non-empty JSON array")
+            task_scopes = []
         status = fields.get("Status", "")
         evidence = fields.get("Evidence", "")
         if status not in {"pending", "done"}:
@@ -268,7 +356,7 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
             errors.append(f"{path.name} depends on missing {dep}")
         if path.stem in deps:
             errors.append(f"{path.name} depends on itself")
-        tasks.append({"id": path.stem, "path": path, "body": body, "layer": layer, "status": status, "evidence": evidence, "deps": deps, "paths": parsed_paths})
+        tasks.append({"id": path.stem, "path": path, "body": body, "layer": layer, "engineering_scopes": task_scopes, "status": status, "evidence": evidence, "deps": deps, "paths": parsed_paths})
     by_id = {str(t["id"]): t for t in tasks}
     visiting: set[str] = set()
     visited: set[str] = set()
@@ -298,6 +386,8 @@ def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dic
     for name in ("proposal.md", "implementation-spec.md", "design.md", "verification.md", "plan/README.md"):
         path = package / name
         if path.is_file(): candidates.add(path)
+    snapshot = package / "plan/rule-selection.json"
+    if snapshot.is_file(): candidates.add(snapshot)
     for path in (package / "plan").glob("task-*.md"):
         candidates.add(path)
     evidence_root = package / "evidence"
@@ -305,11 +395,10 @@ def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dic
         for path in evidence_root.rglob("*"):
             if path.is_file() and path.name != "verification-state.json":
                 candidates.add(path)
-    adapter_path = repo / str(adapter["_path"])
-    if adapter_path.is_file(): candidates.add(adapter_path)
-    for raw in adapter["rule_files"]:
-        path = repo / str(raw)
-        if path.is_file(): candidates.add(path)
+    for raw in meta.get("applicable_rule_files", []):
+        if isinstance(raw, str):
+            path = safe_repo_path(repo, raw, "applicable_rule_files")
+            if path.is_file(): candidates.add(path)
     shared = meta.get("shared_product_spec")
     if isinstance(shared, str):
         path = repo / shared
@@ -329,6 +418,9 @@ def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dic
 
 def compute_state(repo: Path, adapter: dict[str, object], package: Path, meta: dict[str, object]) -> dict[str, object]:
     files: dict[str, str] = {}
+    projection = semantic_projection(repo, adapter, meta.get("engineering_scopes", []))
+    projection_bytes = json.dumps(projection, sort_keys=True, separators=(",", ":")).encode()
+    files["adapter/semantic-projection"] = hashlib.sha256(projection_bytes).hexdigest()
     for path in state_files(repo, adapter, package, meta):
         if is_subpath(path, package):
             key = f"package/{path.relative_to(package).as_posix()}"
@@ -351,7 +443,10 @@ def validate_state(repo: Path, adapter: dict[str, object], package: Path, meta: 
         recorded = json.loads(read(path))
     except (OSError, json.JSONDecodeError):
         return ["verification_state JSON is invalid"]
-    current = compute_state(repo, adapter, package, meta)
+    try:
+        current = compute_state(repo, adapter, package, meta)
+    except (AdapterError, RuleProfileError) as error:
+        return [f"verification state inputs are invalid: {error}"]
     if recorded.get("fingerprint") != current["fingerprint"] or recorded.get("files") != current["files"]:
         return ["verification state fingerprint is stale"]
     return []
@@ -374,6 +469,27 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     if meta.get("change_id") != change_id: errors.append("meta.change_id does not match CLI change")
     if meta.get("change_type") not in {"product-backed", "technical-only"}: errors.append("invalid change_type")
     if meta.get("tier") not in {"quick", "standard", "extended"}: errors.append("invalid tier")
+    raw_scopes = meta.get("engineering_scopes")
+    raw_rules = meta.get("applicable_rule_files")
+    if not isinstance(raw_scopes, list) or not raw_scopes:
+        errors.append("engineering_scopes must be a non-empty array")
+    if not isinstance(raw_rules, list):
+        errors.append("applicable_rule_files must be an array")
+    if isinstance(raw_scopes, list) and isinstance(raw_rules, list):
+        try:
+            normalized_scopes, expected_rules = applicable_rules(repo, adapter, raw_scopes)
+        except RuleProfileError as error:
+            errors.append(str(error))
+        else:
+            if raw_scopes != normalized_scopes:
+                errors.append("engineering_scopes must be sorted, unique and known")
+            if raw_rules != expected_rules:
+                errors.append("applicable_rule_files must exactly match lifecycle phase bases plus selected scopes")
+    if mode == "propose":
+        if meta.get("rule_selection_snapshot") is not None or (package / "plan/rule-selection.json").exists():
+            errors.append("propose requires null rule_selection_snapshot and no planned snapshot")
+    else:
+        errors.extend(validate_rule_selection_snapshot(package, meta))
     if not isinstance(meta.get("blocking_questions"), list) or meta.get("blocking_questions"):
         errors.append("blocking_questions must be an empty array")
     if not isinstance(meta.get("problems"), list):
@@ -410,7 +526,7 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     if any(not (package / name).is_file() for name in required_files): return errors
 
     proposal = read(package / "proposal.md")
-    for heading in ("Intake", "Goal", "Scope", "Non-goals", "Accepted decisions", "Risks"):
+    for heading in ("Intake", "Goal", "Scope", "Engineering scope selection", "Applicable rule files", "Non-goals", "Accepted decisions", "Risks"):
         if not substantive(section(proposal, heading), 16): errors.append(f"proposal.md missing substantive section: {heading}")
     if not explicit_none(section(proposal, "Open questions")): errors.append("proposal.md has unresolved questions")
 
@@ -447,6 +563,21 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         if meta.get("tier") == "extended":
             for heading in adapter["extended_design_sections"]:
                 if not substantive(section(design, str(heading)), 28): errors.append(f"extended design missing: {heading}")
+    scope_section = section(design, "Applied engineering scopes") or ""
+    scope_entries: dict[str, str] = {}
+    duplicate_scopes: set[str] = set()
+    for match in re.finditer(r"(?m)^-\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*(.+)$", scope_section):
+        scope = match.group(1); rationale = match.group(2).strip()
+        if scope in scope_entries:
+            duplicate_scopes.add(scope)
+        scope_entries[scope] = rationale
+        if not substantive(rationale, 12):
+            errors.append(f"design scope has no decision or explicit N/A rationale: {scope}")
+    if duplicate_scopes:
+        errors.append(f"design engineering scopes duplicate: {', '.join(sorted(duplicate_scopes))}")
+    expected_scope_set = set(raw_scopes) if isinstance(raw_scopes, list) else set()
+    if set(scope_entries) != expected_scope_set:
+        errors.append("design Applied engineering scopes must exactly cover meta engineering_scopes")
     if meta.get("design_gate") != "PASS": errors.append("design_gate must be PASS")
 
     verification = read(package / "verification.md")
@@ -504,15 +635,31 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     if meta.get("tasks_done") != done: errors.append("tasks_done must equal derived done task count")
     known_reqs = shared_reqs | declared_reqs; known_acs = shared_acs | declared_acs; known = known_reqs | known_acs
     task_context_ids: dict[str, set[str]] = {}
+    covered_task_scopes: set[str] = set()
     for task in tasks:
         context = section(str(task["body"]), "Inline contract context") or ""
         ids = set(re.findall(r"\b(?:REQ|AC|[A-Z][A-Z0-9]*-(?:REQ|AC))-\d+\b", context))
         task_context_ids[str(task["id"])] = ids
         if not ids & known_reqs or not ids & known_acs: errors.append(f"{task['id']} inline context lacks declared REQ/AC")
         if ids - known: errors.append(f"{task['id']} inline context contains unknown IDs")
-        if task["layer"] == "presentation":
-            for check in adapter["ui_task_checks"]:
-                if str(check).casefold() not in str(task["body"]).casefold(): errors.append(f"{task['id']} missing UI check: {check}")
+        task_scopes = set(str(item) for item in task.get("engineering_scopes", []))
+        covered_task_scopes.update(task_scopes)
+        package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
+        if task_scopes - package_scopes:
+            errors.append(f"{task['id']} contains scope not sealed in package")
+        if task["layer"] == "presentation" and "ui" not in task_scopes:
+            errors.append(f"{task['id']} presentation task must include ui engineering scope")
+        task_check_text = "\n".join(
+            section(str(task["body"]), heading) or ""
+            for heading in ("Steps", "Verification", "Expected result")
+        ).casefold()
+        for scope in sorted(task_scopes):
+            for check in adapter["scope_task_checks"].get(scope, []):
+                if str(check).casefold() not in task_check_text:
+                    errors.append(f"{task['id']} missing {scope} scope check: {check}")
+    package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
+    if package_scopes - covered_task_scopes:
+        errors.append(f"plan tasks do not cover engineering scopes: {', '.join(sorted(package_scopes - covered_task_scopes))}")
 
     if mode == "plan":
         if meta.get("problems") != []: errors.append("plan requires empty problems")
@@ -576,18 +723,59 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
         "production_roots": ["TestClient"], "protected_roots": ["TestClient/specs", "TestClient/workflow"],
         "production_exclusions": ["TestClient/specs", "TestClient/workflow"], "contract_prefix": "TST",
         "boundary_guard": "test-boundary", "extended_design_sections": ["System-design review"],
-        "ui_task_checks": ["simulator", "accessibility", "design-system"], "rule_files": ["TestClient/workflow/rule.md"],
+        "ui_task_checks": ["simulator", "accessibility", "design-system"],
+        "rule_files": [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md",
+            "TestClient/workflow/ui.md", "TestClient/workflow/localization.md",
+            "TestClient/workflow/package.md", "TestClient/workflow/networking.md",
+            "TestClient/workflow/startup.md",
+        ],
+        "phase_rule_profiles": {
+            "propose": ["TestClient/workflow/base.md"],
+            "plan": ["TestClient/workflow/base.md"],
+            "implement": ["TestClient/workflow/base.md"],
+            "verify": ["TestClient/workflow/base.md"],
+        },
+        "scope_rule_profiles": {
+            "application": ["TestClient/workflow/application.md"],
+            "performance": ["TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md"],
+            "ui": ["TestClient/workflow/ui.md"],
+            "localization": ["TestClient/workflow/localization.md"],
+            "package": ["TestClient/workflow/package.md"],
+            "networking": ["TestClient/workflow/networking.md"],
+            "startup": ["TestClient/workflow/startup.md"],
+        },
+        "scope_task_checks": {
+            "ui": ["simulator", "accessibility", "design-system"],
+            "localization": ["localization"],
+            "package": ["package consumer", "package build"],
+            "networking": ["cache policy", "retry policy"],
+            "performance": ["performance budget"],
+            "startup": ["launch budget"],
+        },
+        "context_file_suffixes": [".md", ".json", ".swift"],
+        "context_excluded_directories": [".build"],
+        "context_always_include_globs": ["TestClient/**/Package.swift"],
     }
     (adapter_dir / "platform-contract.json").write_text(json.dumps(adapter), encoding="utf-8")
-    (adapter_dir / "rule.md").write_text("Current platform rule.\n", encoding="utf-8")
+    (adapter_dir / "base.md").write_text("Current lifecycle base rule.\n", encoding="utf-8")
+    (adapter_dir / "application.md").write_text("Current selected application rule.\n", encoding="utf-8")
+    (adapter_dir / "performance-a.md").write_text("Unselected performance rule A.\n", encoding="utf-8")
+    (adapter_dir / "performance-b.md").write_text("Unselected performance rule B.\n", encoding="utf-8")
+    (adapter_dir / "ui.md").write_text("Unselected UI rule.\n", encoding="utf-8")
+    (adapter_dir / "localization.md").write_text("Unselected localization rule.\n", encoding="utf-8")
+    (adapter_dir / "package.md").write_text("Unselected package rule.\n", encoding="utf-8")
+    (adapter_dir / "networking.md").write_text("Unselected networking rule.\n", encoding="utf-8")
+    (adapter_dir / "startup.md").write_text("Unselected startup rule.\n", encoding="utf-8")
     product = repo / "specs/product/sample/spec.md"; product.parent.mkdir(parents=True)
     product.write_text("- **Status:** `READY`\n- **Product approval:** `APPROVED`\n- **Approved by:** Product owner\n- **Approval evidence:** approved decision record\n- **Applies to:** `TestClient`\n\n## Requirements\n- `REQ-1` — Shared behavior remains observable.\n\n## Acceptance Criteria\n- `AC-1` — Shared behavior is observed. `Covers: REQ-1`\n", encoding="utf-8")
     package = repo / "TestClient/specs/sample/changes/sample"; package.mkdir(parents=True)
-    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
+    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
     (package/"meta.json").write_text(json.dumps(meta), encoding="utf-8")
-    (package/"proposal.md").write_text("# Proposal\n\n## Intake\nApproved shared product contract is the implementation intake.\n\n## Goal\nDeliver the selected behavior within the platform boundary.\n\n## Scope\nTyped platform implementation and focused verification are included.\n\n## Non-goals\nOther platforms and unrelated cleanup remain outside this change.\n\n## Accepted decisions\nUse adapter ownership and preserve the approved shared behavior.\n\n## Open questions\nNone.\n\n## Risks\nGreenfield integration requires focused boundary verification.\n", encoding="utf-8")
+    (package/"proposal.md").write_text("# Proposal\n\n## Intake\nApproved shared product contract is the implementation intake.\n\n## Goal\nDeliver the selected behavior within the platform boundary.\n\n## Scope\nTyped platform implementation and focused verification are included.\n\n## Engineering scope selection\nApplication scope is selected from discovered production ownership.\n\n## Applicable rule files\nExact lifecycle union includes the base and selected application rules.\n\n## Non-goals\nOther platforms and unrelated cleanup remain outside this change.\n\n## Accepted decisions\nUse adapter ownership and preserve the approved shared behavior.\n\n## Open questions\nNone.\n\n## Risks\nGreenfield integration requires focused boundary verification.\n", encoding="utf-8")
     (package/"implementation-spec.md").write_text("# Spec\n\n## Intake reference\nApproved shared contract applies to this platform change.\n\n## Shared contract references\nReferences REQ-1 and AC-1 without copying behavior text.\n\n## Platform requirements\n### TST-REQ-1 — Boundary\nA typed boundary isolates platform integration and supports focused verification.\n\n## Platform acceptance criteria\n### TST-AC-1 — Boundary result\nA focused test observes the typed boundary returning a deterministic result.\nCovers: TST-REQ-1\n\n## Constraints\nPreserve shared behavior and adapter ownership boundaries.\n\n## Integration points\nConnect through the discovered platform composition boundary.\n\n## Open questions\nNone.\n", encoding="utf-8")
-    (package/"design.md").write_text("# Design\n\n## Current context\nThe platform change is greenfield and uses only discovered integration boundaries.\n\n## Proposed architecture and boundaries\nA typed feature boundary separates domain behavior from platform integration details.\n\n## Data and control flow\nInput crosses the domain boundary and a typed result returns to the caller.\n\n## Error and recovery model\nExplicit errors preserve deterministic recovery and prevent hidden retry behavior.\n\n## Verification strategy\nFocused tests verify the domain boundary and current realized integration path.\n", encoding="utf-8")
+    (package/"design.md").write_text("# Design\n\n## Current context\nThe platform change is greenfield and uses only discovered integration boundaries.\n\n## Proposed architecture and boundaries\nA typed feature boundary separates domain behavior from platform integration details.\n\n## Data and control flow\nInput crosses the domain boundary and a typed result returns to the caller.\n\n## Error and recovery model\nExplicit errors preserve deterministic recovery and prevent hidden retry behavior.\n\n## Applied engineering scopes\n- application: Typed application boundaries and deterministic tests apply to this change.\n\n## Verification strategy\nFocused tests verify the domain boundary and current realized integration path.\n", encoding="utf-8")
     (package/"verification.md").write_text("# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | approval record | pending |\n| AC-1 | integration | Run shared scenario | scenario report | pending |\n| TST-REQ-1 | design | Review current boundary | review record | pending |\n| TST-AC-1 | unit | Run focused boundary test | test report | pending |\n", encoding="utf-8")
     return load_adapter(repo, "test-client"), package, meta
 
@@ -596,6 +784,19 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); adapter, package, meta = write_fixture(repo)
         assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        bad_meta = dict(meta); bad_meta["engineering_scopes"] = ["unknown"]
+        (package / "meta.json").write_text(json.dumps(bad_meta))
+        assert any("unknown engineering scope" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        bad_meta = dict(meta); bad_meta["applicable_rule_files"] = ["TestClient/workflow/base.md"]
+        (package / "meta.json").write_text(json.dumps(bad_meta))
+        assert any("exactly match" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        bad_meta = dict(meta); bad_meta["applicable_rule_files"] = list(meta["applicable_rule_files"]) + ["TestClient/workflow/performance-a.md"]
+        (package / "meta.json").write_text(json.dumps(bad_meta))
+        assert any("exactly match" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        bad_meta = dict(meta); bad_meta["applicable_rule_files"] = ["../escape.md"]
+        (package / "meta.json").write_text(json.dumps(bad_meta))
+        assert any("exactly match" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        (package / "meta.json").write_text(json.dumps(meta))
         assert resolve_change(repo, adapter, "sample", None, "plan")[0] == "sample"
         try: resolve_change(repo, adapter, "../bad", None, "plan"); raise AssertionError("traversal passed")
         except AdapterError: pass
@@ -605,16 +806,139 @@ def self_test() -> int:
         (other/"meta.json").unlink(); other.rmdir()
 
         plan = package/"plan"; plan.mkdir()
-        (plan/"README.md").write_text("# Plan\n\n## Planning frame\nImplement three bounded tasks after approved specification.\n\n## DAG\ntask-001 precedes dependent task-002; task-003 is independent.\n\n## Estimates and multipliers\nThe estimate includes greenfield integration uncertainty.\n\n## Verification strategy\nRun focused boundary and integration tests.\n")
-        task = "# task-001\n- Layer: domain\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nCreate the typed platform behavior boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its deterministic result.\n\n## Steps\nImplement the typed boundary and its focused behavior test.\n\n## Verification\nRun the focused deterministic boundary test.\n\n## Expected result\nThe boundary returns the expected typed result.\n\n## Out of scope\nOther features and unrelated platform cleanup remain excluded.\n"
-        task_2 = "# task-002\n- Layer: tests\n- Depends on: task-001\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/SampleTests.swift\n\n## Goal\nVerify the dependent shared behavior integration.\n\n## Inline contract context\nREQ-1 defines shared behavior and AC-1 observes the integrated result.\n\n## Steps\nAdd the dependent integration scenario after the boundary task.\n\n## Verification\nRun the focused shared integration test.\n\n## Expected result\nThe dependent integration test records the expected result.\n\n## Out of scope\nPlatform boundary changes remain owned by task-001.\n"
-        task_3 = "# task-003\n- Layer: tests\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/IndependentTests.swift\n\n## Goal\nVerify an independent owner of the platform acceptance criterion.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the independent result.\n\n## Steps\nAdd the independent focused acceptance scenario.\n\n## Verification\nRun the independent deterministic acceptance test.\n\n## Expected result\nThe independent test records the expected boundary result.\n\n## Out of scope\nDependent integration remains owned by task-002.\n"
+        (plan/"README.md").write_text("# Plan\n\n## Planning frame\nImplement three bounded tasks after approved specification.\n\n## Revalidated engineering scopes and exact rules\n- Engineering scopes: [\"application\"]\n- Applicable rule files: [\"TestClient/workflow/base.md\", \"TestClient/workflow/application.md\"]\n\n## DAG\ntask-001 precedes dependent task-002; task-003 is independent.\n\n## Estimates and multipliers\nThe estimate includes greenfield integration uncertainty.\n\n## Verification strategy\nRun focused boundary and integration tests.\n")
+        task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nCreate the typed platform behavior boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its deterministic result.\n\n## Steps\nImplement the typed boundary and its focused behavior test.\n\n## Verification\nRun the focused deterministic boundary test.\n\n## Expected result\nThe boundary returns the expected typed result.\n\n## Out of scope\nOther features and unrelated platform cleanup remain excluded.\n"
+        task_2 = "# task-002\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: task-001\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/SampleTests.swift\n\n## Goal\nVerify the dependent shared behavior integration.\n\n## Inline contract context\nREQ-1 defines shared behavior and AC-1 observes the integrated result.\n\n## Steps\nAdd the dependent integration scenario after the boundary task.\n\n## Verification\nRun the focused shared integration test.\n\n## Expected result\nThe dependent integration test records the expected result.\n\n## Out of scope\nPlatform boundary changes remain owned by task-001.\n"
+        task_3 = "# task-003\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/IndependentTests.swift\n\n## Goal\nVerify an independent owner of the platform acceptance criterion.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the independent result.\n\n## Steps\nAdd the independent focused acceptance scenario.\n\n## Verification\nRun the independent deterministic acceptance test.\n\n## Expected result\nThe independent test records the expected boundary result.\n\n## Out of scope\nDependent integration remains owned by task-002.\n"
         (plan/"task-001.md").write_text(task)
         (plan/"task-002.md").write_text(task_2)
         (plan/"task-003.md").write_text(task_3)
-        planned=dict(meta); planned.update(status="planned",tasks_total=3)
+        planned=dict(meta); planned.update(status="planned",tasks_total=3,rule_selection_snapshot="plan/rule-selection.json")
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
         (package/"meta.json").write_text(json.dumps(planned))
         assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        original_design = (package / "design.md").read_text()
+        expanded = dict(planned)
+        expanded["engineering_scopes"] = ["application", "performance"]
+        expanded["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md",
+        ]
+        (package / "meta.json").write_text(json.dumps(expanded))
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(expanded)))
+        expanded_task = task.replace(
+            '["application"]', '["application", "performance"]'
+        ).replace(
+            "Run the focused deterministic boundary test.",
+            "Run the focused deterministic boundary test against the performance budget.",
+        )
+        (plan / "task-001.md").write_text(expanded_task)
+        assert any("design Applied engineering scopes" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        (package / "design.md").write_text(original_design.replace(
+            "- application: Typed application boundaries and deterministic tests apply to this change.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n- performance: Measurement rules apply to the selected performance work.",
+        ))
+        assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        conditional = dict(planned)
+        conditional["engineering_scopes"] = ["application", "localization", "ui"]
+        conditional["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/localization.md", "TestClient/workflow/ui.md",
+        ]
+        conditional_design = original_design.replace(
+            "- application: Typed application boundaries and deterministic tests apply to this change.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n- localization: Localized resources require a conditional task check.\n- ui: UI automation requires runtime and accessibility checks.",
+        )
+        (package / "design.md").write_text(conditional_design)
+        (package / "meta.json").write_text(json.dumps(conditional))
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(conditional)))
+        ui_test_task = task_2.replace('["application"]', '["application", "ui"]')
+        localized_resource_task = task_3.replace('["application"]', '["application", "localization"]')
+        (plan / "task-001.md").write_text(task)
+        (plan / "task-002.md").write_text(ui_test_task)
+        (plan / "task-003.md").write_text(localized_resource_task)
+        conditional_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("task-002 missing ui scope check" in error for error in conditional_errors)
+        assert any("task-003 missing localization scope check" in error for error in conditional_errors)
+        ui_test_task_green = ui_test_task.replace(
+            "Run the focused shared integration test.",
+            "Run simulator UI automation with accessibility and design-system checks.",
+        )
+        localized_resource_green = localized_resource_task.replace(
+            "Run the independent deterministic acceptance test.",
+            "Run the independent localization resource acceptance test.",
+        )
+        (plan / "task-002.md").write_text(ui_test_task_green)
+        (plan / "task-003.md").write_text(localized_resource_green)
+        assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        presentation_without_ui = task.replace("Layer: domain", "Layer: presentation")
+        (plan / "task-001.md").write_text(presentation_without_ui)
+        assert any("presentation task must include ui" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        pressure = dict(planned)
+        pressure["engineering_scopes"] = ["application", "networking", "package", "performance", "startup"]
+        pressure["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/networking.md", "TestClient/workflow/package.md",
+            "TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md",
+            "TestClient/workflow/startup.md",
+        ]
+        pressure_design = original_design.replace(
+            "- application: Typed application boundaries and deterministic tests apply to this change.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n"
+            "- networking: Cache and retry behavior require explicit planning.\n"
+            "- package: Consumer and build boundaries require explicit planning.\n"
+            "- performance: Measurement budget applies to this task.\n"
+            "- startup: Launch budget applies to this task.",
+        )
+        generic_pressure_task = task.replace(
+            '["application"]', '["application", "networking", "package", "performance", "startup"]'
+        ).replace(
+            "Run the focused deterministic boundary test.",
+            "Run the focused test with a performance budget and launch budget.",
+        )
+        (package / "meta.json").write_text(json.dumps(pressure))
+        (package / "design.md").write_text(pressure_design)
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(pressure)))
+        (plan / "task-001.md").write_text(generic_pressure_task)
+        (plan / "task-002.md").write_text(task_2)
+        (plan / "task-003.md").write_text(task_3)
+        pressure_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("missing package scope check" in error for error in pressure_errors)
+        assert any("missing networking scope check" in error for error in pressure_errors)
+        explicit_pressure_task = generic_pressure_task.replace(
+            "Run the focused test with a performance budget and launch budget.",
+            "Run the package consumer and package build with explicit cache policy, retry policy, performance budget and launch budget.",
+        )
+        (plan / "task-001.md").write_text(explicit_pressure_task)
+        assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        (package / "design.md").write_text(original_design)
+        (package / "meta.json").write_text(json.dumps(planned))
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
+        (plan / "task-001.md").write_text(task)
+        (plan / "task-002.md").write_text(task_2)
+        (plan / "task-003.md").write_text(task_3)
+        invented_scope = dict(planned)
+        invented_scope["engineering_scopes"] = ["application", "performance"]
+        invented_scope["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md",
+        ]
+        (package / "meta.json").write_text(json.dumps(invented_scope))
+        assert any("snapshot" in error for error in validate_package(repo, adapter, "sample", "sample", "implement"))
+        removed_scope = dict(planned)
+        removed_scope["engineering_scopes"] = ["performance"]
+        removed_scope["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/performance-a.md",
+            "TestClient/workflow/performance-b.md",
+        ]
+        (package / "meta.json").write_text(json.dumps(removed_scope))
+        assert any("snapshot" in error for error in validate_package(repo, adapter, "sample", "sample", "implement"))
+        (package / "meta.json").write_text(json.dumps(planned))
+        snapshot_path = plan / "rule-selection.json"; original_snapshot = snapshot_path.read_text()
+        tampered_snapshot = json.loads(original_snapshot); tampered_snapshot["fingerprint"] = "0" * 64
+        snapshot_path.write_text(json.dumps(tampered_snapshot))
+        assert any("tampered" in error for error in validate_package(repo, adapter, "sample", "sample", "implement"))
+        snapshot_path.write_text(original_snapshot)
         bad = task.replace("Depends on: none", "Depends on: task-999")
         (plan/"task-001.md").write_text(bad)
         assert validate_package(repo, adapter, "sample", "sample", "plan")
@@ -671,6 +995,28 @@ def self_test() -> int:
         (evidence/"verification-state.json").write_text(json.dumps(state))
         (package/"meta.json").write_text(json.dumps(verified))
         assert validate_package(repo, adapter, "sample", "sample", "verify") == []
+        selected_rule = repo / "TestClient/workflow/application.md"
+        selected_rule.write_text("Changed selected application rule.\n")
+        assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))
+        selected_rule.write_text("Current selected application rule.\n")
+        unselected_rule = repo / "TestClient/workflow/performance-a.md"
+        unselected_rule.write_text("Changed but still unselected performance rule.\n")
+        assert validate_package(repo, adapter, "sample", "sample", "archive") == []
+        unselected_rule.write_text("Unselected performance rule A.\n")
+        adapter_path = repo / "TestClient/workflow/platform-contract.json"
+        adapter["scope_rule_profiles"]["performance"].reverse()
+        adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
+        assert validate_package(repo, adapter, "sample", "sample", "archive") == []
+        adapter["scope_rule_profiles"]["performance"].reverse()
+        adapter["scope_task_checks"]["application"] = ["application boundary"]
+        adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
+        assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))
+        adapter["scope_task_checks"].pop("application")
+        adapter["scope_task_checks"]["performance"] = ["performance budget"]
+        adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
+        assert validate_package(repo, adapter, "sample", "sample", "archive") == []
+        adapter["scope_task_checks"].pop("performance")
+        adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
         verification_path = package/"verification.md"
         verification_path.write_text(passing_verification.replace("PASS |", "UNKNOWN |", 1))
         assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))

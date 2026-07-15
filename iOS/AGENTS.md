@@ -20,3 +20,10 @@ observable behavior, REQ и AC; иначе перейти в product elaboration
 [`workflow/rules`](workflow/rules/) как addenda к общему процессу. До перехода
 между lifecycle states запускать общий validator; production scope проверять
 baseline/check guard. Product archive остаётся общей отдельной операцией.
+
+Индекс addenda и rule profiles: [`workflow/README.md`](workflow/README.md).
+
+iOS adapter выбирает phase base и только evidence-selected engineering scopes.
+Точный lifecycle union хранится в meta и участвует в verification fingerprint;
+невыбранный corpus не загружается и не делает evidence stale. Реальные Xcode,
+Swift language mode, targets, schemes и simulator runtime всегда обнаруживаются.

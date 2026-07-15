@@ -1,6 +1,6 @@
 interface:
   display_name: "Plan"
-  short_description: "Создать change-aware execution plan"
-  default_prompt: "Use $plan with a platform, feature, and optional change ID."
+  short_description: "Создать rules-aware execution plan"
+  default_prompt: "Use $plan with a platform, feature, and optional change ID; revalidate scopes and produce concrete checks and budgets."
 policy:
   allow_implicit_invocation: false

@@ -11,5 +11,9 @@
 ## Design-system and accessibility
 ## Migration and rollout
 ## Alternatives and trade-offs
+## Applied engineering scopes
+
+- <scope>: <decision or explicit N/A with rationale>
+
 ## System-design checklist
 ## Verification strategy

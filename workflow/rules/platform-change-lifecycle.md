@@ -30,11 +30,31 @@ contiguous `plan/task-NNN.md` files and, after implementation begins, `evidence/
 The selected platform adapter supplies roots, contract prefix, production and
 protected paths, platform rules and archive namespace.
 
+Adapter `rule_files` is a catalog. Exact `phase_rule_profiles` and
+`scope_rule_profiles` select what each lifecycle phase reads. Propose records
+evidence-selected scopes; Plan may refine/add before `planned`; downstream
+phases cannot invent scopes.
+
 Required `meta.json` fields are `platform`, `feature`, `change_id`,
 `change_type`, `tier`, `status`, `shared_product_spec`, `product_status`,
 `product_approval`, `product_impact`, `impact_evidence`, `blocking_questions`,
-`problems`, `design_gate`, `tasks_total`, `tasks_done`, `verification_status`,
-`verified_at` and `verification_state`.
+`engineering_scopes`, `applicable_rule_files`, `problems`, `design_gate`,
+`tasks_total`, `tasks_done`, `verification_status`, `verified_at` and
+`verification_state`. The rule list is the exact deterministic union of all
+lifecycle phase bases and selected scope profiles; unknown, missing, extra or
+unsafe paths are invalid.
+At `planned`, Plan seals both arrays in fingerprinted
+`plan/rule-selection.json`, so Implement/Verify cannot change selection without
+returning to Plan. Design must cover every selected scope exactly once with a
+decision or explicit N/A rationale. Tasks declare scope subsets; their union
+covers the sealed package scopes and activates adapter conditional checks.
+
+The snapshot is a deterministic consistency lock, not an external provenance
+authority: it detects partial/stale rewrites, but cannot prove history if an
+actor rewrites meta, snapshot, design and tasks together before a later command.
+Preventing that cross-invocation rewrite requires a separately authorized trust
+anchor (for example an explicit token handoff, trusted store or commit), which
+is not implied by this repository-only lifecycle.
 
 Allowed statuses are `draft`, `specified`, `planned`, `implementing`, `verified`
 and `archived`. `tasks_total` and `tasks_done` are derived from task files and

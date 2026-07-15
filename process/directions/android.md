@@ -17,3 +17,5 @@ Android-специфика реализации — в [`Android/specs/`](../../
 Android adapter, architecture и implementation addenda отсутствуют. Любой
 Android implementation-lifecycle вызов обязан вернуть `NOT IMPLEMENTED` до
 записей. Product archive всё равно требует явную Android disposition с evidence.
+Общий profile contract готов для будущего adapter, но iOS rule paths/scopes в
+Android не наследуются и не считаются provisional defaults.

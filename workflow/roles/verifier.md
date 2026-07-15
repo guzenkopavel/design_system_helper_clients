@@ -2,7 +2,8 @@
 
 Freshly verify the current realized package. Production access is read-only.
 Reread shared/platform contracts, all task statuses/evidence, current code and
-applicable adapter rules; do not rely on the implementation writer's summary.
+the exact verify profile with unchanged engineering scopes; do not rely on the
+implementation writer's summary or flat rule catalog.
 
 Run every active verification method and assign exact `PASS`, `FAIL` or
 `UNKNOWN`. `PASS` requires a reproducible observation and a concrete non-empty
@@ -10,3 +11,13 @@ file under the selected package `evidence/`. Write permission is limited to
 that evidence directory, `verification.md` and verification fields in
 `meta.json` as directed by the coordinator. Never repair production during
 verification. Return blockers for any non-PASS and do not claim verified.
+
+Independently derive the method matrix from scope risks. Use the watchdog for
+nontrivial tests/build/runtime checks and comparable baselines for performance.
+Missing required environment is UNKNOWN, not a skipped PASS.
+
+Verifier runs between canonical verify-snapshot/verify-check guards. It may add
+fresh scoped evidence and update `verification.md`/verification meta fields, but
+must not alter production, tasks, plan, contracts, adapter, rules or existing
+task/history evidence, the baseline, or the coordinator-held SHA token.
+Coordinator task reopening happens only after green guard.

@@ -35,6 +35,15 @@
   dual archive;
 - [`rules/system-design.md`](rules/system-design.md) — общая mobile system-design
   база для будущих platform adapters;
+- [`rules/coding-standards.md`](rules/coding-standards.md),
+  [`rules/tdd-first.md`](rules/tdd-first.md),
+  [`rules/test-execution.md`](rules/test-execution.md) и
+  [`rules/verification-matrix.md`](rules/verification-matrix.md) — общий
+  behavior-first engineering и method-selection baseline;
+- [`rules/git-conventions.md`](rules/git-conventions.md),
+  [`rules/branching.md`](rules/branching.md) и
+  [`rules/developer-experience.md`](rules/developer-experience.md) — условные
+  delivery/DX scopes без автоматического commit;
 - [`rules/wording-clarity.md`](rules/wording-clarity.md) — cold-readable
   requirements, AC и security формулировки;
 - [`rules/orchestration-core.md`](rules/orchestration-core.md) — single-writer,
@@ -72,17 +81,23 @@
   проработка, UX review и human approval;
 - [`templates/platform-implementation-spec.md`](templates/platform-implementation-spec.md)
   — downstream спека одного направления;
+- [`templates/platform-rule-selection.json`](templates/platform-rule-selection.json)
+  — immutable planned engineering scope/rule snapshot;
 - [`test-evidence/README.md`](test-evidence/README.md) — индекс RED/GREEN,
   runtime и platform evidence;
 - [`scripts/harness-lint.py`](scripts/harness-lint.py) — детерминированная
   проверка структуры.
 - [`scripts/find-platform-context.py`](scripts/find-platform-context.py) и
   [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
-  retrieval и stdlib lifecycle gate.
+  profile-aware retrieval и stdlib lifecycle gate;
+- [`scripts/platform_rule_profiles.py`](scripts/platform_rule_profiles.py) —
+  единый resolver phase/scope rule profiles;
 - [`scripts/validate-implementation-scope.py`](scripts/validate-implementation-scope.py),
   [`scripts/capture-verification-state.py`](scripts/capture-verification-state.py)
   и [`scripts/archive-change.py`](scripts/archive-change.py) — task scope,
   freshness и collision-safe archive.
+- [`scripts/test-watchdog.sh`](scripts/test-watchdog.sh) — bounded запуск
+  nontrivial test/build commands.
 - [`scripts/workflow-reflection.py`](scripts/workflow-reflection.py) — focused
   propose/plan reflection без legacy paths.
 

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "engineering_scopes": [
+    "<scope>"
+  ],
+  "applicable_rule_files": [
+    "<exact-derived-rule-path>"
+  ],
+  "fingerprint": "<sha256-of-canonical-selection>"
+}

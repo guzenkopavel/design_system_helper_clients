@@ -19,3 +19,10 @@ elaboration.
 Конкретный prefix/root/gates задаёт
 [`platform-contract.json`](../workflow/platform-contract.json).
 Шаблоны находятся в [`workflow/templates`](../../workflow/templates/).
+
+`meta.json` содержит sorted `engineering_scopes` и exact
+`applicable_rule_files`: union всех lifecycle phase bases и выбранных scope
+profiles. Propose выбирает их по evidence, Plan может refine/add до `planned`,
+затем сохраняет sealed selection в `plan/rule-selection.json`, после чего
+Implement/Verify не расширяют набор. Fingerprint охватывает только этот набор
+правил и semantic adapter projection выбранных profiles.

@@ -5,6 +5,11 @@
 До записи прочитать общую [`propose`](../phases/propose.md), system-design,
 выбранный platform addendum и adapter.
 
+Загрузить exact proposal base + выбранные scope rules и отразить каждый в design
+decision/N/A mapping под `Applied engineering scopes`: каждый selected scope
+ровно один раз, unknown scopes запрещены. Не читать условный corpus
+невыбранного scope.
+
 - Проектировать module boundaries, interfaces, data/control flow, DI, errors,
   concurrency, security/data handling, migration/rollout и verification seams.
 - Для Extended применять полный system-design, затем platform architecture/SDK.

@@ -11,16 +11,29 @@ writer narrative. The read-only `verifier` assigns every active row in
 - focused task evidence proves task completion but does not prove the whole
   package verified.
 
+Verify is bounded by `evidence/verify-scope-baseline.json`. Pre-verifier snapshot
+and immediate post-verifier check require zero production/task/plan/contract/
+adapter/rule changes and preserve pre-existing dirty work. Only new verifier
+evidence, `verification.md`, verification meta fields and state file are allowed;
+existing task/historical evidence is immutable. Recovery task reopening is a
+coordinator step after this check.
+
 After all checks, `capture-verification-state.py` hashes every realized declared
-task path, `verification.md`, relevant shared/platform contracts, platform rule
-files and every current package evidence file except the state JSON itself.
+task path, `verification.md`, relevant shared/platform contracts, exact
+`applicable_rule_files` and every current package evidence file except the state
+JSON itself. It also hashes a deterministic semantic adapter projection:
+identity/ownership boundaries, contract prefix/guard/checks, all phase base
+profiles and only the selected scope mappings. The raw adapter and flat catalog
+are not fingerprint inputs.
 It writes `evidence/verification-state.json`. `meta.verification_state` points
 to that file, `verification_status` becomes `PASS`, and `verified_at` records an
 explicit timestamp only after the validator accepts the package.
 
-Any later code, task, design, shared contract, adapter or applicable rule change
-makes the fingerprint stale and blocks archive until `$verify` is rerun. Row,
-evidence content and evidence set changes are therefore stale-sensitive.
+Any later code, task, design, shared contract, selected semantic profile or
+applicable rule change makes the fingerprint stale and blocks archive until
+`$verify` is rerun. An unrelated unselected rule/profile change does not stale
+the package. Row, evidence content and evidence set changes remain
+stale-sensitive.
 
 For non-PASS results, persist every concrete row, set meta precedence FAIL over
 UNKNOWN, keep terminal timestamp/state null, and list exact non-PASS IDs in

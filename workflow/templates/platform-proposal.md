@@ -11,6 +11,16 @@
 
 ## Goal
 ## Scope
+## Engineering scope selection
+
+- Selected scopes:
+- Evidence for each scope:
+- Considered but not selected:
+
+## Applicable rule files
+
+Exact lifecycle union from phase bases plus selected scopes:
+
 ## Non-goals
 ## Existing context
 ## Proposed greenfield paths

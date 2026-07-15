@@ -11,8 +11,12 @@ description: Выполнить одну или все готовые задач
 Проверить adapter/identity и package до записей. Через
 `implementation-discovery` выбрать только ready pending task, сохранить scope
 baseline, затем передать production writes единственной роли
-`implementation-writer` в режиме `platform-implementation`. После focused
-evidence проверить scope, обновить task status/evidence и derived `tasks_done`.
+`implementation-writer` в режиме `platform-implementation`. Загрузить exact
+implement profile + неизменные meta scopes; flat rule catalog не загружать.
+Nontrivial checks выполнять через `test-watchdog.sh` с plan budgets. После focused
+evidence проверить scope с coordinator-held `--expected-sha256`, обновить task
+status/evidence и derived `tasks_done`. SHA token из snapshot не записывать в
+writer-accessible repo state и не передавать writer роли.
 Scope допускает только каждый declared production Path и точные файлы
 `evidence/task-NNN.md`, `evidence/scope-baseline-task-NNN.json`; mixed unsafe
 Path блокирует весь task. Recovery после Verify обрабатывается только через

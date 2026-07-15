@@ -473,28 +473,29 @@ def terminal_fixture(repo: Path):
     (repo / "TestClient").rename(repo / "iOS")
     adapter_path = repo / "iOS/workflow/platform-contract.json"
     adapter_data = json.loads(adapter_path.read_text(encoding="utf-8"))
+    adapter_data = json.loads(json.dumps(adapter_data).replace("TestClient/", "iOS/"))
     adapter_data.update(
         platform_input="ios", platform_name="iOS", platform_root="iOS",
         package_root="iOS/specs", production_roots=["iOS"],
         protected_roots=["iOS/specs", "iOS/workflow"],
         production_exclusions=["iOS/specs", "iOS/workflow"],
-        rule_files=["iOS/workflow/rule.md"],
     )
     adapter_path.write_text(json.dumps(adapter_data), encoding="utf-8")
     adapter = validator.load_adapter(repo, "ios")
     package = repo / "iOS/specs/sample/changes/sample"
-    meta["platform"] = "iOS"
+    meta = json.loads(json.dumps(meta).replace("TestClient/", "iOS/")); meta["platform"] = "iOS"
     product = repo / "specs/product/sample/spec.md"
     product.write_text(product.read_text().replace("`TestClient`", "`iOS, Android`"))
     plan = package / "plan"; plan.mkdir()
-    (plan / "README.md").write_text("# Plan\n\n## Planning frame\nOne bounded task follows approved contracts.\n\n## DAG\ntask-001 is ready without dependencies.\n\n## Estimates and multipliers\nGreenfield uncertainty is included in the range.\n\n## Verification strategy\nRun a focused check and record evidence.\n")
+    (plan / "README.md").write_text("# Plan\n\n## Planning frame\nOne bounded task follows approved contracts.\n\n## Revalidated engineering scopes and exact rules\n- Engineering scopes: [\"application\"]\n- Applicable rule files: [\"iOS/workflow/base.md\", \"iOS/workflow/application.md\"]\n\n## DAG\ntask-001 is ready without dependencies.\n\n## Estimates and multipliers\nGreenfield uncertainty is included in the range.\n\n## Verification strategy\nRun a focused check and record evidence.\n")
     source = repo / "iOS/Sources/Sample.swift"; source.parent.mkdir(parents=True); source.write_text("struct Sample {}\n")
-    task = "# task-001\n- Layer: domain\n- Depends on: none\n- Status: done\n- Evidence: evidence/task-001.md\n- Estimate (ideal): 0.5–1 days\n- Paths: existing: iOS/Sources/Sample.swift\n\n## Goal\nImplement the typed platform boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the result.\n\n## Steps\nCreate the typed boundary with focused verification.\n\n## Verification\nRun the deterministic boundary test.\n\n## Expected result\nThe boundary test records a passing result.\n\n## Out of scope\nOther features and cleanup remain excluded.\n"
+    task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: done\n- Evidence: evidence/task-001.md\n- Estimate (ideal): 0.5–1 days\n- Paths: existing: iOS/Sources/Sample.swift\n\n## Goal\nImplement the typed platform boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the result.\n\n## Steps\nCreate the typed boundary with focused verification.\n\n## Verification\nRun the deterministic boundary test.\n\n## Expected result\nThe boundary test records a passing result.\n\n## Out of scope\nOther features and cleanup remain excluded.\n"
     (plan / "task-001.md").write_text(task)
     evidence = package / "evidence"; evidence.mkdir(); (evidence / "task-001.md").write_text("Focused test PASS.\n")
     for name in ("req","ac","preq","pac"): (evidence/f"{name}.md").write_text("Fresh PASS evidence.\n")
     (package/"verification.md").write_text("# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run current shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | PASS |\n")
-    meta.update(status="verified", tasks_total=1, tasks_done=1, verification_status="PASS", verified_at="2026-07-15T12:00:00Z", verification_state="evidence/verification-state.json")
+    meta.update(status="verified", tasks_total=1, tasks_done=1, verification_status="PASS", verified_at="2026-07-15T12:00:00Z", verification_state="evidence/verification-state.json", rule_selection_snapshot="plan/rule-selection.json")
+    (plan / "rule-selection.json").write_text(json.dumps(validator.rule_selection_snapshot(meta)))
     state=validator.compute_state(repo, adapter, package, meta); state["captured_at"]="2026-07-15T12:00:00Z"
     (evidence/"verification-state.json").write_text(json.dumps(state))
     (package/"meta.json").write_text(json.dumps(meta))
@@ -506,20 +507,24 @@ def clone_terminal_android(repo: Path) -> Path:
     shutil.copytree(repo / "iOS", repo / "Android")
     adapter_path = repo / "Android/workflow/platform-contract.json"
     adapter_data = json.loads(adapter_path.read_text(encoding="utf-8"))
+    adapter_data = json.loads(json.dumps(adapter_data).replace("iOS/", "Android/"))
     adapter_data.update(
         platform_input="android", platform_name="Android", platform_root="Android",
         package_root="Android/specs", production_roots=["Android"],
         protected_roots=["Android/specs", "Android/workflow"],
         production_exclusions=["Android/specs", "Android/workflow"],
-        rule_files=["Android/workflow/rule.md"],
     )
     adapter_path.write_text(json.dumps(adapter_data), encoding="utf-8")
     package = repo / "Android/specs/sample/changes/sample"
     meta_path = package / "meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8")); meta["platform"] = "Android"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta = json.loads(json.dumps(meta).replace("iOS/", "Android/")); meta["platform"] = "Android"
     task_path = package / "plan/task-001.md"
     task_path.write_text(task_path.read_text(encoding="utf-8").replace("iOS/", "Android/"), encoding="utf-8")
+    plan_index = package / "plan/README.md"
+    plan_index.write_text(plan_index.read_text(encoding="utf-8").replace("iOS/", "Android/"), encoding="utf-8")
     adapter = validator.load_adapter(repo, "android")
+    (package / "plan/rule-selection.json").write_text(json.dumps(validator.rule_selection_snapshot(meta)), encoding="utf-8")
     state = validator.compute_state(repo, adapter, package, meta); state["captured_at"] = "2026-07-15T12:00:00Z"
     (package / "evidence/verification-state.json").write_text(json.dumps(state), encoding="utf-8")
     meta_path.write_text(json.dumps(meta), encoding="utf-8")

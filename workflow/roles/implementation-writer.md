@@ -13,17 +13,21 @@ do not replace the read-only harness auditor.
 ## Mode: platform-implementation
 
 Before writes, load the selected adapter, platform implement addendum, task and
-applicable adapter rules. The task is the primary self-contained input. Change
+exact implement profile plus immutable meta scope rules. Reject catalog/union
+mismatch. The task is the primary self-contained input. Change
 only declared task Paths inside adapter production roots; protected/excluded
-roots remain immutable except selected task/meta state and the exact canonical
-`evidence/task-NNN.md` plus `evidence/scope-baseline-task-NNN.json` files.
+roots remain immutable except selected task/meta state and exact canonical
+`evidence/task-NNN.md`. The coordinator baseline and its out-of-band SHA token
+are never writer-owned or rewritten.
 In FAIL/UNKNOWN recovery mode only, a baseline captured before writes may also
 authorize exact package `verification.md` solely to reset all rows to pending;
 initial implementation never receives this permission.
 
 Use behavior-first/TDD where observable behavior exists. Respect existing
 architecture, dependency, concurrency, testing, accessibility, localization and
-design-system contracts. Do not add side features, broad cleanup or speculative
+design-system contracts selected for this package. Run nontrivial checks through
+the common watchdog with finite planned budgets; override requires recorded
+rationale. Do not add side features, broad cleanup or speculative
 infrastructure. A focused check and scope validation are required before task
 completion. Never assign verified status.
 

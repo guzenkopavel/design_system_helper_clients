@@ -10,6 +10,13 @@
   "product_approval": "APPROVED",
   "product_impact": "PRESENT",
   "impact_evidence": "<evidence>",
+  "engineering_scopes": [
+    "<scope>"
+  ],
+  "applicable_rule_files": [
+    "<exact-derived-rule-path>"
+  ],
+  "rule_selection_snapshot": null,
   "blocking_questions": [],
   "problems": [],
   "design_gate": "pending",

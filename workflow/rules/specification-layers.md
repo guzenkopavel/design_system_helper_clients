@@ -84,6 +84,11 @@ AC. В обоих режимах в ней остаются архитектур
 SDK/framework/module details, реальные платформенные ограничения, применимая
 трассировка к тестам, план реализации, миграции и rollout.
 
+Engineering corpus выбирается отдельно от product behavior: package хранит
+evidence-selected scopes и exact applicable lifecycle rules. Это не копирует
+правила в spec, а делает architecture/testing/performance context аудируемым и
+стабильным между Propose, Plan, Implement и Verify.
+
 Если ограничение одной платформы конфликтует с общим контрактом, оно не
 превращается молча в отдельное продуктовое поведение. Конфликт возвращается в
 product layer как open question или явное продуктовое решение.
