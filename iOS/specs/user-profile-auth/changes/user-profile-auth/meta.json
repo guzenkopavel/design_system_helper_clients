@@ -4,7 +4,7 @@
   "change_id": "user-profile-auth",
   "change_type": "product-backed",
   "tier": "standard",
-  "status": "planned",
+  "status": "implementing",
   "shared_product_spec": "specs/product/user-profile-auth/spec.md",
   "product_status": "READY",
   "product_approval": "APPROVED",
@@ -57,7 +57,7 @@
   "problems": [],
   "design_gate": "PASS",
   "tasks_total": 9,
-  "tasks_done": 0,
+  "tasks_done": 1,
   "verification_status": "pending",
   "verified_at": null,
   "verification_state": null

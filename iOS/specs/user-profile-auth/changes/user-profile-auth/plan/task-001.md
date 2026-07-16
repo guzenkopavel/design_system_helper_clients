@@ -4,10 +4,11 @@
 - Boundary owner: implementation-writer
 - Engineering scopes: ["application", "package"]
 - Depends on: none
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-001.md
+- Discovered command: swift build --package-path iOS/AuthFeature
 - Estimate (ideal): 0.5–1 days
-- Paths: proposed: iOS/AuthFeature/Package.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/AuthConfiguration.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/SessionState.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/AuthError.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/AuthAPIClient.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/SessionSecretStore.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/TimeProvider.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/CheckEmailUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/LogInUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/RegisterAccountUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/CheckSessionUseCase.swift; proposed: iOS/AuthFeature/Tests/AuthFeatureTests/Domain/AuthConfigurationTests.swift; proposed: iOS/AuthFeature/Tests/AuthFeatureTests/Domain/AuthErrorTests.swift
+- Paths: proposed: iOS/AuthFeature/Package.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/AuthConfiguration.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/SessionState.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/AuthError.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/AuthAPIClient.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/SessionSecretStore.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/Contracts/TimeProvider.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/CheckEmailUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/LogInUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/RegisterAccountUseCase.swift; proposed: iOS/AuthFeature/Sources/AuthFeature/Domain/UseCases/CheckSessionUseCase.swift; proposed: iOS/AuthFeature/Tests/AuthFeatureTests/Domain/AuthConfigurationTests.swift; proposed: iOS/AuthFeature/Tests/AuthFeatureTests/Domain/AuthErrorTests.swift
 - Read-only context: ["iOS/specs/user-profile-auth/changes/user-profile-auth/design.md", "iOS/specs/user-profile-auth/changes/user-profile-auth/implementation-spec.md", "iOS/workflow/rules/architecture/naming.md", "iOS/workflow/rules/architecture/types-clean-code.md", "iOS/workflow/rules/package-development.md", "iOS/workflow/rules/unit-testing.md"]
 
 ## Goal
