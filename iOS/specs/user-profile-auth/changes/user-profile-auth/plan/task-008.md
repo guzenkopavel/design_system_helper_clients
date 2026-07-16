@@ -4,11 +4,12 @@
 - Boundary owner: implementation-writer
 - Engineering scopes: ["application", "package"]
 - Depends on: task-007
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-task-008.md
+- Discovered command: xcodebuild -project iOS/SysDevScen/SysDevScen.xcodeproj -scheme SysDevScen -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' build
 - Estimate (ideal): 1–1.5 days
-- Paths: existing: iOS/SysDevScen/SysDevScen/SysDevScenApp.swift; existing: iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj; proposed: iOS/SysDevScen/SysDevScen/RootView.swift
-- Read-only context: ["iOS/SysDevScen/SysDevScen/ContentView.swift", "iOS/specs/user-profile-auth/changes/user-profile-auth/design.md", "iOS/specs/user-profile-auth/changes/user-profile-auth/implementation-spec.md", "iOS/workflow/rules/app-development.md", "iOS/workflow/rules/architecture/dependency-injection.md", "iOS/workflow/rules/architecture/feature-first.md", "iOS/workflow/rules/architecture/legacy.md", "iOS/workflow/rules/ios-pitfalls.md", "iOS/workflow/rules/package-development.md"]
+- Paths: existing: iOS/SysDevScen/SysDevScen/SysDevScenApp.swift; existing: iOS/SysDevScen/SysDevScen/ContentView.swift; existing: iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj; existing: iOS/SysDevScen/SysDevScenTests/SysDevScenTests.swift; existing: iOS/SysDevScen/SysDevScenUITests/SysDevScenUITests.swift; proposed: iOS/SysDevScen/SysDevScen/RootView.swift; proposed: iOS/SysDevScen/SysDevScenTests/AppShellStateTests.swift; proposed: iOS/SysDevScen/SysDevScenUITests/AppShellUITests.swift
+- Read-only context: ["iOS/specs/user-profile-auth/changes/user-profile-auth/design.md", "iOS/specs/user-profile-auth/changes/user-profile-auth/implementation-spec.md", "iOS/workflow/rules/app-development.md", "iOS/workflow/rules/architecture/dependency-injection.md", "iOS/workflow/rules/architecture/feature-first.md", "iOS/workflow/rules/architecture/legacy.md", "iOS/workflow/rules/ios-pitfalls.md", "iOS/workflow/rules/package-development.md"]
 
 ## Goal
 
