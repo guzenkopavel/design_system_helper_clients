@@ -1,27 +1,4 @@
 {
-  "platform": "iOS",
-  "feature": "app-shell",
-  "change_id": "app-shell",
-  "change_type": "product-backed",
-  "tier": "standard",
-  "status": "planned",
-  "shared_product_spec": "specs/product/app-shell/spec.md",
-  "product_status": "READY",
-  "product_approval": "APPROVED",
-  "product_impact": "PRESENT",
-  "impact_evidence": "Утверждённый shared app-shell contract меняет первую видимую iOS-поверхность и требует platform implementation package.",
-  "blocking_questions": [],
-  "problems": [],
-  "design_gate": "PASS",
-  "tasks_total": 3,
-  "tasks_done": 0,
-  "verification_status": "pending",
-  "verified_at": null,
-  "verification_state": null,
-  "engineering_scopes": [
-    "application",
-    "ui"
-  ],
   "applicable_rule_files": [
     "workflow/rules/specification-layers.md",
     "workflow/rules/artifact-language.md",
@@ -53,6 +30,31 @@
     "iOS/workflow/rules/simulator.md",
     "iOS/workflow/rules/architecture/mvvm.md"
   ],
+  "archived_at": "2026-07-16T06:16:26Z",
+  "archived_path": "iOS/specs/app-shell/archive/2026-07-16-app-shell",
+  "blocking_questions": [],
+  "change_id": "app-shell",
+  "change_type": "product-backed",
+  "design_gate": "PASS",
+  "engineering_scopes": [
+    "application",
+    "ui"
+  ],
+  "feature": "app-shell",
+  "impact_evidence": "\u0423\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043d\u043d\u044b\u0439 shared app-shell contract \u043c\u0435\u043d\u044f\u0435\u0442 \u043f\u0435\u0440\u0432\u0443\u044e \u0432\u0438\u0434\u0438\u043c\u0443\u044e iOS-\u043f\u043e\u0432\u0435\u0440\u0445\u043d\u043e\u0441\u0442\u044c \u0438 \u0442\u0440\u0435\u0431\u0443\u0435\u0442 platform implementation package.",
+  "modularity_contract_version": 1,
+  "platform": "iOS",
+  "problems": [],
+  "product_approval": "APPROVED",
+  "product_impact": "PRESENT",
+  "product_status": "READY",
   "rule_selection_snapshot": "plan/rule-selection.json",
-  "modularity_contract_version": 1
+  "shared_product_spec": "specs/product/app-shell/spec.md",
+  "status": "archived",
+  "tasks_done": 3,
+  "tasks_total": 3,
+  "tier": "standard",
+  "verification_state": "evidence/verification-state.json",
+  "verification_status": "PASS",
+  "verified_at": "2026-07-16T06:13:23Z"
 }

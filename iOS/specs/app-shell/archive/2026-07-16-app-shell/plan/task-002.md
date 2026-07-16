@@ -4,10 +4,10 @@
 - Boundary owner: local SwiftUI app-shell root surface
 - Engineering scopes: ["ui"]
 - Depends on: task-001
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-002.md
 - Estimate (ideal): 1.0-1.5 days
-- Paths: existing: iOS/SysDevScen/SysDevScen/ContentView.swift; existing: iOS/SysDevScen/SysDevScen/Assets.xcassets; existing: iOS/specs/app-shell/changes/app-shell/platform-ux.md
+- Paths: existing: iOS/SysDevScen/SysDevScen/ContentView.swift; existing: iOS/SysDevScen/SysDevScen/Assets.xcassets
 
 ## Goal
 
@@ -20,6 +20,8 @@ state и нейтральными поверхностями без фиктив
 Покрывает `REQ-1`, `REQ-2`, `REQ-3`, `REQ-5`, `REQ-6`, `AC-1`, `AC-2`, `AC-3`,
 `AC-5`, `IOS-REQ-2` и `IOS-AC-2`. Задача отвечает за нативные controls,
 семантику выбора, видимые русские labels и UX adapter constraints.
+`platform-ux.md` используется как read-only contract context и не является
+writable Path этой задачи.
 
 ## Steps
 

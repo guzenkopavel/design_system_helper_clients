@@ -4,8 +4,8 @@
 - Boundary owner: app-shell composition boundary inside `SysDevScen` application target
 - Engineering scopes: ["application"]
 - Depends on: none
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-001.md
 - Estimate (ideal): 0.5-1.0 days
 - Paths: existing: iOS/SysDevScen/SysDevScen/SysDevScenApp.swift; existing: iOS/SysDevScen/SysDevScen/ContentView.swift; existing: iOS/SysDevScen/SysDevScen/Persistence.swift; existing: iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj
 

@@ -4,10 +4,10 @@
 - Boundary owner: app-shell verification boundary across unit and UI test targets
 - Engineering scopes: ["application", "ui"]
 - Depends on: task-001, task-002
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-003.md
 - Estimate (ideal): 1.0-2.0 days
-- Paths: existing: iOS/SysDevScen/SysDevScenTests; existing: iOS/SysDevScen/SysDevScenUITests; existing: iOS/specs/app-shell/changes/app-shell/verification.md; proposed: iOS/SysDevScen/SysDevScenTests/AppShellStateTests.swift; proposed: iOS/SysDevScen/SysDevScenUITests/AppShellUITests.swift; proposed: iOS/specs/app-shell/changes/app-shell/evidence
+- Paths: existing: iOS/SysDevScen/SysDevScenTests; existing: iOS/SysDevScen/SysDevScenUITests; proposed: iOS/SysDevScen/SysDevScenTests/AppShellStateTests.swift; proposed: iOS/SysDevScen/SysDevScenUITests/AppShellUITests.swift
 
 ## Goal
 
@@ -21,6 +21,9 @@ approved app shell.
 `AC-3`, `AC-4`, `AC-5`, `IOS-REQ-1`, `IOS-REQ-2`, `IOS-REQ-3`, `IOS-AC-1`,
 `IOS-AC-2` и `IOS-AC-3`. Задача отвечает за командную проверку, simulator
 evidence, `application boundary` и UI accessibility checks.
+`verification.md` и package `evidence/` используются как read-only context и
+route для отчёта; initial Implement пишет только точные разрешённые файлы
+`evidence/task-003.md` и `evidence/scope-baseline-task-003.json`.
 
 ## Steps
 
@@ -28,8 +31,9 @@ evidence, `application boundary` и UI accessibility checks.
   повторного выбора, идемпотентности и закрытого набора `RootSection`.
 - Добавить `UI tests` для запуска, трёх labels, переноса selected state,
   отсутствия Core Data template interactions и постоянной navigation.
-- Сопоставить строки `verification.md` с evidence files в package evidence
-  после выполнения Implement/Verify; в Plan сами evidence files не создаются.
+- Подготовить сопоставление строк `verification.md` с evidence route через
+  `evidence/task-003.md`; сам `verification.md` остаётся read-only до
+  отдельной Verify-фазы.
 - Проверить `application boundary`, отсутствие нового package/target,
   отсутствие data/network/persistence ownership и отсутствие excluded template
   behavior.
