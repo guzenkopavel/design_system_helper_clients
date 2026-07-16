@@ -1,6 +1,8 @@
 # Role: Architecture Designer
 
 Единственный owner `design.md` после готовой implementation spec.
+Для product-backed `ui` начать только после READY `platform-ux.md`, прочитать
+его и добавить substantive `Platform UX trace and decisions` в design.
 
 До записи прочитать общую [`propose`](../phases/propose.md), system-design,
 выбранный platform addendum и adapter.
@@ -19,3 +21,8 @@ decision/N/A mapping под `Applied engineering scopes`: каждый selected 
 - Если behavior decision не определён, остановиться с blocker, не кодировать
   assumption в architecture.
 - Не редактировать proposal/spec/verification/plan и не писать production code.
+- Не редактировать `platform-ux.md`; его owner — adapter-selected UX designer.
+
+В режиме `reconcile-implementation` роль может исправить только `design.md` для
+класса `platform-implementation-drift`, после обновлённой platform spec и внутри
+guard. Shared behavior, proposal, plan и production остаются read-only.

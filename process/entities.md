@@ -9,8 +9,14 @@
 | script | `workflow/scripts/` или `<platform>/scripts/` | вызов из phase/skill |
 | template | `workflow/templates/` | ссылка из phase/skill |
 | process map | `process/` | отсутствует |
-| shared product package | `specs/product/<feature>/` (`concept.md`, `brief.md`, UI-only `ux.md`, `spec.md`) | `brainstorming`, `discovery`, `elaborate` |
+| repository documentation rule | `workflow/rules/repository-documentation.md` | `harness-change` + `harness-review` + `harness-docs.py` |
+| root documentation projection | `README.md`, `workflow.md`, `deep-info.md` | exact generated blocks + manual semantic audit |
+| shared product package | `specs/product/<feature>/` (`concept.md`, `brief.md`, UI-only `ux.md`, `spec.md`, `review-verdicts.json`) | `brainstorming`, `discovery`, `elaborate` |
+| product review subject | every active package regular file except receipt; exact Status normalized | `validate-product-spec.py snapshot` |
+| product review verdict | exact one-lens JSON, fresh read-only context | `product-spec-reviewer` × six |
+| product review receipt | `specs/product/<feature>/review-verdicts.json` | Elaborate coordinator aggregate; downstream `check` |
 | active platform change | `<platform>/specs/<feature>/changes/<change-id>/`; intake `product-backed` или доказанный `technical-only` | `propose` → `plan` → `implement` → `verify` |
+| platform UX artifact | `<platform>/specs/<feature>/changes/<change-id>/platform-ux.md` (product-backed `ui` only) | adapter UX designer → architecture/plan/implement/verify |
 | platform lifecycle metadata | `<platform>/specs/<feature>/changes/<change-id>/meta.json` | `validate-platform-change.py` |
 | engineering rule profile | adapter `phase_rule_profiles` + `scope_rule_profiles`; package `engineering_scopes` + exact `applicable_rule_files` | `platform_rule_profiles.py` |
 | lifecycle capability | ordered adapter `lifecycle_capabilities`; unsupported operations fail before writes | all platform lifecycle scripts |
@@ -18,6 +24,7 @@
 | implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
 | product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |
 | verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |
+| implementation reconciliation guard | private `0600` baseline outside repo + selected active package | `reconcile-implementation` inspect/start/check before staging |
 | iOS engineering rule | `iOS/workflow/rules/` | iOS addenda, adapter profiles и platform roles |
 | pre-commit gate | `workflow/phases/pre-commit-check.md` + `workflow/scripts/pre-commit-check.py` | portable skill + `.githooks/pre-commit` |
 | runtime hook policy | `workflow/rules/hook-contract.md` + `workflow/hooks/hook-runner.py` | thin Codex/Claude/Cursor/OpenCode bindings |

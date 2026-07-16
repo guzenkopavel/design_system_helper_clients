@@ -21,6 +21,10 @@ observable behavior, REQ и AC; иначе перейти в product elaboration
 между lifecycle states запускать общий validator; production scope проверять
 baseline/check guard. Product archive остаётся общей отдельной операцией.
 
+Product-backed `ui` требует READY `platform-ux.md`, owner — `ios-ux-designer`.
+Он подтверждает SDK/deployment/components, system-first Liquid Glass и fallback;
+не меняет shared product или остальные package artifacts.
+
 Индекс addenda и rule profiles: [`workflow/README.md`](workflow/README.md).
 
 iOS adapter выбирает phase base и только evidence-selected engineering scopes.

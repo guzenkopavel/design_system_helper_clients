@@ -15,4 +15,10 @@
 ## Build and integration
 ## Platform runtime evidence
 ## Accessibility and design-system
+## Native UX verification
+
+Required for product-backed `ui`: native appearance scenarios from
+`platform-ux.md`, including light/dark/contrast, accessibility/motion, device
+adaptation and availability fallback with concrete evidence.
+
 ## Unverified risks

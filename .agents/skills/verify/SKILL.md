@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Проверить package при поддержанной verify capability; Android пока fail closed.
+description: Проверить platform package при поддержанной verify capability и получить fresh terminal evidence.
 ---
 
 # Verify

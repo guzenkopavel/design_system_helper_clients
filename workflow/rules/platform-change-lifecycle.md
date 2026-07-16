@@ -62,6 +62,13 @@ Preventing that cross-invocation rewrite requires a separately authorized trust
 anchor (for example an explicit token handoff, trusted store or commit), which
 is not implied by this repository-only lifecycle.
 
+The only pre-delivery exception to downstream package immutability is explicit
+[`reconcile-implementation`](implementation-reconciliation.md). Its guard may
+repair the selected package for an explicit production path set without writing
+production or shared behavior. It reopens affected/dependent tasks, invalidates
+terminal evidence when required, validates in implement mode and still requires
+a fresh Verify for terminal state.
+
 Allowed statuses are `draft`, `specified`, `planned`, `implementing`, `verified`
 and `archived`. `tasks_total` and `tasks_done` are derived from task files and
 must never be trusted as authoritative input. `verification_status` is

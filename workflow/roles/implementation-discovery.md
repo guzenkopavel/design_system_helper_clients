@@ -19,3 +19,10 @@ Return this concise handoff:
 
 Unknown paths, ambiguous identity or scope outside adapter ownership is a
 blocker, not an invitation to infer structure.
+
+For `reconcile-implementation`, inspect the explicit production path set and
+diff read-only against shared behavior, platform contracts/design, task graph
+and evidence. Return one semantic class from the reconciliation rule plus the
+affected tasks and transitive dependents. Never infer the intended set from
+`git status`; shared behavior present/uncertain, archive or ambiguity routes
+without writes.

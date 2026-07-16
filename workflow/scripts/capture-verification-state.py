@@ -45,42 +45,86 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve()
         adapter, package, _meta = validator.write_fixture(repo)
-        before = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        meta = json.loads((package / "meta.json").read_text())
+        before = validator.compute_state(repo, adapter, package, meta)
+        terminal_inputs = (
+            (repo / "workflow/rules/verification-evidence.md", "common evidence policy"),
+            (repo / "workflow/phases/verify.md", "common verify phase"),
+            (repo / "TestClient/workflow/phases/verify.md", "platform verify addendum"),
+        )
+        for terminal_input, label in terminal_inputs:
+            original = terminal_input.read_text(encoding="utf-8")
+            terminal_input.write_text(original + "Terminal contract changed.\n", encoding="utf-8")
+            changed = validator.compute_state(repo, adapter, package, meta)
+            assert changed["fingerprint"] != before["fingerprint"], f"{label} mutation must stale fingerprint"
+            terminal_input.write_text(original, encoding="utf-8")
+            restored = validator.compute_state(repo, adapter, package, meta)
+            assert restored == before, f"restored {label} must restore fingerprint"
+
+        common_policy = repo / "workflow/rules/verification-evidence.md"
+        original_policy = common_policy.read_text(encoding="utf-8")
+        common_policy.unlink()
+        try:
+            validator.compute_state(repo, adapter, package, meta)
+            raise AssertionError("missing common evidence policy passed")
+        except validator.AdapterError as error:
+            assert "required terminal verification input is missing" in str(error)
+        finally:
+            common_policy.write_text(original_policy, encoding="utf-8")
+        assert validator.compute_state(repo, adapter, package, meta) == before
+
+        for platform in ("iOS", "Android"):
+            platform_phase = repo / platform / "workflow/phases/verify.md"
+            platform_phase.parent.mkdir(parents=True, exist_ok=True)
+            original = f"Current {platform} verification addendum.\n"
+            platform_phase.write_text(original, encoding="utf-8")
+            platform_adapter = json.loads(json.dumps(adapter))
+            platform_adapter["platform_name"] = platform
+            platform_adapter["platform_root"] = platform
+            platform_before = validator.compute_state(repo, platform_adapter, package, meta)
+            platform_phase.write_text(original + "Platform contract changed.\n", encoding="utf-8")
+            platform_changed = validator.compute_state(repo, platform_adapter, package, meta)
+            assert platform_changed["fingerprint"] != platform_before["fingerprint"], (
+                f"{platform} verify addendum mutation must stale fingerprint"
+            )
+            platform_phase.write_text(original, encoding="utf-8")
+            assert validator.compute_state(repo, platform_adapter, package, meta) == platform_before
+
         design = package / "design.md"
         design.write_text(design.read_text() + "\nA current contract detail changed.\n")
-        after = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        after = validator.compute_state(repo, adapter, package, meta)
         assert before["fingerprint"] != after["fingerprint"], "contract mutation must change fingerprint"
         design.write_text(design.read_text().replace("\nA current contract detail changed.\n", ""))
-        restored = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        restored = validator.compute_state(repo, adapter, package, meta)
         assert restored == before, "restored content must restore fingerprint"
         verification = package / "verification.md"; original_verification = verification.read_text()
         verification.write_text(original_verification.replace("pending", "FAIL", 1))
-        changed_verification = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        changed_verification = validator.compute_state(repo, adapter, package, meta)
         assert changed_verification["fingerprint"] != before["fingerprint"], "verification mutation must stale fingerprint"
         verification.write_text(original_verification)
         evidence = package / "evidence"; evidence.mkdir()
         proof = evidence / "task-001.md"; proof.write_text("Initial proof.\n")
-        with_evidence = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        with_evidence = validator.compute_state(repo, adapter, package, meta)
         assert with_evidence["fingerprint"] != before["fingerprint"], "adding evidence must stale fingerprint"
         proof.write_text("Changed proof.\n")
-        changed_evidence = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        changed_evidence = validator.compute_state(repo, adapter, package, meta)
         assert changed_evidence["fingerprint"] != with_evidence["fingerprint"], "evidence content must affect fingerprint"
         proof.unlink()
         state_file = evidence / "verification-state.json"; state_file.write_text("{}\n")
-        excluded_state = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        excluded_state = validator.compute_state(repo, adapter, package, meta)
         assert excluded_state == before, "verification-state.json must not self-reference"
         selected_rule = repo / "TestClient/workflow/application.md"
         selected_rule.write_text("Changed selected rule.\n")
-        selected = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        selected = validator.compute_state(repo, adapter, package, meta)
         assert selected["fingerprint"] != before["fingerprint"], "selected rule must stale fingerprint"
         selected_rule.write_text("Current selected application rule.\n")
         unselected_rule = repo / "TestClient/workflow/performance-a.md"
         unselected_rule.write_text("Changed unselected rule.\n")
-        unselected = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        unselected = validator.compute_state(repo, adapter, package, meta)
         assert unselected == before, "unselected rule must not stale fingerprint"
         unselected_rule.write_text("Unselected performance rule A.\n")
         adapter["scope_rule_profiles"]["performance"].reverse()
-        unselected_profile = validator.compute_state(repo, adapter, package, json.loads((package / "meta.json").read_text()))
+        unselected_profile = validator.compute_state(repo, adapter, package, meta)
         assert unselected_profile == before, "unselected scope mapping must not stale fingerprint"
     print("capture-verification-state self-test: PASS (deterministic and stale-sensitive)")
     return 0

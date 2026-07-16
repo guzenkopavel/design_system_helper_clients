@@ -33,3 +33,7 @@ concurrency, localization, delivery и DX загружаются только в
 security, UI и localization globs. Общий gate не содержит Apple-specific
 значений; iOS evidence трактуется по
 [`pre-commit-check.md`](../../iOS/workflow/phases/pre-commit-check.md).
+
+Product-backed `ui` добавляет sequential `ios-ux-designer` и `platform-ux.md`:
+Liquid Glass availability, functional scope and older-OS fallback подтверждаются
+repository evidence до architecture.

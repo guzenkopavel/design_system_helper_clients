@@ -11,12 +11,14 @@
 - [`phases/elaborate.md`](phases/elaborate.md) — довести общий продуктовый пакет
   до `READY` и остановиться до platform fan-out;
 - [`phases/propose.md`](phases/propose.md) — создать implementation package
-  выбранной платформы; сейчас runtime adapter реализован для iOS;
+  выбранной платформы через её runtime adapter;
 - [`phases/plan.md`](phases/plan.md) — декомпозировать `specified` package в
   self-contained задачи;
 - [`phases/implement.md`](phases/implement.md) — выполнить ready task в
   adapter-owned production scope;
 - [`phases/verify.md`](phases/verify.md) — получить fresh terminal evidence;
+- [`phases/reconcile-implementation.md`](phases/reconcile-implementation.md) —
+  до staging согласовать явный production set с platform package;
 - [`phases/archive.md`](phases/archive.md) — collision-safe архивировать
   implementation change или shared product package;
 - [`phases/deep-code-review.md`](phases/deep-code-review.md) — manual-only
@@ -32,8 +34,14 @@
 
 - [`rules/specification-layers.md`](rules/specification-layers.md) — общий
   product SSOT и отдельные platform implementation specs;
+- [`rules/visual-language.md`](rules/visual-language.md) — shared calm soft-blue
+  semantic intent и native adaptation boundary;
+- [`rules/product-spec-review.md`](rules/product-spec-review.md) — isolated
+  six-lens product review, fingerprint и durable receipt gate;
 - [`rules/platform-change-lifecycle.md`](rules/platform-change-lifecycle.md) —
   platform package, tier и transitions;
+- [`rules/implementation-reconciliation.md`](rules/implementation-reconciliation.md)
+  — guarded pre-delivery repair без production/shared writes;
 - [`rules/verification-evidence.md`](rules/verification-evidence.md) и
   [`rules/archive-lifecycle.md`](rules/archive-lifecycle.md) — terminal proof и
   dual archive;
@@ -62,6 +70,8 @@
   review/investigation без исправлений;
 - [`rules/runtime-adapters.md`](rules/runtime-adapters.md) — Codex, Claude Code,
   Cursor и OpenCode;
+- [`rules/repository-documentation.md`](rules/repository-documentation.md) — три
+  root audience layers, SSOT boundary и structural/semantic freshness;
 - [`rules/pre-commit-integrity.md`](rules/pre-commit-integrity.md) и
   [`rules/hook-contract.md`](rules/hook-contract.md) — index gate, tracked Git
   hook и единый runtime hook contract;
@@ -78,9 +88,13 @@
   [`roles/architecture-designer.md`](roles/architecture-designer.md) и
   [`roles/implementation-planner.md`](roles/implementation-planner.md) — роли
   platform elaboration.
+- Platform-owned `ios-ux-designer` / `android-ux-designer` — conditional single
+  owners `platform-ux.md` между specification и architecture.
 - [`roles/implementation-discovery.md`](roles/implementation-discovery.md) и
   [`roles/verifier.md`](roles/verifier.md) — read-only implementation handoff и
   fresh verification.
+- [`roles/product-spec-reviewer.md`](roles/product-spec-reviewer.md) — fresh
+  read-only review ровно одной shared product lens.
 - [`roles/deep-code-reviewer.md`](roles/deep-code-reviewer.md),
   [`roles/bug-investigator.md`](roles/bug-investigator.md) и
   [`roles/security-reviewer.md`](roles/security-reviewer.md) — read-only роли
@@ -94,14 +108,20 @@
   [`templates/product-ux.md`](templates/product-ux.md),
   [`templates/product-spec.md`](templates/product-spec.md) — продуктовая
   проработка, UX review и human approval;
+- [`templates/product-review-verdict.json`](templates/product-review-verdict.json)
+  — exact output schema одного independent lens review;
 - [`templates/platform-implementation-spec.md`](templates/platform-implementation-spec.md)
   — downstream спека одного направления;
+- [`templates/platform-ux.md`](templates/platform-ux.md) — conditional native
+  UX artifact для product-backed `ui`;
 - [`templates/platform-rule-selection.json`](templates/platform-rule-selection.json)
   — immutable planned engineering scope/rule snapshot;
 - [`test-evidence/README.md`](test-evidence/README.md) — индекс RED/GREEN,
   runtime и platform evidence;
 - [`scripts/harness-lint.py`](scripts/harness-lint.py) — детерминированная
   проверка структуры.
+- [`scripts/harness-docs.py`](scripts/harness-docs.py) — exact root docs,
+  generated projections, structural freshness и read-only check;
 - [`scripts/validate-deep-code-review.py`](scripts/validate-deep-code-review.py),
   [`scripts/read-deep-code-review-report.py`](scripts/read-deep-code-review-report.py),
   [`scripts/deep-code-review-readonly-guard.py`](scripts/deep-code-review-readonly-guard.py)
@@ -111,6 +131,8 @@
 - [`scripts/find-platform-context.py`](scripts/find-platform-context.py) и
   [`scripts/validate-platform-change.py`](scripts/validate-platform-change.py) —
   profile-aware retrieval и stdlib lifecycle gate;
+- [`scripts/validate-product-spec.py`](scripts/validate-product-spec.py) —
+  product snapshot/verdict/aggregate/readiness gate;
 - [`scripts/platform_rule_profiles.py`](scripts/platform_rule_profiles.py) —
   единый resolver capabilities и phase/scope rule profiles;
 - [`scripts/validate-implementation-scope.py`](scripts/validate-implementation-scope.py),
@@ -124,6 +146,8 @@
 - [`scripts/pre-commit-check.py`](scripts/pre-commit-check.py) и
   [`hooks/hook-runner.py`](hooks/hook-runner.py) — обязательный staged gate и
   ранние runtime guards без дублирования policy.
+- [`scripts/reconcile-implementation.py`](scripts/reconcile-implementation.py) —
+  explicit-path inspect/start/check guard и implement-mode validation.
 - [`scripts/configure-git-hooks.sh`](scripts/configure-git-hooks.sh) — read-only
   `--check` и только явно вызываемый collision-safe `--install` tracked hooks.
 

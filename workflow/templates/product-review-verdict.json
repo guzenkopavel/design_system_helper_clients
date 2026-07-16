@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "feature": "<feature>",
+  "lens": "<one exact canonical lens>",
+  "subject_fingerprint": "sha256:<exact snapshot fingerprint>",
+  "reviewer_role": "product-spec-reviewer",
+  "runtime": "codex | claude-code | cursor | opencode | external",
+  "run_id": "<unique review run identity>",
+  "parent_context_id": "<coordinator review session identity>",
+  "context_id": "<unique fresh reviewer context identity>",
+  "provenance_ref": "<runtime-issued invocation evidence reference>",
+  "independent_context": true,
+  "applicability": "REQUIRED | NOT_APPLICABLE",
+  "verdict": "PASS | GAP | UNKNOWN | N/A",
+  "clients_checked": ["iOS", "Android"],
+  "rationale": "<lens decision grounded in the exact package>",
+  "evidence_refs": ["spec.md"],
+  "findings": [
+    {
+      "id": "<unique finding identity>",
+      "severity": "blocker | major | minor | info",
+      "summary": "<specific finding>",
+      "evidence": "<exact package evidence>",
+      "requirement_ids": ["REQ-1"]
+    }
+  ]
+}

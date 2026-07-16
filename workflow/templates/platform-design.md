@@ -15,5 +15,11 @@
 
 - <scope>: <decision or explicit N/A with rationale>
 
+## Platform UX trace and decisions
+
+Required for product-backed `ui`: reference `platform-ux.md` and show how its
+native language, appearance, accessibility/motion and fallback decisions shape
+architecture without copying shared UX.
+
 ## System-design checklist
 ## Verification strategy

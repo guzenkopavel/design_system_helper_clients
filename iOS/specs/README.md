@@ -8,7 +8,9 @@ active identity после архива содержит только `ARCHIVED.
 не поддерживается. Для
 `product-backed` она ссылается на `../../specs/product/<feature>/spec.md` со
 статусами `READY` и `APPROVED`; общие REQ/AC не копируются и не
-переопределяются. Для `technical-only` shared spec может быть `N/A` только при
+переопределяются. Product-backed intake также требует fresh
+`review-verdicts.json`, принятый общим `validate-product-spec.py check`;
+READY/APPROVED без receipt недостаточно. Для `technical-only` shared spec может быть `N/A` только при
 явном `Product impact assessment: NONE` с evidence неизменности observable
 behavior, REQ и AC. Любой найденный или неясный impact требует product
 elaboration.

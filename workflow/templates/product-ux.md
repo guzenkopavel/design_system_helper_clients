@@ -27,6 +27,10 @@ states.
 
 ## Shared Design-System Intent
 
+Default visual direction: calm, soft blue through semantic roles over quiet
+neutral surfaces. Document light/dark/high-contrast intent, non-color cues and
+any explicit product rationale for deviation. Do not name platform APIs.
+
 ### Component roles
 
 Опишите семантические роли компонентов, не конкретные platform classes.
@@ -35,6 +39,12 @@ states.
 
 Опишите смысл цвета, typography, spacing, emphasis и feedback без жёстких
 platform values.
+
+### Visual language and appearance
+
+Map soft blue to semantic roles (primary action, selection, focus and
+informational accent), quiet neutral surfaces and accessible contrast. Cover
+light, dark and high-contrast appearances plus non-color state cues.
 
 ### Allowed platform variance
 

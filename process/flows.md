@@ -7,10 +7,17 @@ request
   → locate canonical owner
   → implementation-writer
   → wiring cascade
-  → harness-lint + harness-auditor
+  → README/workflow/deep-info impact dispositions
+  → harness-docs render + read-only check
+  → harness-lint + harness-auditor semantic docs review
   → fix-loop
   → grade A + CLEAN
 ```
+
+Root docs — производная проекция. Structural checker обновляет только marked
+blocks; auditor отдельно проверяет audience layering, ownership, invocation и
+iOS/Android claims. Новый skill/role/runtime wrapper для documentation flow не
+нужен: существующие `harness-change` и `harness-review` владеют маршрутом.
 
 При `cross-platform` ветка review делится на независимые iOS и Android evidence,
 затем снова объединяется в общий verdict.
@@ -22,7 +29,10 @@ flow не меняется между Codex, Claude Code, Cursor и OpenCode.
 
 ```text
 explicit commit intent
-  → scoped staging (separate authorization)
+  → explicit intended path set
+  → reconcile-implementation per platform/feature/change identity
+  → reconciliation report
+  → scoped staging of approved set
   → pre-commit-check over staged index
   → platform profile + task/evidence trail + harness lint when applicable
   → stable staged fingerprint: PASS
@@ -32,6 +42,8 @@ explicit commit intent
 
 Runtime hooks дают ранние deny/warnings для опасных команд и edits, но не stage,
 commit, push и не заменяют tracked Git hook. Изменение index инвалидирует PASS.
+Hook/gate только подсказывают reconciliation для uncovered production trail и
+никогда не запускают repair автоматически.
 
 ## Product elaboration
 
@@ -39,7 +51,14 @@ commit, push и не заменяют tracked Git hook. Изменение index
 raw idea
   → brainstorming (optional, alternatives)
   → discovery (shared brief + draft REQ/AC + screen/flow impact)
-  → elaborate (shared UX when applicable + review lenses + human approval)
+  → elaborate candidate DRAFT + shared UX
+  → isolated review/fix cycles
+  → explicit human approval (fingerprint changes)
+  → final snapshot
+  → coordinator creates six fresh contexts and retains runtime invocation evidence
+  → six product-spec-reviewer verdict attestations (one lens each, one parent session)
+  → coordinator aggregate PASS or durable GAPS/UNKNOWN review-verdicts.json
+  → Status READY + validate-product-spec.py check
   → shared product spec: READY
   → STOP
   → iOS implementation spec and/or Android implementation spec (separate flow)
@@ -49,8 +68,10 @@ raw idea
 направление создаёт собственную implementation spec внутри своего корня и
 ссылается на общий контракт, не копируя его.
 
-Без явного human product approval, полного REQ↔AC coverage, applicable UX
-artifact/reviews и закрытых blockers flow остаётся в `DRAFT` до fan-out.
+Без явного human product approval, полного REQ↔AC coverage, applicable UX,
+fresh exact-six receipt и закрытых blockers flow остаётся в `DRAFT` до fan-out.
+Same-context/no-subagent fallback даёт durable `UNKNOWN`, не independent PASS;
+repo validator проверяет attestation/schema/freshness, а не доказывает runtime isolation.
 
 Техническая platform-only ветка может обойти product elaboration только через
 intake `technical-only`: `Product impact assessment: NONE` и evidence, что
@@ -65,7 +86,8 @@ propose <platform> <feature> [--change <change-id>]
   → repo-navigator (read-only)
   → evidence-selected engineering scopes + exact propose profile
   → specification-writer
-  → architecture-designer when required
+  → product-backed ui only: adapter UX designer writes platform-ux.md
+  → architecture-designer (consumes platform-ux.md only when present)
   → platform boundary guard (read-only)
   → validator
   → status: specified
@@ -93,10 +115,17 @@ archive implementation ...
   → dry-run → collision-safe apply → tombstone
 ```
 
+Перед delivery явный production set может пройти
+`reconcile-implementation <platform> <feature> [--change ...] --path ...`.
+`aligned`/`task-drift`/`platform-implementation-drift` обрабатываются внутри
+guard; shared behavior present/uncertain возвращается в product elaboration.
+Каждая platform/feature/change identity получает отдельный запуск: это касается
+и cross-platform set, и двух packages одной платформы.
+
 Product archive — отдельная ветка с retirement approval, platform dispositions
 и active-reference scan. Каждый implementation шаг проверяет adapter capability.
-Для Android цепочка сейчас заканчивается после Implement в
-`implementing/pending`; Verify и implementation archive недоступны.
+iOS и Android проходят один общий lifecycle; platform addenda независимо
+выбирают commands/infrastructure и не являются доказательством друг для друга.
 
 ## Manual deep code review
 
@@ -115,5 +144,5 @@ deep-code-review security [--json]
 ```
 
 Этот flow не меняет production/package/evidence и не запускает lifecycle.
-Android review остаётся платформенным, но после будущего fix не заявляет
-terminal Verify: capability отсутствует.
+Android review остаётся платформенным и после отдельного fix возвращает route
+`verify android`; сам review не заявляет fixed/verified.

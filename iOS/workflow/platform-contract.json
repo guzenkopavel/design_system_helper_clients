@@ -32,6 +32,13 @@
     "accessibility",
     "design-system"
   ],
+  "platform_ux": {
+    "role": "ios-ux-designer",
+    "artifact": "platform-ux.md",
+    "design_language": "Liquid Glass",
+    "required_terms": ["Liquid Glass", "functional controls", "navigation", "content background", "soft blue", "semantic roles", "light", "dark", "increased contrast", "Reduce Transparency", "Reduce Motion", "scrolling legibility", "standard components", "performance", "older-OS/SDK fallback"],
+    "task_checks": ["platform-ux.md", "Liquid Glass", "light/dark", "increased contrast", "Reduce Transparency", "Reduce Motion", "older-OS/SDK fallback"]
+  },
   "scope_task_checks": {
     "ui": [
       "simulator",

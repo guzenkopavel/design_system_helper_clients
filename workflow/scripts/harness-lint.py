@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import importlib.util
 import json
 import os
 import re
@@ -100,6 +101,34 @@ def check_links(root: Path, markdown_files: list[Path]) -> list[dict[str, str]]:
                     finding("critical", "broken-link", relative(path, root), raw)
                 )
     return findings
+
+
+def load_docs_checker(root: Path):
+    path = root / "workflow/scripts/harness-docs.py"
+    if not path.is_file():
+        return None, "workflow/scripts/harness-docs.py is missing"
+    spec = importlib.util.spec_from_file_location("harness_docs", path)
+    if spec is None or spec.loader is None:
+        return None, "harness-docs.py cannot be loaded"
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except (ImportError, OSError, SyntaxError, ValueError) as error:
+        return None, str(error)
+    return module, None
+
+
+def check_repository_docs(root: Path) -> list[dict[str, str]]:
+    module, error = load_docs_checker(root)
+    if error:
+        return [finding("critical", "repository-documentation", "workflow/scripts/harness-docs.py", error)]
+    result = module.check_repository(root)
+    if result.get("status") == "PASS":
+        return []
+    return [
+        finding("critical", "repository-documentation", "README.md | workflow.md | deep-info.md", detail)
+        for detail in result.get("errors", ["documentation checker returned no diagnostics"])
+    ]
 
 
 def parse_frontmatter(path: Path) -> tuple[dict[str, str], str | None]:
@@ -627,9 +656,10 @@ def check_specification_layers(root: Path) -> list[dict[str, str]]:
         ),
         "workflow/phases/elaborate.md": (
             "product-ux.md",
-            "review lenses",
+            "product-spec-review.md",
             "Product approval: APPROVED",
             "DRAFT / PENDING APPROVAL",
+            "validate-product-spec.py check",
         ),
         "workflow/templates/product-ux.md": (
             "User Journey",
@@ -641,7 +671,8 @@ def check_specification_layers(root: Path) -> list[dict[str, str]]:
             "Product approval",
             "Approval evidence",
             "UX artifact",
-            "Product Review Lenses",
+            "Product review receipt",
+            "review-verdicts.json",
         ),
         "workflow/templates/platform-implementation-spec.md": (
             "Change type",
@@ -696,10 +727,24 @@ def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
         "iOS/workflow/phases/implement.md",
         "iOS/workflow/phases/verify.md",
         "iOS/workflow/phases/archive.md",
+        "Android/workflow/phases/verify.md",
+        "Android/workflow/phases/archive.md",
     )
     for value in required:
         if not (root / value).is_file():
             findings.append(finding("critical", "implementation-lifecycle", value, "required file is missing"))
+
+    validator = root / "workflow/scripts/validate-platform-change.py"
+    if validator.is_file():
+        text = validator.read_text(encoding="utf-8")
+        for token in (
+            'repo / "workflow/rules/verification-evidence.md"',
+            'repo / "workflow/phases/verify.md"',
+            'platform_root / "workflow/phases/verify.md"',
+            "required terminal verification input is missing",
+        ):
+            if token not in text:
+                findings.append(finding("critical", "terminal-verification-inputs", relative(validator, root), f"required token is missing: {token}"))
 
     lifecycle = root / "workflow/rules/platform-change-lifecycle.md"
     if lifecycle.is_file():
@@ -730,7 +775,7 @@ def check_implementation_lifecycle(root: Path) -> list[dict[str, str]]:
 
     expected_capabilities = {
         "iOS": ["propose", "plan", "implement", "verify", "archive-implementation"],
-        "Android": ["propose", "plan", "implement"],
+        "Android": ["propose", "plan", "implement", "verify", "archive-implementation"],
     }
     for platform, expected in expected_capabilities.items():
         path = root / platform / "workflow/platform-contract.json"
@@ -781,6 +826,16 @@ ANDROID_FIXED_ASSUMPTIONS = (
     "always use hilt", "always use compose", "./gradlew build",
 )
 ANDROID_PLATFORM_LEAKAGE = re.compile(r"\b(?:Swift|Xcode|UIKit|SwiftUI|Apple SDK)\b", re.IGNORECASE)
+ANDROID_TERMINAL_CONTRACTS = {
+    "Android/workflow/phases/verify.md": (
+        "Не предполагать", "watchdog", "PASS|FAIL|UNKNOWN",
+        "android-build-diagnostician", "production",
+    ),
+    "Android/workflow/phases/archive.md": (
+        "archive_namespace", "dry-run", "receipt", "tombstone", "rollback",
+        "Shared product package",
+    ),
+}
 
 
 def android_profile_findings(
@@ -802,8 +857,14 @@ def android_profile_findings(
         findings.append(finding("critical", "android-engineering-rules", label, f"required Android rules missing: {', '.join(missing_files)}"))
     if uncatalogued:
         findings.append(finding("critical", "android-engineering-profiles", label, f"Android rules missing from catalog: {', '.join(uncatalogued)}"))
-    if list(phases) != ["propose", "plan", "implement"]:
-        findings.append(finding("critical", "android-engineering-profiles", label, "Android phases must be exact propose/plan/implement"))
+    if list(phases) != ["propose", "plan", "implement", "verify"]:
+        findings.append(finding("critical", "android-engineering-profiles", label, "Android phases must be exact propose/plan/implement/verify"))
+    expected_verify = [
+        "workflow/rules/test-execution.md",
+        "workflow/rules/verification-matrix.md",
+    ]
+    if phases.get("verify") != expected_verify:
+        findings.append(finding("critical", "android-engineering-profiles", label, "Android verify profile must preserve the exact compatibility pair"))
     if adapter.get("scope_dependencies", {}).get("compose") != ["ui"]:
         findings.append(finding("critical", "android-engineering-dependency", label, "compose scope must require ui"))
     if "Android/workflow/rules/compose.md" in scopes.get("ui", []):
@@ -835,6 +896,24 @@ def android_assumption_findings(root: Path) -> list[dict[str, str]]:
     return findings
 
 
+def android_terminal_addendum_findings(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for raw, tokens in ANDROID_TERMINAL_CONTRACTS.items():
+        path = root / raw
+        if not path.is_file():
+            findings.append(finding("critical", "android-terminal-addendum", raw, "required Android terminal addendum is missing"))
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                findings.append(finding("critical", "android-terminal-addendum", relative(path, root), f"missing invariant: {token}"))
+        if re.search(r"\b(?:Swift|SwiftUI|UIKit|Xcode|Apple SDK|Simulator)\b", text, re.IGNORECASE):
+            findings.append(finding("critical", "android-platform-leakage", relative(path, root), "Android terminal addendum names an iOS-only technology"))
+        if re.search(r"(?:\./gradlew|\bgradle\s+(?:build|test|lint)|\bconnectedAndroidTest\b)", text, re.IGNORECASE):
+            findings.append(finding("critical", "android-fixed-assumption", relative(path, root), "Android terminal addendum hardcodes a Gradle command/task"))
+    return findings
+
+
 def self_test_android_lint(root: Path) -> int:
     path = root / "Android/workflow/platform-contract.json"
     adapter = json.loads(path.read_text(encoding="utf-8"))
@@ -861,6 +940,22 @@ def self_test_android_lint(root: Path) -> int:
         for item in android_profile_findings(root, path, disabled_verify)
     )
 
+    missing_verify_capability = copy.deepcopy(adapter)
+    missing_verify_capability["lifecycle_capabilities"] = ["propose", "plan", "implement"]
+    assert validate_capabilities(missing_verify_capability) != [
+        "propose", "plan", "implement", "verify", "archive-implementation",
+    ]
+    reordered_capability = copy.deepcopy(adapter)
+    reordered_capability["lifecycle_capabilities"] = [
+        "propose", "plan", "verify", "implement", "archive-implementation",
+    ]
+    try:
+        validate_capabilities(reordered_capability)
+    except RuleProfileError:
+        pass
+    else:
+        raise AssertionError("reordered Android capabilities accepted")
+
     broken_compose = copy.deepcopy(adapter)
     broken_compose["scope_dependencies"] = {}
     assert any(
@@ -874,6 +969,19 @@ def self_test_android_lint(root: Path) -> int:
         fixture_rule.parent.mkdir(parents=True)
         fixture_rule.write_text("Project requires Kotlin 1.9+ and 85% coverage.\n", encoding="utf-8")
         assert len(android_assumption_findings(fixture_root)) == 2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_root = Path(tmp).resolve()
+        for raw in ANDROID_TERMINAL_CONTRACTS:
+            target = fixture_root / raw
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text((root / raw).read_text(encoding="utf-8"), encoding="utf-8")
+        assert android_terminal_addendum_findings(fixture_root) == []
+        verify = fixture_root / "Android/workflow/phases/verify.md"
+        verify.write_text(verify.read_text(encoding="utf-8") + "\nRun ./gradlew build in Xcode.\n", encoding="utf-8")
+        mutated = android_terminal_addendum_findings(fixture_root)
+        assert any(item["check"] == "android-fixed-assumption" for item in mutated)
+        assert any(item["check"] == "android-platform-leakage" for item in mutated)
 
     ios_path = root / "iOS/workflow/platform-contract.json"
     ios_adapter = json.loads(ios_path.read_text(encoding="utf-8"))
@@ -916,6 +1024,67 @@ def self_test_android_lint(root: Path) -> int:
     runner_text = (root / "workflow/hooks/hook-runner.py").read_text(encoding="utf-8")
     assert hook_runner_findings(runner_text) == []
     assert any(item["check"] == "runtime-hook-schema" for item in hook_runner_findings(runner_text.replace("nested_shell_command", "removed_shell_inspection")))
+    assert check_reconciliation_flow(root) == []
+    assert check_product_spec_review(root) == []
+    assert check_platform_native_ux(root) == []
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture = Path(tmp).resolve()
+        for raw in PLATFORM_UX_REQUIRED:
+            target = fixture / raw; target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((root / raw).read_bytes())
+        assert check_platform_native_ux(fixture) == []
+        adapter_path = fixture / "Android/workflow/platform-contract.json"
+        mutated = json.loads(adapter_path.read_text(encoding="utf-8"))
+        mutated["platform_ux"]["design_language"] = "Assumed Expressive"
+        adapter_path.write_text(json.dumps(mutated), encoding="utf-8")
+        assert any(item["check"] == "platform-native-ux-adapter" for item in check_platform_native_ux(fixture))
+        ios_role = fixture / "iOS/workflow/roles/ios-ux-designer.md"
+        ios_role.write_text(
+            ios_role.read_text(encoding="utf-8").replace(
+                "../../../workflow/rules/visual-language.md", "missing-common-rule.md"
+            ), encoding="utf-8",
+        )
+        assert any(item["check"] == "platform-native-ux-contract" for item in check_platform_native_ux(fixture))
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture = Path(tmp).resolve()
+        for raw in PRODUCT_REVIEW_REQUIRED:
+            target = fixture / raw
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((root / raw).read_bytes())
+        assert check_product_spec_review(fixture) == []
+        role = fixture / "workflow/roles/product-spec-reviewer.md"
+        role.write_text(
+            role.read_text(encoding="utf-8").replace(
+                "One invocation must not cover multiple lenses.",
+                "One invocation may cover every lens.",
+            ),
+            encoding="utf-8",
+        )
+        mutated_product_review = check_product_spec_review(fixture)
+        assert any(item["check"] == "product-spec-review-contract" for item in mutated_product_review)
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture = Path(tmp).resolve()
+        for raw in RECONCILIATION_REQUIRED:
+            target = fixture / raw
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((root / raw).read_bytes())
+        assert check_reconciliation_flow(fixture) == []
+        (fixture / "workflow/rules/implementation-reconciliation.md").unlink()
+        missing_reconciliation = check_reconciliation_flow(fixture)
+        assert any(item["check"] == "implementation-reconciliation-files" for item in missing_reconciliation)
+        target = fixture / "workflow/rules/implementation-reconciliation.md"
+        target.write_bytes((root / "workflow/rules/implementation-reconciliation.md").read_bytes())
+        hook = fixture / "workflow/hooks/hook-runner.py"
+        hook.write_text(hook.read_text(encoding="utf-8") + "\nsubprocess.run(['reconcile-implementation.py'])\n", encoding="utf-8")
+        unsafe_reconciliation = check_reconciliation_flow(fixture)
+        assert any(item["check"] == "implementation-reconciliation-read-only-gate" for item in unsafe_reconciliation)
+        binding = fixture / ".codex/agents/implementation-writer.toml"
+        binding.write_text(
+            binding.read_text(encoding="utf-8").replace("platform-reconciliation", "removed-mode"),
+            encoding="utf-8",
+        )
+        broken_binding = check_reconciliation_flow(fixture)
+        assert any(item["check"] == "implementation-reconciliation-role-binding" for item in broken_binding)
     unknown_scan = {
         "status": "UNKNOWN", "critical": 0, "coverage_complete": False,
         "coverage_issues": [{
@@ -948,12 +1117,278 @@ def self_test_android_lint(root: Path) -> int:
         "workflow/scripts/read-deep-code-review-report.py",
         "workflow/scripts/harness-security-audit.py",
         "workflow/scripts/deep-code-review-readonly-guard.py",
+        "workflow/scripts/reconcile-implementation.py",
+        "workflow/scripts/validate-product-spec.py",
     ):
         command = ["bash", script, "--self-test"] if script.endswith(".sh") else ["python3", script, "--self-test"]
         result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
         assert result.returncode == 0, f"{script} self-test failed: {result.stdout} {result.stderr}"
     print("harness-lint self-test: PASS (profiles + hooks + deep review security mutations)")
     return 0
+
+
+PRODUCT_REVIEW_REQUIRED = (
+    "workflow/rules/product-spec-review.md",
+    "workflow/roles/product-spec-reviewer.md",
+    "workflow/templates/product-review-verdict.json",
+    "workflow/templates/product-spec.md",
+    "workflow/phases/elaborate.md",
+    ".agents/skills/elaborate/SKILL.md",
+    "workflow/scripts/validate-product-spec.py",
+    "workflow/scripts/validate-platform-change.py",
+    "workflow/scripts/archive-change.py",
+    ".codex/agents/product-spec-reviewer.toml",
+    ".claude/agents/product-spec-reviewer.md",
+    ".cursor/agents/product-spec-reviewer.md",
+    ".opencode/agents/product-spec-reviewer.md",
+)
+
+
+def check_product_spec_review(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for raw in PRODUCT_REVIEW_REQUIRED:
+        if not (root / raw).is_file():
+            findings.append(finding(
+                "critical", "product-spec-review-files", raw,
+                "required independent product review artifact is missing",
+            ))
+    if findings:
+        return findings
+    required_tokens = {
+        "workflow/rules/product-spec-review.md": (
+            "product", "ux-accessibility", "design-system",
+            "data-analytics-privacy", "security", "cross-client-parity",
+            "separate fresh", "independent_context: false", "UNKNOWN",
+            "review-verdicts.json", "only the exact Status",
+            "provenance attestation", "not cryptographic proof", "`GAPS`",
+            "exactly one", "unique REQ/AC",
+        ),
+        "workflow/roles/product-spec-reviewer.md": (
+            "One invocation must not cover multiple lenses.", "Never edit/fix",
+            "iOS", "Android", "semantic `GAP`", "threats", "localization",
+            "including PASS", "runtime-issued", "not cryptographic proof",
+        ),
+        "workflow/phases/elaborate.md": (
+            "ровно шесть", "отдельном fresh context", "aggregate --write",
+            "validate-product-spec.py check", "parent review session",
+            "durable non-green receipt",
+        ),
+        "workflow/scripts/validate-product-spec.py": (
+            "STATUS_LINE_RE", "review-verdicts.json", "snapshot_product",
+            "validate_verdict_data", "aggregate_data", "check_product",
+            "product package root symlink", "--self-test", "parent_context_id",
+            "provenance_ref", "exact_metadata", "duplicate REQ IDs", '"GAPS"',
+        ),
+        "workflow/scripts/validate-platform-change.py": ("validate_product_ready",),
+        "workflow/scripts/archive-change.py": ("product review gate",),
+        "workflow/templates/product-spec.md": (
+            "Product review receipt", "UX readiness",
+        ),
+        "workflow/templates/product-review-verdict.json": (
+            '"runtime"', '"parent_context_id"', '"provenance_ref"',
+        ),
+    }
+    for raw, tokens in required_tokens.items():
+        text = (root / raw).read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                findings.append(finding(
+                    "critical", "product-spec-review-contract", raw,
+                    f"missing invariant: {token}",
+                ))
+    for raw in (
+        ".codex/agents/product-spec-reviewer.toml",
+        ".claude/agents/product-spec-reviewer.md",
+        ".cursor/agents/product-spec-reviewer.md",
+        ".opencode/agents/product-spec-reviewer.md",
+    ):
+        text = (root / raw).read_text(encoding="utf-8").casefold()
+        for token in (
+            "read-only", "fresh", "one", "never", "receipt", "platform",
+            "parent", "invocation evidence", "not cryptographic proof",
+        ):
+            if token not in text:
+                findings.append(finding(
+                    "critical", "product-spec-review-role-binding", raw,
+                    f"runtime binding misses isolation/read-only token: {token}",
+                ))
+    if (root / ".agents/skills/product-spec-review/SKILL.md").exists():
+        findings.append(finding(
+            "critical", "product-spec-review-no-skill",
+            ".agents/skills/product-spec-review/SKILL.md",
+            "independent product review is an internal Elaborate gate, not a user-facing skill",
+        ))
+    return findings
+
+
+PLATFORM_UX_REQUIRED = (
+    "workflow/rules/visual-language.md", "workflow/templates/platform-ux.md",
+    "iOS/workflow/rules/ui-design-system.md", "Android/workflow/rules/ui-design-system.md",
+    "iOS/workflow/roles/ios-ux-designer.md", "Android/workflow/roles/android-ux-designer.md",
+    "iOS/workflow/platform-contract.json", "Android/workflow/platform-contract.json",
+    "workflow/scripts/validate-platform-change.py",
+    ".codex/agents/ios-ux-designer.toml", ".claude/agents/ios-ux-designer.md",
+    ".cursor/agents/ios-ux-designer.md", ".opencode/agents/ios-ux-designer.md",
+    ".codex/agents/android-ux-designer.toml", ".claude/agents/android-ux-designer.md",
+    ".cursor/agents/android-ux-designer.md", ".opencode/agents/android-ux-designer.md",
+)
+
+
+def check_platform_native_ux(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for raw in PLATFORM_UX_REQUIRED:
+        if not (root / raw).is_file():
+            findings.append(finding("critical", "platform-native-ux-files", raw, "required platform UX artifact is missing"))
+    if findings:
+        return findings
+    token_map = {
+        "workflow/rules/visual-language.md": ("calm", "soft-blue", "semantic roles", "quiet neutral", "high/increased-contrast", "platform implementations"),
+        "workflow/templates/platform-ux.md": ("UX status", "Native design language adapter", "Color direction", "soft blue", "Fallback and availability", "Open gaps"),
+        "iOS/workflow/rules/ui-design-system.md": ("Liquid Glass", "functional", "content background", "Reduce Transparency", "older-OS/SDK fallback"),
+        "Android/workflow/rules/ui-design-system.md": ("Material 3", "M3 Expressive", "Dynamic color", "Android 12+", "soft-blue fallback"),
+        "iOS/workflow/roles/ios-ux-designer.md": ("read completely", "../../../workflow/rules/visual-language.md", "../rules/ui-design-system.md", "Write only `platform-ux.md`"),
+        "Android/workflow/roles/android-ux-designer.md": ("read completely", "../../../workflow/rules/visual-language.md", "../rules/ui-design-system.md", "Write only `platform-ux.md`"),
+        "workflow/scripts/validate-platform-change.py": ("PLATFORM_UX_KEYS", "PLATFORM_UX_UNRESOLVED_RE", "platform_ux_exact_none", "validate_platform_ux", "platform-ux.md", "task_checks", "semantic_projection"),
+    }
+    for raw, tokens in token_map.items():
+        text = (root / raw).read_text(encoding="utf-8")
+        for token in tokens:
+            if token.casefold() not in text.casefold():
+                findings.append(finding("critical", "platform-native-ux-contract", raw, f"missing invariant: {token}"))
+    common = (root / "workflow/rules/visual-language.md").read_text(encoding="utf-8")
+    if "Liquid Glass" in common or "Material 3" in common:
+        findings.append(finding("critical", "platform-native-ux-layering", "workflow/rules/visual-language.md", "shared rule must not own platform API language"))
+    for platform, language, role in (("iOS", "Liquid Glass", "ios-ux-designer"), ("Android", "Material 3", "android-ux-designer")):
+        raw = f"{platform}/workflow/platform-contract.json"
+        try:
+            adapter = json.loads((root / raw).read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            findings.append(finding("critical", "platform-native-ux-adapter", raw, "adapter JSON is invalid")); continue
+        config = adapter.get("platform_ux")
+        if not isinstance(config, dict) or set(config) != {"role", "artifact", "design_language", "required_terms", "task_checks"}:
+            findings.append(finding("critical", "platform-native-ux-adapter", raw, "platform_ux exact schema mismatch")); continue
+        if config.get("role") != role or config.get("artifact") != "platform-ux.md" or config.get("design_language") != language:
+            findings.append(finding("critical", "platform-native-ux-adapter", raw, "platform_ux identity/language mismatch"))
+    return findings
+
+
+RECONCILIATION_REQUIRED = (
+    ".agents/skills/reconcile-implementation/SKILL.md",
+    ".agents/skills/reconcile-implementation/agents/openai.yaml",
+    ".claude/commands/reconcile-implementation.md",
+    ".opencode/commands/reconcile-implementation.md",
+    "workflow/phases/reconcile-implementation.md",
+    "workflow/rules/implementation-reconciliation.md",
+    "workflow/scripts/reconcile-implementation.py",
+    "workflow/roles/implementation-discovery.md",
+    "workflow/roles/specification-writer.md",
+    "workflow/roles/architecture-designer.md",
+    "workflow/roles/implementation-planner.md",
+    "workflow/roles/implementation-writer.md",
+    "workflow/phases/pre-commit-check.md",
+    "workflow/rules/pre-commit-integrity.md",
+    "workflow/rules/hook-contract.md",
+    "workflow/scripts/pre-commit-check.py",
+    "workflow/hooks/hook-runner.py",
+    "iOS/workflow/phases/reconcile-implementation.md",
+    "Android/workflow/phases/reconcile-implementation.md",
+    ".codex/agents/implementation-writer.toml",
+    ".claude/agents/implementation-writer.md",
+    ".cursor/agents/implementation-writer.md",
+    ".opencode/agents/implementation-writer.md",
+)
+
+
+def check_reconciliation_flow(root: Path) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    for raw in RECONCILIATION_REQUIRED:
+        if not (root / raw).is_file():
+            findings.append(finding(
+                "critical", "implementation-reconciliation-files", raw,
+                "required reconciliation artifact is missing",
+            ))
+    if findings:
+        return findings
+
+    required_tokens = {
+        "workflow/rules/implementation-reconciliation.md": (
+            "explicit intended path set", "task-drift",
+            "platform-implementation-drift", "ROUTE_REQUIRED", "mode `0600`",
+            "terminal lifecycle step", "infer authorization",
+        ),
+        "workflow/phases/reconcile-implementation.md": (
+            "implementation-discovery", "specification-writer",
+            "architecture-designer", "implementation-planner",
+            "implementation-writer", "inspect", "start", "check <token>",
+        ),
+        "workflow/scripts/reconcile-implementation.py": (
+            "repository_snapshot", "index_fingerprint", "task_coverage",
+            "affected_task_closure", "verification_status", "validate_package",
+            "os.chmod", "--self-test",
+        ),
+        ".agents/skills/reconcile-implementation/agents/openai.yaml": (
+            "allow_implicit_invocation: false",
+        ),
+        "workflow/phases/pre-commit-check.md": (
+            "$reconcile-implementation", "не запускает reconciliation",
+        ),
+        "workflow/rules/hook-contract.md": (
+            "не запускает `reconcile-implementation`", "actionable hint",
+        ),
+    }
+    for raw, tokens in required_tokens.items():
+        text = (root / raw).read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                findings.append(finding(
+                    "critical", "implementation-reconciliation-contract", raw,
+                    f"missing invariant: {token}",
+                ))
+
+    metadata = (root / ".agents/skills/reconcile-implementation/agents/openai.yaml").read_text(encoding="utf-8")
+    if "allow_implicit_invocation: false" not in metadata:
+        findings.append(finding(
+            "critical", "implementation-reconciliation-manual-only",
+            ".agents/skills/reconcile-implementation/agents/openai.yaml",
+            "implicit invocation must remain disabled",
+        ))
+
+    for raw in ("workflow/scripts/pre-commit-check.py", "workflow/hooks/hook-runner.py"):
+        text = (root / raw).read_text(encoding="utf-8")
+        if "reconcile-implementation.py" in text or re.search(
+            r"subprocess\.(?:run|Popen)[^\n]*reconcile-implementation", text,
+        ):
+            findings.append(finding(
+                "critical", "implementation-reconciliation-read-only-gate", raw,
+                "gate/hook must not invoke reconciliation",
+            ))
+        if "reconcile-implementation" not in text:
+            findings.append(finding(
+                "critical", "implementation-reconciliation-hint", raw,
+                "actionable reconciliation hint is missing",
+            ))
+
+    for raw in (
+        ".codex/agents/implementation-writer.toml",
+        ".claude/agents/implementation-writer.md",
+        ".cursor/agents/implementation-writer.md",
+        ".opencode/agents/implementation-writer.md",
+    ):
+        text = (root / raw).read_text(encoding="utf-8")
+        for token in ("harness", "platform-implementation", "platform-reconciliation", "guard", "production"):
+            if token not in text:
+                findings.append(finding(
+                    "critical", "implementation-reconciliation-role-binding", raw,
+                    f"implementation-writer binding misses mode/boundary token: {token}",
+                ))
+
+    ios_text = (root / "iOS/workflow/phases/reconcile-implementation.md").read_text(encoding="utf-8")
+    android_text = (root / "Android/workflow/phases/reconcile-implementation.md").read_text(encoding="utf-8")
+    if re.search(r"\b(?:Kotlin|Compose|Gradle|coroutine)\b", ios_text, re.IGNORECASE):
+        findings.append(finding("critical", "implementation-reconciliation-platform-isolation", "iOS/workflow/phases/reconcile-implementation.md", "iOS addendum leaks Android technology"))
+    if re.search(r"\b(?:Swift|SwiftUI|UIKit|Xcode|Apple SDK)\b", android_text, re.IGNORECASE):
+        findings.append(finding("critical", "implementation-reconciliation-platform-isolation", "Android/workflow/phases/reconcile-implementation.md", "Android addendum leaks iOS technology"))
+    return findings
 
 
 def check_deep_code_review(root: Path) -> list[dict[str, str]]:
@@ -990,7 +1425,7 @@ def check_deep_code_review(root: Path) -> list[dict[str, str]]:
             "feedback <platform> <feature>", "bug <platform> <feature>",
             "security [--json]", "Fresh-eyes independence: UNAVAILABLE",
             "accepted", "rejected", "duplicate", "needs-evidence",
-            "No edits made", "terminal Verify unavailable",
+            "No edits made", "verify android",
             "deep-code-review-readonly-guard.py start",
             "deep-code-review-readonly-guard.py check <token>",
             "read-deep-code-review-report.py <path>",
@@ -1066,7 +1501,7 @@ def check_deep_code_review(root: Path) -> list[dict[str, str]]:
             findings.append(finding("critical", "deep-code-review-platform-isolation", relative(ios, root), "iOS addendum has wrong terminal route or Android leakage"))
     if android.is_file():
         text = android.read_text(encoding="utf-8")
-        if "terminal Verify unavailable" not in text or re.search(r"\b(?:Swift|SwiftUI|UIKit|Xcode)\b", text):
+        if "verify android" not in text or "terminal Verify unavailable" in text or re.search(r"\b(?:Swift|SwiftUI|UIKit|Xcode)\b", text):
             findings.append(finding("critical", "deep-code-review-platform-isolation", relative(android, root), "Android addendum has wrong terminal route or iOS leakage"))
     return findings
 
@@ -1255,7 +1690,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
 
     forbidden = (
         "jour" + "io", "design_system_" + "helper", "Tui" + "st",
-        "Swin" + "ject", "Mae" + "stro", "Liquid " + "Glass",
+        "Swin" + "ject", "Mae" + "stro",
     )
     scan_roots = [
         root / "workflow/rules", root / "iOS/workflow/rules",
@@ -1295,6 +1730,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
             findings.append(finding("critical", "android-engineering-profiles", relative(android_adapter_path, root), str(error)))
         else:
             findings.extend(android_profile_findings(root, android_adapter_path, android_adapter))
+    findings.extend(android_terminal_addendum_findings(root))
     findings.extend(android_assumption_findings(root))
     for runtime in (".claude", ".opencode"):
         for command in ("propose", "plan", "implement"):
@@ -1304,8 +1740,15 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
                 findings.append(finding("critical", "android-runtime-capability", relative(path, root), f"{command} command must describe Android capability support"))
         verify_path = root / runtime / "commands/verify.md"
         verify_text = verify_path.read_text(encoding="utf-8") if verify_path.is_file() else ""
-        if "Android" not in verify_text or "capability" not in verify_text:
-            findings.append(finding("critical", "android-runtime-capability", relative(verify_path, root), "verify command must describe Android capability blocker"))
+        if (
+            "Android" not in verify_text
+            or re.search(r"\b(?:blocked|unsupported|NOT IMPLEMENTED)\b", verify_text, re.IGNORECASE)
+        ):
+            findings.append(finding("critical", "android-runtime-capability", relative(verify_path, root), "verify command must describe Android support without a blocker"))
+        archive_path = root / runtime / "commands/archive.md"
+        archive_text = archive_path.read_text(encoding="utf-8") if archive_path.is_file() else ""
+        if re.search(r"Android.*(?:blocked|unsupported|NOT IMPLEMENTED)", archive_text, re.IGNORECASE):
+            findings.append(finding("critical", "android-runtime-capability", relative(archive_path, root), "archive command contains a stale Android blocker"))
     return findings
 
 
@@ -1353,9 +1796,15 @@ def main() -> int:
 
     root = repository_root()
     if args.self_test:
-        return self_test_android_lint(root)
+        result = self_test_android_lint(root)
+        module, error = load_docs_checker(root)
+        if error:
+            raise AssertionError(error)
+        module.self_test(root)
+        return result
     markdown_files = iter_files(root, (".md",))
     findings: list[dict[str, str]] = []
+    findings.extend(check_repository_docs(root))
     findings.extend(check_links(root, markdown_files))
     findings.extend(check_skills(root))
     agent_names, agent_findings = read_agents(root)
@@ -1366,6 +1815,9 @@ def main() -> int:
     findings.extend(check_platform_contract(root))
     findings.extend(check_specification_layers(root))
     findings.extend(check_implementation_lifecycle(root))
+    findings.extend(check_reconciliation_flow(root))
+    findings.extend(check_product_spec_review(root))
+    findings.extend(check_platform_native_ux(root))
     findings.extend(check_deep_code_review(root))
     findings.extend(check_security_audit(root))
     findings.extend(check_engineering_rule_profiles(root))

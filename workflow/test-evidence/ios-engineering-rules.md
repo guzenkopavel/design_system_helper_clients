@@ -1,5 +1,13 @@
 # iOS engineering rules — RED/GREEN evidence
 
+> **Historical snapshot — Android capability claims superseded.** Android
+> adapter absence and `NOT IMPLEMENTED` observations below capture the state
+> before Android lifecycle support and are not current claims. Android now
+> supports `propose → plan → implement → verify → archive`; current evidence is
+> [`android-propose-plan-implement.md`](android-propose-plan-implement.md) and
+> [`android-verify-archive.md`](android-verify-archive.md). This document remains
+> current as historical iOS engineering RED/GREEN evidence.
+
 ## RED baseline
 
 Перед изменением отсутствовали ровно 20 запрошенных канонов и машинный phase
@@ -88,7 +96,7 @@ index, measure-first и profiling. Topic rules `startup`, `memory`, `rendering`
 даёт права менять dependencies, ветку или external state. Propose/Plan могут
 записать эти scopes, Implement не выполняет случайный commit.
 
-### 4. Android и common isolation
+### 4. Historical Android/common isolation (pre-Android adapter)
 
 Android не имеет adapter: lifecycle resolver блокирует `NOT IMPLEMENTED` до
 package discovery/writes. Common rules не содержат Swift, Xcode, Simulator или

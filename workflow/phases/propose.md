@@ -6,10 +6,12 @@ writes_artifacts:
   - <platform>/specs/<feature>/changes/<change-id>/implementation-spec.md
   - <platform>/specs/<feature>/changes/<change-id>/design.md
   - <platform>/specs/<feature>/changes/<change-id>/verification.md
+  - <platform>/specs/<feature>/changes/<change-id>/platform-ux.md (product-backed ui only)
 requires_verification: focused
 recommended_roles:
   - repo-navigator
   - specification-writer
+  - adapter-selected platform UX designer (product-backed ui only)
   - architecture-designer
 ---
 
@@ -33,10 +35,12 @@ Workflow:
    Select one or more adapter-defined `engineering_scopes` from evidence. Run
    `find-platform-context.py --phase propose` with each selected `--scope` and
    load the exact returned proposal profile plus scope rules.
-2. Sequentially dispatch `repo-navigator`, `specification-writer`, optional
+2. Sequentially dispatch `repo-navigator`, `specification-writer`, then for
+   product-backed `ui` the adapter-selected platform UX designer, then
    `architecture-designer`, then the adapter boundary guard. Never run writers
-   concurrently.
-3. Write only the five package artifacts under
+   concurrently. The UX owner writes only `platform-ux.md`; architecture reads
+   and incorporates its decisions.
+3. Write the five base artifacts plus conditional `platform-ux.md` under
    `<package_root>/<feature>/changes/<change-id>/`.
 4. Reference shared IDs without copying their observable text. Use adapter
    prefix for platform REQ/AC and trace every ID in verification.
@@ -46,7 +50,8 @@ Workflow:
    applicable rules to decisions or explicit N/A.
 6. Candidate meta is `specified`, `tasks_total: 0`, `tasks_done: 0`,
    `verification_status: pending`; validate with `--mode propose --change`.
-7. On failure restore `draft` and report blockers.
+7. `design_gate` cannot PASS until conditional platform UX is READY with no
+   gaps and design/verification trace it. On failure restore `draft` and report blockers.
 
 Apply wording clarity, common system-design and only the resolver-selected
 platform corpus. Do not load the flat adapter catalog globally.

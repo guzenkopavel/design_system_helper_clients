@@ -71,7 +71,7 @@ Harness lint: grade A (0 critical, 0 warnings)
 | Guard budget exhaustion/unsafe token | `UNKNOWN`/`INVALID`, valid report запрещён |
 | Guard token symlink/replacement/oversize/wrong repo | bounded reject; valid token consumed on wrong-root check |
 | iOS finding после отдельного fix | route в `verify ios` |
-| Android finding после отдельного fix | terminal Verify unavailable; не `fixed/verified` |
+| Android finding после отдельного fix | route в `verify android`; review не `fixed/verified` до отдельного PASS |
 
 Во всех modes `writes_artifacts: []` запрещает repository artifacts. Только при
 guard `PASS` допустимы `No edits made` и lifecycle route. Guard

@@ -208,7 +208,11 @@ def semantic_projection(
         "context_excluded_directories", "context_always_include_globs",
     )
     return {
-        "contract": {**{field: adapter[field] for field in identity_fields}, "lifecycle_capabilities": validate_capabilities(adapter)},
+        "contract": {
+            **{field: adapter[field] for field in identity_fields},
+            "lifecycle_capabilities": validate_capabilities(adapter),
+            "platform_ux": adapter.get("platform_ux"),
+        },
         "phase_rule_profiles": {phase: phases[phase] for phase in PHASES if phase in phases},
         "scope_rule_profiles": {scope: scope_profiles[scope] for scope in scopes},
         "scope_task_checks": {

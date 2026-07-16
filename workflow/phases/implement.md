@@ -28,6 +28,11 @@ task, dependencies, declared paths, contracts and adapter rules and returns a
 compact read-only handoff. Select only pending tasks whose dependencies are
 done; `--all` processes ready tasks in DAG order and stops on the first failure.
 
+If an explicit pre-delivery code set no longer matches task coverage or current
+platform contracts, Implement does not silently repair the plan. Route that set
+to `$reconcile-implementation` before staging; behavioral/shared impact returns
+to product Discovery/Elaborate.
+
 The `implementation-writer` runs in `platform-implementation` mode and treats
 the task as the primary self-contained input. It may change only task-declared
 production paths plus scoped package evidence/state. Use behavior-first/TDD,
@@ -41,6 +46,10 @@ task Paths, task/meta state, `evidence/task-NNN.md` and
 `evidence/scope-baseline-task-NNN.json`; the writer must not rewrite that
 coordinator-owned baseline. The guard also preserves staged/unstaged/untracked
 state for paths outside task scope.
+
+For product-backed UI tasks, reread immutable `platform-ux.md` and implement its
+native language, appearance, accessibility/motion and fallback checks. Record
+focused native appearance evidence without rewriting the artifact.
 
 Before the baseline, resolve `--phase implement` with the exact immutable scopes
 from meta and require the returned lifecycle union to match

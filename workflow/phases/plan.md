@@ -24,7 +24,9 @@ are read-only; `implementation-planner` is the sole owner of `plan/`.
 Require `plan` capability before discovery. Revalidate selected engineering scopes against current evidence. Plan may add or
 refine scopes before `planned`; it must recompute the exact lifecycle
 `applicable_rule_files` union. After
-`planned`, Implement/Verify cannot invent a scope. Record final selection and
+`planned`, Implement/Verify cannot invent a scope. The sole pre-delivery repair
+path is guarded `reconcile-implementation`, which must preserve shared behavior
+and rebuild a coherent snapshot/task graph for its supported class. Record final selection and
 evidence in plan README and seal the exact arrays/fingerprint in
 `plan/rule-selection.json`; set meta `rule_selection_snapshot` to that path.
 Disabled downstream phases do not enter the sealed union.
@@ -38,6 +40,8 @@ layer, no more than two ideal days, explicit existing/proposed paths, inline
 REQ/AC context, dependencies, focused verification, expected result and
 out-of-scope. Machine fields begin as `Status: pending` and `Evidence: none`.
 UI tasks include adapter runtime, accessibility and design-system checks.
+Product-backed UI tasks also reference `platform-ux.md` and include every
+adapter `platform_ux.task_checks` native appearance/fallback check.
 Tasks translate applicable code/TDD/test/performance rules into concrete paths,
 commands, budgets and expected evidence. Nontrivial test commands receive
 explicit watchdog max/stall/output limits; commands are discovered, not guessed.

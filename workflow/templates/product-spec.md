@@ -7,6 +7,8 @@
 - **Applies to:** `iOS, Android`
 - **Source brief:** `brief.md`
 - **UX artifact:** `ux.md | NOT APPLICABLE: <reason>`
+- **Product review receipt:** `review-verdicts.json`
+- **UX readiness:** `review-verdicts.json#ux-accessibility`
 
 ## Problem and Why
 
@@ -49,17 +51,6 @@ localization, analytics и privacy outcomes.
 | Secondary states | PASS/GAP | PASS/GAP | |
 | Product intent parity | PASS/GAP | PASS/GAP | |
 
-## Product Review Lenses
-
-| Lens | Applicability | Verdict | Findings or gaps |
-|---|---|---|---|
-| Product | REQUIRED | PASS/GAP | |
-| UX/accessibility | REQUIRED/N/A + reason | PASS/GAP/N/A | |
-| Design-system | REQUIRED/N/A + reason | PASS/GAP/N/A | |
-| Data/analytics/privacy | REQUIRED/N/A + reason | PASS/GAP/N/A | |
-| Security | REQUIRED/N/A + reason | PASS/GAP/N/A | |
-| Cross-client parity | REQUIRED | PASS/GAP | |
-
 ## Common Product Constraints
 
 ## Open Questions
@@ -68,7 +59,9 @@ localization, analytics и privacy outcomes.
 
 ## Readiness Decision
 
-`READY` разрешён только при полном REQ↔AC coverage, `PASS` всех applicable
-review lenses, готовом `ux.md` для UI/interaction scope, закрытых blockers и
-явном `Product approval: APPROVED` с approver/evidence. Иначе зафиксировать
-`DRAFT / PENDING APPROVAL` или конкретные gaps.
+`READY` разрешён только при полном REQ↔AC coverage, свежем static-linked
+`review-verdicts.json` со статусом PASS и six isolated PASS/valid N/A, готовом `ux.md` для
+UI/interaction scope, закрытых blockers и явном `Product approval: APPROVED` с
+approver/evidence. Каждое critical metadata поле и каждый REQ/AC ID должны быть
+уникальны. GAP/UNKNOWN findings сохраняются в durable non-green receipt, но не
+разрешают READY. Findings живут в receipt, а не копируются сюда.

@@ -17,3 +17,5 @@ the planned finite limits. UI work includes simulator behavior,
 accessibility identifiers/semantics and design-system tokens. Localization work
 is required only for a selected `localization` scope.
 Never broaden the task to unrelated iOS cleanup.
+Product-backed UI rereads `platform-ux.md` and records Liquid Glass appearance,
+contrast, Reduce Transparency/Motion and older-OS fallback evidence.

@@ -13,6 +13,9 @@
 - [`phases/deep-code-review.md`](phases/deep-code-review.md) — read-only iOS
   review lenses и route в terminal Verify только после отдельного fix
 
+Product-backed `ui` использует [`roles/ios-ux-designer.md`](roles/ios-ux-designer.md)
+для system-first Liquid Glass `platform-ux.md` с discovered availability/fallback.
+
 ## Rule profiles
 
 [`platform-contract.json`](platform-contract.json) содержит полный catalog,

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import tempfile
@@ -16,6 +17,7 @@ from platform_rule_profiles import (
     applicable_rules,
     semantic_projection,
     require_capability,
+    validate_capabilities,
     validate_pre_commit_profile,
     validate_profiles,
 )
@@ -23,6 +25,7 @@ from platform_rule_profiles import (
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TASK_RE = re.compile(r"^task-\d{3}$")
 PLACEHOLDER_RE = re.compile(r"\b(?:TODO|TBD|FIXME)\b|<[^>\n]+>|\{\{|\}\}|\.\.\.", re.I)
+PLATFORM_UX_UNRESOLVED_RE = re.compile(r"\b(?:UNKNOWN|GAPS?|PENDING|UNRESOLVED)\b", re.I)
 SHARED_REQ_RE = re.compile(r"(?m)^-\s+`(REQ-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
 SHARED_AC_RE = re.compile(r"(?m)^-\s+`(AC-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
 SHARED_COPY_RE = re.compile(r"(?m)^(?:###\s+|-\s+`?)(?:REQ|AC)-[A-Za-z0-9_-]+`?\s+[—-]")
@@ -39,10 +42,40 @@ COMMON_DESIGN = (
     "Data and control flow", "Error and recovery model", "Verification strategy",
 )
 TERMINAL_MODES = {"verify", "archive"}
+PLATFORM_UX_KEYS = {"role", "artifact", "design_language", "required_terms", "task_checks"}
+PLATFORM_UX_HEADINGS = (
+    "Evidence inspected", "Shared intent mapping",
+    "Information architecture and navigation", "Component and state mapping",
+    "Native visual language", "Color roles and appearance",
+    "Accessibility and localization", "Motion and interaction",
+    "Device and layout adaptation", "Fallback and availability",
+    "Verification scenarios", "Open gaps",
+)
+_PRODUCT_VALIDATOR = None
 
 
 class AdapterError(ValueError):
     pass
+
+
+def load_product_validator():
+    global _PRODUCT_VALIDATOR
+    if _PRODUCT_VALIDATOR is not None:
+        return _PRODUCT_VALIDATOR
+    path = Path(__file__).with_name("validate-product-spec.py")
+    spec = importlib.util.spec_from_file_location("platform_product_validator", path)
+    if spec is None or spec.loader is None:
+        raise AdapterError("cannot load validate-product-spec.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    _PRODUCT_VALIDATOR = module
+    return module
+
+
+def validate_product_ready(repo: Path, feature: str) -> list[str]:
+    try:
+        return load_product_validator().check_product(repo, feature)
+    except (OSError, ValueError) as error:
+        return [f"product review gate failed: {error}"]
 
 
 def repository_root() -> Path:
@@ -98,6 +131,7 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
         "context_always_include_globs",
         "lifecycle_capabilities",
         "pre_commit",
+        "platform_ux",
     }
     missing = sorted(required - set(adapter))
     if missing:
@@ -156,6 +190,24 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
             raise AdapterError(f"scope_task_checks.{scope} must be a unique non-empty list")
     if task_checks.get("ui") != adapter["ui_task_checks"]:
         raise AdapterError("scope_task_checks.ui must exactly match ui_task_checks")
+    platform_ux = adapter["platform_ux"]
+    if not isinstance(platform_ux, dict) or set(platform_ux) != PLATFORM_UX_KEYS:
+        raise AdapterError("platform_ux must use the exact nested schema")
+    if not SLUG_RE.fullmatch(str(platform_ux.get("role", ""))):
+        raise AdapterError("platform_ux.role must be a strict role slug")
+    if platform_ux.get("artifact") != "platform-ux.md":
+        raise AdapterError("platform_ux.artifact must be exactly platform-ux.md")
+    design_language = str(platform_ux.get("design_language", "")).strip()
+    if len(design_language) < 3 or PLACEHOLDER_RE.search(design_language):
+        raise AdapterError("platform_ux.design_language must be substantive")
+    for field in ("required_terms", "task_checks"):
+        values = platform_ux.get(field)
+        if (
+            not isinstance(values, list) or not values
+            or not all(isinstance(item, str) and item.strip() for item in values)
+            or len(values) != len(set(values))
+        ):
+            raise AdapterError(f"platform_ux.{field} must be a unique non-empty list")
     return adapter
 
 
@@ -259,6 +311,67 @@ def valid_human(value: str | None, minimum: int = 3) -> bool:
         return False
     clean = value.strip().strip("`* ")
     return len(clean) >= minimum and clean.casefold() not in {"none", "n/a", "pending", "unknown", "approved"}
+
+
+def platform_ux_exact_none(value: str | None) -> bool:
+    if value is None:
+        return False
+    normalized = value.strip().strip("`*_ ").rstrip(".").strip().casefold()
+    return normalized == "none"
+
+
+def validate_platform_ux(
+    repo: Path, adapter: dict[str, object], package: Path,
+    feature: str, meta: dict[str, object], scopes: set[str],
+) -> list[str]:
+    config = adapter["platform_ux"]
+    path = package / str(config["artifact"])
+    required = meta.get("change_type") == "product-backed" and "ui" in scopes
+    if not required:
+        if path.exists() or path.is_symlink():
+            return ["platform-ux.md is unexpected outside product-backed ui scope"]
+        return []
+    errors: list[str] = []
+    if not path.is_file() or path.is_symlink():
+        return ["product-backed ui package requires platform-ux.md"]
+    body = read(path)
+    if PLACEHOLDER_RE.search(body):
+        errors.append("platform-ux.md contains placeholders")
+    readiness_body = re.sub(r"(?mi)^##\s+Open gaps\s*$", "", body)
+    if PLATFORM_UX_UNRESOLVED_RE.search(readiness_body):
+        errors.append("platform-ux.md contains unresolved readiness markers")
+    expected_source = f"specs/product/{feature}/ux.md"
+    source = repo / expected_source
+    if not source.is_file() or source.is_symlink():
+        errors.append("product-backed ui package requires shared product ux.md")
+    metadata = {
+        "UX status": "READY",
+        "Platform": str(adapter["platform_name"]),
+        "Source product UX": expected_source,
+        "Native design language adapter": str(config["design_language"]),
+        "Color direction": "soft blue",
+    }
+    for label, expected in metadata.items():
+        matches = re.findall(
+            rf"(?mi)^-\s*\**{re.escape(label)}\s*:\**\s*`?([^`\n]+)`?\s*$", body
+        )
+        if len(matches) != 1:
+            errors.append(f"platform-ux.md {label} metadata must appear exactly once")
+        elif matches[0].strip() != expected:
+            errors.append(f"platform-ux.md {label} must be exactly {expected}")
+    for heading in PLATFORM_UX_HEADINGS:
+        count = len(re.findall(rf"(?m)^##\s+{re.escape(heading)}\s*$", body))
+        if count != 1:
+            errors.append(f"platform-ux.md heading must appear exactly once: {heading}")
+        elif heading != "Open gaps" and not substantive(section(body, heading), 20):
+            errors.append(f"platform-ux.md missing substantive section: {heading}")
+    if len(re.findall(r"(?m)^##\s+Open gaps\s*$", body)) == 1 and not platform_ux_exact_none(section(body, "Open gaps")):
+        errors.append("platform-ux.md Open gaps must be exact None")
+    folded = body.casefold()
+    for term in config["required_terms"]:
+        if str(term).casefold() not in folded:
+            errors.append(f"platform-ux.md missing required native term: {term}")
+    return errors
 
 
 def heading_blocks(text: str, pattern: re.Pattern[str]) -> list[tuple[str, str]]:
@@ -388,11 +501,19 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
 
 def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dict[str, object]) -> list[Path]:
     candidates: set[Path] = set()
-    for name in ("proposal.md", "implementation-spec.md", "design.md", "verification.md", "plan/README.md"):
+    for name in ("proposal.md", "implementation-spec.md", "design.md", "verification.md", "platform-ux.md", "plan/README.md"):
         path = package / name
         if path.is_file(): candidates.add(path)
     snapshot = package / "plan/rule-selection.json"
     if snapshot.is_file(): candidates.add(snapshot)
+    if (
+        meta.get("change_type") == "product-backed"
+        and "ui" in set(meta.get("engineering_scopes", []))
+    ):
+        visual_rule = repo / "workflow/rules/visual-language.md"
+        if not visual_rule.is_file():
+            raise AdapterError("product-backed ui terminal state requires visual-language.md")
+        candidates.add(visual_rule)
     for path in (package / "plan").glob("task-*.md"):
         candidates.add(path)
     evidence_root = package / "evidence"
@@ -404,6 +525,22 @@ def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dic
         if isinstance(raw, str):
             path = safe_repo_path(repo, raw, "applicable_rule_files")
             if path.is_file(): candidates.add(path)
+    capabilities = validate_capabilities(adapter)
+    if "verify" in capabilities:
+        platform_root = safe_repo_path(repo, str(adapter.get("platform_root", "")), "platform_root")
+        terminal_inputs = (
+            repo / "workflow/rules/verification-evidence.md",
+            repo / "workflow/phases/verify.md",
+            platform_root / "workflow/phases/verify.md",
+        )
+        for path in terminal_inputs:
+            if not path.is_file():
+                try:
+                    label = path.relative_to(repo).as_posix()
+                except ValueError:
+                    label = "terminal verification input"
+                raise AdapterError(f"required terminal verification input is missing: {label}")
+            candidates.add(path)
     shared = meta.get("shared_product_spec")
     if isinstance(shared, str):
         path = repo / shared
@@ -523,11 +660,18 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
                 if not valid_human(field_value(product, "Approval evidence"), 8): errors.append("shared product spec has no approval evidence")
                 shared_reqs = {x[0] for x in SHARED_REQ_RE.findall(product)}
                 shared_acs = {x[0] for x in SHARED_AC_RE.findall(product)}
+                errors.extend(f"product review gate: {item}" for item in validate_product_ready(repo, feature))
         if meta.get("product_status") != "READY" or meta.get("product_approval") != "APPROVED": errors.append("meta product gate must be READY/APPROVED")
         if meta.get("product_impact") != "PRESENT": errors.append("product-backed impact must be PRESENT")
     else:
         if meta.get("shared_product_spec") is not None: errors.append("technical-only shared_product_spec must be null")
         if meta.get("product_impact") != "NONE" or not substantive(str(meta.get("impact_evidence", ""))): errors.append("technical-only requires NONE impact evidence")
+
+    package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
+    platform_ux_errors = validate_platform_ux(repo, adapter, package, feature, meta, package_scopes)
+    errors.extend(platform_ux_errors)
+    if platform_ux_errors and meta.get("design_gate") == "PASS":
+        errors.append("design_gate cannot PASS without READY platform UX")
 
     required_files = ("proposal.md", "implementation-spec.md", "design.md", "verification.md")
     for name in required_files:
@@ -588,8 +732,14 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     if set(scope_entries) != expected_scope_set:
         errors.append("design Applied engineering scopes must exactly cover meta engineering_scopes")
     if meta.get("design_gate") != "PASS": errors.append("design_gate must be PASS")
+    if meta.get("change_type") == "product-backed" and "ui" in package_scopes:
+        if not substantive(section(design, "Platform UX trace and decisions"), 28):
+            errors.append("design.md must incorporate Platform UX trace and decisions")
 
     verification = read(package / "verification.md")
+    if meta.get("change_type") == "product-backed" and "ui" in package_scopes:
+        if not substantive(section(verification, "Native UX verification"), 20):
+            errors.append("verification.md requires Native UX verification")
     rows: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     for line in verification.splitlines():
         if not line.lstrip().startswith("|"): continue
@@ -672,7 +822,10 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
             for check in adapter["scope_task_checks"].get(scope, []):
                 if str(check).casefold() not in task_check_text:
                     errors.append(f"{task['id']} missing {scope} scope check: {check}")
-    package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
+        if meta.get("change_type") == "product-backed" and "ui" in task_scopes:
+            for check in adapter["platform_ux"]["task_checks"]:
+                if str(check).casefold() not in task_check_text:
+                    errors.append(f"{task['id']} missing native UX check: {check}")
     if package_scopes - covered_task_scopes:
         errors.append(f"plan tasks do not cover engineering scopes: {', '.join(sorted(package_scopes - covered_task_scopes))}")
 
@@ -730,6 +883,25 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     return errors
 
 
+def fixture_platform_ux(adapter: dict[str, object], feature: str = "sample") -> str:
+    config = adapter["platform_ux"]
+    sections = []
+    evidence = "Repository SDK, dependency, deployment and existing component evidence was inspected."
+    for heading in PLATFORM_UX_HEADINGS[:-1]:
+        sections.append(f"## {heading}\n\n{evidence} Native behavior maps the shared intent with accessible fallbacks.\n")
+    terms = "; ".join(str(item) for item in config["required_terms"])
+    return (
+        f"# {feature} native UX\n\n"
+        "- **UX status:** `READY`\n"
+        f"- **Platform:** `{adapter['platform_name']}`\n"
+        f"- **Source product UX:** `specs/product/{feature}/ux.md`\n"
+        f"- **Native design language adapter:** `{config['design_language']}`\n"
+        "- **Color direction:** `soft blue`\n\n"
+        + "\n".join(sections)
+        + f"\nNative terms: {terms}.\n\n## Open gaps\n\nNone.\n"
+    )
+
+
 def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object]]:
     adapter_dir = repo / "TestClient" / "workflow"; adapter_dir.mkdir(parents=True)
     adapter = {
@@ -740,6 +912,12 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
         "production_exclusions": ["TestClient/specs", "TestClient/workflow"], "contract_prefix": "TST",
         "boundary_guard": "test-boundary", "extended_design_sections": ["System-design review"],
         "ui_task_checks": ["simulator", "accessibility", "design-system"],
+        "platform_ux": {
+            "role": "test-ux-designer", "artifact": "platform-ux.md",
+            "design_language": "Native Test UI",
+            "required_terms": ["Native Test UI", "soft blue", "light", "dark", "fallback", "native-term-marker"],
+            "task_checks": ["platform-ux.md", "Native Test UI", "light/dark", "fallback"],
+        },
         "rule_files": [
             "TestClient/workflow/base.md", "TestClient/workflow/application.md",
             "TestClient/workflow/performance-a.md", "TestClient/workflow/performance-b.md",
@@ -794,8 +972,25 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
     (adapter_dir / "package.md").write_text("Unselected package rule.\n", encoding="utf-8")
     (adapter_dir / "networking.md").write_text("Unselected networking rule.\n", encoding="utf-8")
     (adapter_dir / "startup.md").write_text("Unselected startup rule.\n", encoding="utf-8")
+    platform_verify = adapter_dir / "phases/verify.md"; platform_verify.parent.mkdir(parents=True)
+    platform_verify.write_text("Current platform verification addendum.\n", encoding="utf-8")
+    common_rule = repo / "workflow/rules/verification-evidence.md"; common_rule.parent.mkdir(parents=True)
+    common_rule.write_text("Current universal terminal verification evidence policy.\n", encoding="utf-8")
+    (common_rule.parent / "visual-language.md").write_text(
+        "Current shared calm soft-blue semantic visual language contract.\n", encoding="utf-8"
+    )
+    common_phase = repo / "workflow/phases/verify.md"; common_phase.parent.mkdir(parents=True)
+    common_phase.write_text("Current universal terminal verification phase.\n", encoding="utf-8")
+    product_validator = load_product_validator()
     product = repo / "specs/product/sample/spec.md"; product.parent.mkdir(parents=True)
-    product.write_text("- **Status:** `READY`\n- **Product approval:** `APPROVED`\n- **Approved by:** Product owner\n- **Approval evidence:** approved decision record\n- **Applies to:** `TestClient`\n\n## Requirements\n- `REQ-1` — Shared behavior remains observable.\n\n## Acceptance Criteria\n- `AC-1` — Shared behavior is observed. `Covers: REQ-1`\n", encoding="utf-8")
+    (product.parent / "brief.md").write_text("Substantive shared product fixture brief.\n", encoding="utf-8")
+    (product.parent / "ux.md").write_text("Shared calm soft-blue UX intent for both clients.\n", encoding="utf-8")
+    product.write_text(product_validator.fixture_spec(), encoding="utf-8")
+    product_validator.write_fixture_receipt(repo, "sample")
+    product.write_text(product.read_text(encoding="utf-8").replace("`DRAFT`", "`READY`", 1), encoding="utf-8")
+    fixture_product_errors = product_validator.check_product(repo, "sample")
+    if fixture_product_errors:
+        raise AssertionError(fixture_product_errors)
     package = repo / "TestClient/specs/sample/changes/sample"; package.mkdir(parents=True)
     meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
     (package/"meta.json").write_text(json.dumps(meta), encoding="utf-8")
@@ -834,6 +1029,35 @@ def self_test() -> int:
         }
         assert any("capability 'verify'" in error for error in validate_package(repo, disabled, "sample", "sample", "verify"))
         assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        adapter_path = repo / str(adapter["_path"])
+        adapter_source = adapter_path.read_text()
+        malformed_adapter = {key: value for key, value in adapter.items() if key != "_path"}
+        malformed_adapter["platform_ux"] = {"role": "broken"}
+        adapter_path.write_text(json.dumps(malformed_adapter))
+        try:
+            load_adapter(repo, "test-client")
+            raise AssertionError("malformed platform_ux adapter schema passed")
+        except AdapterError as error:
+            assert "platform_ux" in str(error)
+        adapter_path.write_text(adapter_source)
+        ux_artifact = package / "platform-ux.md"
+        ux_source = fixture_platform_ux(adapter)
+        assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        ux_artifact.write_text(ux_source)
+        assert any("unexpected outside" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        ux_artifact.unlink()
+        technical = dict(meta)
+        technical.update(
+            change_type="technical-only", shared_product_spec=None,
+            product_status="N/A", product_approval="N/A", product_impact="NONE",
+            impact_evidence="Repository-only infrastructure has no observable product behavior impact.",
+        )
+        (package / "meta.json").write_text(json.dumps(technical))
+        assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        ux_artifact.write_text(ux_source)
+        assert any("unexpected outside" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        ux_artifact.unlink()
+        (package / "meta.json").write_text(json.dumps(meta))
         bad_meta = dict(meta); bad_meta["engineering_scopes"] = ["unknown"]
         (package / "meta.json").write_text(json.dumps(bad_meta))
         assert any("unknown engineering scope" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
@@ -897,22 +1121,119 @@ def self_test() -> int:
         ]
         conditional_design = original_design.replace(
             "- application: Typed application boundaries and deterministic tests apply to this change.",
-            "- application: Typed application boundaries and deterministic tests apply to this change.\n- localization: Localized resources require a conditional task check.\n- ui: UI automation requires runtime and accessibility checks.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n- localization: Localized resources require a conditional task check.\n- ui: UI automation requires runtime and accessibility checks.\n\n## Platform UX trace and decisions\nThe architecture consumes platform-ux.md and preserves its native component, appearance and fallback decisions.",
         )
         (package / "design.md").write_text(conditional_design)
         (package / "meta.json").write_text(json.dumps(conditional))
+        original_verification = (package / "verification.md").read_text()
+        (package / "verification.md").write_text(
+            original_verification
+            + "\n## Native UX verification\n\nCapture native appearance, accessibility, light/dark and fallback evidence.\n"
+        )
         (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(conditional)))
         ui_test_task = task_2.replace('["application"]', '["application", "ui"]')
         localized_resource_task = task_3.replace('["application"]', '["application", "localization"]')
         (plan / "task-001.md").write_text(task)
         (plan / "task-002.md").write_text(ui_test_task)
         (plan / "task-003.md").write_text(localized_resource_task)
+        assert any("requires platform-ux.md" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        ux_artifact.write_text(ux_source)
+        for before, after, expected in (
+            ("`TestClient`", "`WrongClient`", "Platform must be exactly"),
+            ("`Native Test UI`", "`Wrong UI`", "Native design language adapter"),
+            ("`soft blue`", "`red`", "Color direction"),
+            ("`specs/product/sample/ux.md`", "`specs/product/other/ux.md`", "Source product UX"),
+            ("`READY`", "`GAPS`", "UX status"),
+            ("None.", "Unresolved native gap.", "Open gaps"),
+            ("native-term-marker", "missing-native-marker", "required native term"),
+        ):
+            ux_artifact.write_text(ux_source.replace(before, after, 1))
+            pressure_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+            assert any(expected in error for error in pressure_errors), (before, after, pressure_errors)
+        for duplicate_line, label in (
+            ("- **Color direction:** `red`", "Color direction"),
+            ("- **UX status:** `GAPS`", "UX status"),
+            ("- **Source product UX:** `specs/product/other/ux.md`", "Source product UX"),
+        ):
+            duplicated = ux_source.replace(
+                "## Evidence inspected", f"{duplicate_line}\n\n## Evidence inspected", 1
+            )
+            ux_artifact.write_text(duplicated)
+            assert any(
+                f"{label} metadata must appear exactly once" in error
+                for error in validate_package(repo, adapter, "sample", "sample", "plan")
+            )
+        ux_artifact.write_text(ux_source + "\n## Open gaps\n\nUnresolved native conflict.\n")
+        assert any(
+            "heading must appear exactly once: Open gaps" in error
+            for error in validate_package(repo, adapter, "sample", "sample", "plan")
+        )
+        ux_artifact.write_text(
+            ux_source + "\n## Evidence inspected\n\nConflicting second evidence account.\n"
+        )
+        assert any(
+            "heading must appear exactly once: Evidence inspected" in error
+            for error in validate_package(repo, adapter, "sample", "sample", "plan")
+        )
+        ux_artifact.write_text(ux_source.replace("## Motion and interaction", "## Missing motion section", 1))
+        assert any(
+            "heading must appear exactly once: Motion and interaction" in error
+            for error in validate_package(repo, adapter, "sample", "sample", "plan")
+        )
+        resolved_section = (
+            "Repository SDK, dependency, deployment and existing component evidence was inspected. "
+            "Native behavior maps the shared intent with accessible fallbacks."
+        )
+        unknown_sections = ux_source.replace(
+            resolved_section,
+            "UNKNOWN repository SDK/dependency/deployment/component evidence remains unavailable",
+        )
+        ux_artifact.write_text(unknown_sections)
+        assert any(
+            "unresolved readiness markers" in error
+            for error in validate_platform_ux(repo, adapter, package, "sample", conditional, {"application", "localization", "ui"})
+        )
+        gaps_sections = ux_source.replace(resolved_section, "GAPS remain in native availability evidence")
+        ux_artifact.write_text(gaps_sections)
+        assert any(
+            "unresolved readiness markers" in error
+            for error in validate_platform_ux(repo, adapter, package, "sample", conditional, {"application", "localization", "ui"})
+        )
+        gap_section = ux_source.replace(
+            resolved_section,
+            "GAP remains in repository SDK dependency deployment evidence",
+            1,
+        )
+        ux_artifact.write_text(gap_section)
+        assert any(
+            "unresolved readiness markers" in error
+            for error in validate_platform_ux(repo, adapter, package, "sample", conditional, {"application", "localization", "ui"})
+        )
+        allowed_unavailable = ux_source.replace(
+            resolved_section,
+            "The API is unavailable on an older OS; the documented standard-component fallback preserves behavior.",
+        )
+        ux_artifact.write_text(allowed_unavailable)
+        allowed_unavailable_errors = validate_platform_ux(
+            repo, adapter, package, "sample", conditional, {"application", "localization", "ui"}
+        )
+        assert allowed_unavailable_errors == [], allowed_unavailable_errors
+        for false_none in ("No open questions.", "Нет открытых вопросов."):
+            ux_artifact.write_text(ux_source.replace("None.", false_none, 1))
+            assert any(
+                "Open gaps must be exact None" in error
+                for error in validate_platform_ux(repo, adapter, package, "sample", conditional, {"application", "localization", "ui"})
+            )
+        ux_artifact.write_text(ux_source + "\nTODO unresolved placeholder\n")
+        assert any("contains placeholders" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        ux_artifact.write_text(ux_source)
         conditional_errors = validate_package(repo, adapter, "sample", "sample", "plan")
         assert any("task-002 missing ui scope check" in error for error in conditional_errors)
         assert any("task-003 missing localization scope check" in error for error in conditional_errors)
+        assert any("task-002 missing native UX check" in error for error in conditional_errors)
         ui_test_task_green = ui_test_task.replace(
             "Run the focused shared integration test.",
-            "Run simulator UI automation with accessibility and design-system checks.",
+            "Run simulator UI automation with accessibility and design-system checks from platform-ux.md using Native Test UI, light/dark and fallback scenarios.",
         )
         localized_resource_green = localized_resource_task.replace(
             "Run the independent deterministic acceptance test.",
@@ -924,6 +1245,7 @@ def self_test() -> int:
         presentation_without_ui = task.replace("Layer: domain", "Layer: presentation")
         (plan / "task-001.md").write_text(presentation_without_ui)
         assert any("presentation task must include ui" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        ux_artifact.unlink()
         pressure = dict(planned)
         pressure["engineering_scopes"] = ["application", "networking", "package", "performance", "startup"]
         pressure["applicable_rule_files"] = [
@@ -962,6 +1284,7 @@ def self_test() -> int:
         (plan / "task-001.md").write_text(explicit_pressure_task)
         assert validate_package(repo, adapter, "sample", "sample", "plan") == []
         (package / "design.md").write_text(original_design)
+        (package / "verification.md").write_text(original_verification)
         (package / "meta.json").write_text(json.dumps(planned))
         (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
         (plan / "task-001.md").write_text(task)
@@ -1041,6 +1364,19 @@ def self_test() -> int:
         passing_verification = failed_verification.replace("| FAIL |", "| PASS |")
         (package/"verification.md").write_text(passing_verification)
         verified=dict(repair_complete); verified.update(status="verified",problems=[],verification_status="PASS",verified_at="2026-07-15T12:00:00Z",verification_state="evidence/verification-state.json")
+        visual_rule = repo / "workflow/rules/visual-language.md"
+        technical_fingerprint = compute_state(repo, adapter, package, verified)["fingerprint"]
+        product_ui_state = dict(verified)
+        product_ui_state["engineering_scopes"] = ["application", "ui"]
+        product_ui_state["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/ui.md",
+        ]
+        product_ui_fingerprint = compute_state(repo, adapter, package, product_ui_state)["fingerprint"]
+        visual_rule.write_text("Changed shared semantic visual language contract.\n")
+        assert compute_state(repo, adapter, package, verified)["fingerprint"] == technical_fingerprint
+        assert compute_state(repo, adapter, package, product_ui_state)["fingerprint"] != product_ui_fingerprint
+        visual_rule.write_text("Current shared calm soft-blue semantic visual language contract.\n")
         state=compute_state(repo, adapter, package, verified); state["captured_at"]="2026-07-15T12:00:00Z"
         (evidence/"verification-state.json").write_text(json.dumps(state))
         (package/"meta.json").write_text(json.dumps(verified))
@@ -1049,11 +1385,18 @@ def self_test() -> int:
         selected_rule.write_text("Changed selected application rule.\n")
         assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))
         selected_rule.write_text("Current selected application rule.\n")
+        ux_artifact.write_text(ux_source + "\nLate native UX decision.\n")
+        assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))
+        ux_artifact.unlink()
         unselected_rule = repo / "TestClient/workflow/performance-a.md"
         unselected_rule.write_text("Changed but still unselected performance rule.\n")
         assert validate_package(repo, adapter, "sample", "sample", "archive") == []
         unselected_rule.write_text("Unselected performance rule A.\n")
         adapter_path = repo / "TestClient/workflow/platform-contract.json"
+        adapter["platform_ux"]["design_language"] = "Changed Native UI"
+        adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
+        assert any("stale" in x for x in validate_package(repo, adapter, "sample", "sample", "archive"))
+        adapter["platform_ux"]["design_language"] = "Native Test UI"
         adapter["scope_rule_profiles"]["performance"].reverse()
         adapter_path.write_text(json.dumps({key: value for key, value in adapter.items() if key != "_path"}))
         assert validate_package(repo, adapter, "sample", "sample", "archive") == []

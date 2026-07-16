@@ -22,3 +22,19 @@ Source of truth может быть code, generated assets или внешний
 его нужно обнаружить. Названия токенов, platform appearance features и
 минимальная OS не предполагаются. Visual comparison дополняет, но не заменяет
 behavior/accessibility assertions.
+
+## Liquid Glass adaptation
+
+Для product-backed `ui` package создать `platform-ux.md` по общему template.
+Сначала обнаружить реальный SDK, deployment target и существующие компоненты.
+Liquid Glass применять system-first только в функциональном слое controls и
+navigation, не как content background. Не переиспользовать glass повсеместно и
+не создавать custom effects без доказанного gap. Soft-blue tint ограничен
+semantic roles. Зафиксировать light/dark/increased contrast, Reduce
+Transparency, Reduce Motion, scrolling legibility, standard components,
+performance и явный older-OS/SDK fallback. Доступность API не предполагать.
+Contract terms: functional controls; Reduce Transparency; Reduce Motion.
+
+Official references:
+- https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass
+- https://developer.apple.com/design/human-interface-guidelines/materials

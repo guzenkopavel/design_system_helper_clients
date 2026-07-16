@@ -6,3 +6,5 @@ emulator/accessibility/design-system; `compose` требует отдельны�
 Compose-state check. Concurrency требует cancellation/lifecycle; module/Gradle
 scopes фиксируют точные boundaries/tasks. Multiplatform остаётся отдельным
 evidence-selected scope.
+Product-backed UI tasks ссылаются на `platform-ux.md` и содержат все adapter
+native UX checks для Material 3, appearances и fallback.

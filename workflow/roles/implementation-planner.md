@@ -19,4 +19,13 @@ addendum и adapter. Platform rule links загружать условно из 
   commands, expected evidence и finite watchdog/performance budgets.
 - Каждая task получает explicit engineering scopes subset; покрыть полный sealed
   package set и применить adapter scope checks независимо от task Layer.
+- Product-backed UI task ссылается на `platform-ux.md` и материализует все
+  `platform_ux.task_checks` в steps/verification/expected result.
 - Не закрывать open questions assumptions, не менять upstream spec и не писать код.
+
+После `planned` единственное разрешённое изменение sealed task graph/scopes —
+явный `reconcile-implementation` внутри его guard. Для `task-drift` исправлять
+задачи/зависимости/checks без изменения upstream contracts или scope authority;
+для `platform-implementation-drift` пересобрать согласованный snapshot и
+затронутые tasks после spec/design. Переоткрыть affected tasks и полный
+transitive dependent closure; production остаётся read-only.

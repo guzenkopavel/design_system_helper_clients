@@ -16,10 +16,11 @@ Portable skill SSOT находится в `.agents/skills/<name>/SKILL.md`. Не
 
 1. обнаруживать все portable skills, включая `brainstorming`, `discovery`,
    `elaborate`, `propose`, `plan`, `implement`, `verify`, `archive`,
-   `deep-code-review`, `harness-change`, `harness-review` и `writing-skills`;
+   `reconcile-implementation`, `deep-code-review`, `harness-change`,
+   `harness-review` и `writing-skills`;
 2. загружать полный portable `SKILL.md` до действий;
 3. резолвить все роли из [`agent-roster.md`](agent-roster.md), включая
-   зарегистрированные platform guards;
+   зарегистрированные platform guards и read-only `product-spec-reviewer`;
 4. соблюдать permissions: auditor read-only, writer scoped write;
 5. передавать аргументы пользователя без изменения смысла;
 6. читать общий [`AGENTS.md`](../../AGENTS.md) напрямую или через runtime entry.
@@ -29,12 +30,15 @@ OpenCode также сканирует этот namespace и может неде
 runtime-копию вместо portable SSOT. Явный Claude UX сохраняется через thin
 `.claude/commands/<name>.md`.
 
-`propose`, `plan`, `implement`, `verify`, `archive` и `deep-code-review` — manual-only во всех
+`propose`, `plan`, `implement`, `verify`, `archive`, `reconcile-implementation`
+и `deep-code-review` — manual-only во всех
 runtime. Их adapters передают identity/flags без перестановки. Platform
-implementation lifecycle всегда требует `<platform> <feature>`; Android пока
-поддерживает propose/plan/implement, а verify/implementation archive возвращают
-unsupported до любых записей по machine capability. Product archive не принимает platform,
-но требует validated retirement request.
+implementation lifecycle всегда требует `<platform> <feature>`; Android
+поддерживает полный lifecycle через общий skill contract и собственные thin
+addenda. Verify/archive каждой платформы проверяют capability независимо.
+Product archive не принимает platform, но требует validated retirement request.
+Coordinator может вызвать reconciliation после явного commit intent, но только
+с explicit user-owned path set; runtime не выводит его из всего dirty worktree.
 
 `deep-code-review review|feedback|bug` требует platform identity и одинаковый
 read-only role contract во всех runtime; `security` не принимает platform.
@@ -45,6 +49,20 @@ independent review.
 custom subagent, выполнить writer и review последовательно в основной сессии.
 Перед review прекратить любые записи, явно отметить fallback в отчёте и не
 заявлять независимое ревью.
+
+Для final product lenses этот fallback не может дать green receipt: каждый lens
+требует отдельный fresh context. При отсутствии subagent context вернуть
+`independent_context: false`, `UNKNOWN`, оставить package DRAFT и не
+агрегировать PASS. Coordinator обязан реально создать contexts и сохранить
+runtime-issued invocation evidence; поля runtime/parent/context/provenance в
+verdict — проверяемая attestation, а не криптографическое доказательство
+изоляции. Exact valid UNKNOWN можно сохранить в durable non-green receipt.
+
+В Propose adapter поле `platform_ux.role` выбирает `ios-ux-designer` или
+`android-ux-designer` только для product-backed `ui`. Во всех runtime роль
+запускается последовательно после specification writer, пишет только
+`platform-ux.md` и завершает работу до architecture designer; concurrent
+artifact writers запрещены.
 
 ## Hook adapters
 

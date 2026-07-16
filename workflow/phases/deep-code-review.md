@@ -105,8 +105,8 @@ observation, evidence, violated contract/rule, impact и lifecycle route.
 - new/unmapped task или scope → `plan`;
 - existing covered task → `implement`;
 - iOS после fix → `verify`;
-- Android после fix → terminal Verify unavailable; не писать `fixed` или
-  `verified`.
+- Android после отдельного fix → `verify android ...`; read-only review не
+  писать `fixed` или `verified` до отдельного успешного Implement + Verify.
 
 Human-readable output писать на русском. Завершить scope, selected lenses,
 findings/triage, unverified areas, lifecycle routes и statement `No edits made`.

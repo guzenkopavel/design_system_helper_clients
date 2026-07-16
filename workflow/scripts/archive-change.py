@@ -416,6 +416,10 @@ def product_preflight(root: Path, feature: str, request_path: Path | None) -> tu
             errors.append("completed product archive requires concrete Approved by")
         if not validator.valid_human(validator.field_value(spec_text, "Approval evidence"), 8):
             errors.append("completed product archive requires concrete Approval evidence")
+        errors.extend(
+            f"completed product archive product review gate: {item}"
+            for item in validator.validate_product_ready(repo, feature)
+        )
     required = applies | {"ios", "android"}
     for platform in sorted(required):
         entry = platforms.get(platform)
@@ -503,25 +507,72 @@ def terminal_fixture(repo: Path):
     return package
 
 
-def clone_terminal_android(repo: Path) -> Path:
+def terminal_android_fixture(repo: Path) -> Path:
     validator = load_validator()
-    shutil.copytree(repo / "iOS", repo / "Android")
-    adapter_path = repo / "Android/workflow/platform-contract.json"
-    adapter_data = json.loads(adapter_path.read_text(encoding="utf-8"))
-    adapter_data = json.loads(json.dumps(adapter_data).replace("iOS/", "Android/"))
-    adapter_data.update(
-        platform_input="android", platform_name="Android", platform_root="Android",
-        package_root="Android/specs", production_roots=["Android"],
-        protected_roots=["Android/specs", "Android/workflow"],
-        production_exclusions=["Android/specs", "Android/workflow"],
-    )
+    android = repo / "Android"
+    workflow = android / "workflow"; workflow.mkdir(parents=True)
+    adapter_data = {
+        "platform_input": "android", "platform_name": "Android", "platform_root": "Android",
+        "lifecycle_capabilities": ["propose", "plan", "implement", "verify", "archive-implementation"],
+        "package_root": "Android/specs", "active_changes_namespace": "changes", "archive_namespace": "archive",
+        "production_roots": ["Android"], "protected_roots": ["Android/specs", "Android/workflow"],
+        "production_exclusions": ["Android/specs", "Android/workflow"], "contract_prefix": "AND",
+        "boundary_guard": "android-boundary", "extended_design_sections": ["Android integration"],
+        "ui_task_checks": ["emulator", "accessibility", "design-system"],
+        "platform_ux": {
+            "role": "android-ux-designer", "artifact": "platform-ux.md",
+            "design_language": "Material 3", "required_terms": ["Material 3"],
+            "task_checks": ["platform-ux.md", "Material 3"],
+        },
+        "rule_files": ["Android/workflow/base.md", "Android/workflow/application.md", "Android/workflow/ui.md"],
+        "phase_rule_profiles": {
+            "propose": ["Android/workflow/base.md"], "plan": ["Android/workflow/base.md"],
+            "implement": ["Android/workflow/base.md"], "verify": ["Android/workflow/base.md"],
+        },
+        "scope_rule_profiles": {
+            "application": ["Android/workflow/application.md"], "ui": ["Android/workflow/ui.md"],
+        },
+        "scope_task_checks": {"ui": ["emulator", "accessibility", "design-system"]},
+        "context_file_suffixes": [".md", ".json", ".kt", ".kts"],
+        "context_excluded_directories": [".gradle", "build"],
+        "context_always_include_globs": ["Android/**/settings.gradle.kts", "Android/**/build.gradle.kts"],
+        "pre_commit": {
+            "source_suffixes": [".kt", ".kts"], "generated_globs": ["Android/**/build/**"],
+            "secret_globs": ["Android/**/*.keystore"],
+            "security_sensitive_globs": ["Android/**/build.gradle.kts"],
+            "ui_globs": ["Android/**/*Screen.kt"], "localization_globs": ["Android/**/strings.xml"],
+            "project_globs": ["Android/**/settings.gradle.kts", "Android/**/build.gradle.kts"],
+            "tool_globs": {"gradle": ["Android/**/settings.gradle.kts"]},
+        },
+    }
+    adapter_path = workflow / "platform-contract.json"
     adapter_path.write_text(json.dumps(adapter_data), encoding="utf-8")
+    (workflow / "base.md").write_text("Android lifecycle base rule.\n", encoding="utf-8")
+    (workflow / "application.md").write_text("Android application boundary rule.\n", encoding="utf-8")
+    (workflow / "ui.md").write_text("Android UI verification rule.\n", encoding="utf-8")
+    platform_verify = workflow / "phases/verify.md"; platform_verify.parent.mkdir(parents=True)
+    platform_verify.write_text("Android terminal verification addendum.\n", encoding="utf-8")
+    shutil.copytree(repo / "iOS/specs/sample", android / "specs/sample")
+    (android / "settings.gradle.kts").write_text('rootProject.name = "fixture"\n', encoding="utf-8")
+    (android / "build.gradle.kts").write_text("plugins {}\n", encoding="utf-8")
+    source = android / "src/main/kotlin/Sample.kt"; source.parent.mkdir(parents=True)
+    source.write_text("data class Sample(val value: String)\n", encoding="utf-8")
     package = repo / "Android/specs/sample/changes/sample"
+    for markdown in package.rglob("*.md"):
+        markdown.write_text(
+            markdown.read_text(encoding="utf-8").replace("TST-", "AND-").replace("iOS/", "Android/"),
+            encoding="utf-8",
+        )
     meta_path = package / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     meta = json.loads(json.dumps(meta).replace("iOS/", "Android/")); meta["platform"] = "Android"
     task_path = package / "plan/task-001.md"
-    task_path.write_text(task_path.read_text(encoding="utf-8").replace("iOS/", "Android/"), encoding="utf-8")
+    task_path.write_text(
+        task_path.read_text(encoding="utf-8").replace(
+            "Android/Sources/Sample.swift", "Android/src/main/kotlin/Sample.kt"
+        ),
+        encoding="utf-8",
+    )
     plan_index = package / "plan/README.md"
     plan_index.write_text(plan_index.read_text(encoding="utf-8").replace("iOS/", "Android/"), encoding="utf-8")
     adapter = validator.load_adapter(repo, "android")
@@ -534,9 +585,10 @@ def clone_terminal_android(repo: Path) -> Path:
 
 def self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp).resolve(); package = terminal_fixture(repo); android_package = clone_terminal_android(repo)
+        repo = Path(tmp).resolve(); package = terminal_fixture(repo); android_package = terminal_android_fixture(repo)
         request = repo / "specs/product/sample/archive-request.json"
         request.write_text(json.dumps({"feature":"sample","reason":"completed","retirement_approval":{"approved_by":"Product owner","evidence":"retirement decision record"},"platforms":{"ios":{"disposition":"archived","evidence":"implementation archive record"},"android":{"disposition":"archived","evidence":"implementation archive record"}}}))
+        load_validator().load_product_validator().write_fixture_receipt(repo, "sample")
         alt_contract = repo / "Alt/workflow/platform-contract.json"; alt_contract.parent.mkdir(parents=True)
         alt_contract.write_text(json.dumps({"package_root":"Nonstandard/platform-packages","active_changes_namespace":"cycles"}))
         alt_active = repo / "Nonstandard/platform-packages/sample/cycles/alt/meta.json"; alt_active.parent.mkdir(parents=True)
@@ -556,7 +608,8 @@ def self_test() -> int:
         assert status == "BLOCKED" and tree_signature(repo) == before_implementation
         status, _ = archive_implementation(repo, "ios", "sample", "sample", True); assert status == "APPLIED"
         assert (package / "ARCHIVED.md").is_file()
-        status, _ = archive_implementation(repo, "android", "sample", "sample", True); assert status == "APPLIED"
+        status, errors = archive_implementation(repo, "android", "sample", "sample", True)
+        assert status == "APPLIED", errors
         assert (android_package / "ARCHIVED.md").is_file()
         # Product disposition validation is receipt-based and does not need a live adapter.
         (repo / "Android/workflow/platform-contract.json").unlink()
@@ -624,6 +677,7 @@ def self_test() -> int:
         request_data["reason"] = "completed"
         request.write_text(json.dumps(request_data))
         product.write_text(ready_product)
+        load_validator().load_product_validator().write_fixture_receipt(repo, "sample")
         status, _ = archive_product(repo, "sample", request, False); assert status == "DRY-RUN"
         before_product = tree_signature(repo)
         status, _ = archive_product(repo, "sample", request, True, _fault="pre-move")

@@ -34,6 +34,15 @@
 - [ ] root/platform AGENTS при изменении entry point
 - [ ] test evidence для hard change
 
+## Root documentation impact
+
+- **README.md:** update | no-impact — <rationale>
+- **workflow.md:** update | no-impact — <rationale>
+- **deep-info.md:** update | no-impact — <rationale>
+- [ ] `harness-docs.py render` выполнен только после wiring cascade
+- [ ] `harness-docs.py check --json`: PASS
+- [ ] Manual prose перечитан на semantic freshness
+
 ## Platform evidence
 
 - [ ] iOS: passed | not affected + evidence
@@ -41,6 +50,7 @@
 
 ## Acceptance
 
+- [ ] `harness-docs.py check --json`: PASS
 - [ ] `harness-lint.py`: grade A
 - [ ] `harness-auditor`: CLEAN
 - [ ] Нет orphan-файлов и битых ссылок

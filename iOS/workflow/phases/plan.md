@@ -15,3 +15,4 @@ measurement scenario and finite watchdog budgets where applicable.
 Use the adapter's exact task obligations: package consumer/build, networking
 cache/retry policy, concurrency cancellation/isolation, and the selected
 performance-topic budget. Generic "performance covered" wording is insufficient.
+Product-backed UI tasks trace `platform-ux.md` and every adapter native UX check.

@@ -374,7 +374,12 @@ def evaluate(repo: Path) -> dict[str, object]:
             production_seen = True
             trail = task_trail(repo, candidate_adapter, candidate, changed_paths)
             if not trail:
-                add(checks, "trail.production-task", FAIL, "production path is not covered by an active staged task", candidate)
+                add(
+                    checks, "trail.production-task", FAIL,
+                    "production path is not covered by an active staged task; "
+                    "before staging run reconcile-implementation with an explicit --path",
+                    candidate,
+                )
                 continue
             trails_by_platform.setdefault(str(candidate_adapter["platform_root"]), []).append(trail)
             if not (trail["done"] and trail["evidence"]):
@@ -476,7 +481,7 @@ def coverage_report(repo: Path, paths: list[str]) -> dict[str, object]:
         detail = (
             f"covered by {trail['task']}" if valid
             else "active task with engineering scopes is required" if trail and scoped_surface
-            else "no active task covers path"
+            else "no active task covers path; run reconcile-implementation with an explicit --path before staging"
         )
         add(checks, "trail.path", PASS if valid else FAIL, detail, path)
     overall = FAIL if any(item["status"] == FAIL for item in checks) else PASS
@@ -640,6 +645,7 @@ def self_test() -> int:
             uncovered = evaluate(repo)
             assert uncovered["status"] == FAIL
             assert any(item.get("path") == sibling.relative_to(repo).as_posix() for item in uncovered["checks"])
+            assert any("reconcile-implementation" in item.get("detail", "") for item in uncovered["checks"])
             git(repo, "reset", "-q", "HEAD", sibling.relative_to(repo).as_posix()); sibling.unlink()
             git(repo, "commit", "-qm", f"{platform.lower()} fixture")
 
@@ -689,6 +695,8 @@ def self_test() -> int:
 
         assert coverage_report(repo, ["../escape"])["status"] == FAIL
         assert coverage_report(repo, ["iOS/workflow/rules/new.md"])["status"] == FAIL
+        hint = coverage_report(repo, ["iOS/App/Uncovered.swift"])
+        assert any("reconcile-implementation" in item.get("detail", "") for item in hint["checks"])
     print("pre-commit-check self-test: PASS (index-only, evidence/tools, adapter fail-closed, rename/copy/delete)")
     return 0
 

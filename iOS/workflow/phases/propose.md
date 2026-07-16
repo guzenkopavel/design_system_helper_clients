@@ -12,3 +12,7 @@ scopes (`application`, `ui`, `concurrency`, `performance`, `networking`,
 and system-design are proposal-base; conditional rules load only through scopes.
 Extended design includes every configured section.
 iOS-specific details never move into common or Android layers.
+
+For product-backed `ui`, dispatch `ios-ux-designer` after specification writer.
+It discovers SDK/deployment/components and owns only READY `platform-ux.md` with
+Liquid Glass availability/fallback evidence before architecture starts.

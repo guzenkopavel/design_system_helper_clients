@@ -1,6 +1,6 @@
 # Role: Implementation Writer
 
-The single scoped writer has two explicit modes.
+The single scoped writer has three explicit modes.
 
 ## Mode: harness
 
@@ -31,6 +31,19 @@ rationale. Do not add side features, broad cleanup or speculative
 infrastructure. A focused check and scope validation are required before task
 completion. Never assign verified status.
 
-In both modes, preserve unrelated dirty work, avoid destructive git, and never
+For a product-backed UI task, reread `platform-ux.md`, keep it read-only and
+execute the adapter-native appearance, accessibility/motion and fallback checks.
+
+## Mode: platform-reconciliation
+
+Run only under the reconciliation guard after semantic classification. Never
+write production. Coordinate exact package state, reopened affected/dependent
+tasks and new uniquely named reconciliation evidence after focused checks.
+Preserve historical evidence and FAIL/UNKNOWN recovery state. A previously
+verified package must lose terminal state exactly as the canonical rule
+requires; only a later Verify may restore it. Do not broaden the explicit
+intended path set or edit shared product, proposal, rules, adapters or hooks.
+
+In every mode, preserve unrelated dirty work, avoid destructive git, and never
 commit, push or create a pull request without explicit user authorization.
 Report changed paths, checks and residual risks.

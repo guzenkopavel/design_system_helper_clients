@@ -11,6 +11,11 @@ engineering scopes из task. Pre-edit не требует post-edit evidence. P
 checks дают только warning для active placeholders и mobile security surfaces,
 чтобы не блокировать cleanup.
 
+Hook не запускает `reconcile-implementation`, не переписывает package и не
+stage'ит paths. При uncovered platform production edit он может вернуть только
+actionable hint: до staging явно перечислить intended paths и выполнить
+reconciliation для выбранной platform identity.
+
 Exit `0` разрешает операцию, exit `2` запрещает её, если runtime соблюдает
 command exit status. Tracked Git hook остаётся enforcement backstop. Runtime
 surfaces с advisory-only hooks нельзя описывать как hard blocker.

@@ -24,3 +24,9 @@ meta и proposal. Flat `rule_files` — catalog, а не список глоба
 После записи выполнить
 [`wording-clarity`](../rules/wording-clarity.md)/coverage self-check и передать
 ownership дальше.
+
+В режиме `reconcile-implementation` owner может согласованно обновить только
+platform `implementation-spec.md` и `verification.md` при классификации
+`platform-implementation-drift`. Shared product и `proposal.md` неизменны;
+`aligned`/`task-drift` не дают этой роли write scope. Все изменения выполняются
+только внутри активного guard.

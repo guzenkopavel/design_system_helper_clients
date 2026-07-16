@@ -1,5 +1,14 @@
 # iOS propose/plan — test evidence
 
+> **Historical snapshot — Android capability claims superseded.** Statements
+> below that Android was unsupported, lacked an adapter or returned `NOT
+> IMPLEMENTED` record the pre-Android-adapter state observed by this iOS
+> RED/GREEN run; they are not current capability claims. Android now supports
+> the full `propose → plan → implement → verify → archive` lifecycle. Current
+> evidence: [`android-propose-plan-implement.md`](android-propose-plan-implement.md)
+> and [`android-verify-archive.md`](android-verify-archive.md). The unchanged
+> observations remain valid as historical iOS evidence.
+
 ## RED
 
 До изменения отсутствовали portable `propose`/`plan`, platform lifecycle,
@@ -15,7 +24,7 @@ Paths, reversed estimate `1.5–0.5`, unresolved proposal question при пус
 имели достаточного containment gate. Эти observed failures стали RED для
 текущего fix-loop.
 
-## GREEN — structural/script evidence
+## GREEN — historical structural/script evidence
 
 | Scenario | Expected | Evidence |
 |---|---|---|
@@ -58,7 +67,7 @@ fixtures и требует RED для каждого adversarial case из audit
 3. greenfield + Standard: navigator не объявляет proposed source paths
    существующими; Standard design остаётся обязательным.
 
-## Platform evidence
+## Historical platform evidence (pre-Android adapter)
 
 Независимые dry-runs primary coordinator:
 

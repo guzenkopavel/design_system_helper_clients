@@ -4,6 +4,7 @@ writes_artifacts:
   - <platform>/specs/<feature>/changes/<change-id>/verification.md
   - <platform>/specs/<feature>/changes/<change-id>/evidence/
   - <platform>/specs/<feature>/changes/<change-id>/meta.json
+  - <platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md (recovery only)
 requires_verification: terminal
 recommended_roles:
   - verifier
@@ -40,6 +41,9 @@ the verification matrix and selected scope risks. Nontrivial commands use the
 watchdog with discovered plan budgets. Runtime, UI, accessibility, localization,
 concurrency and performance evidence is required only when selected/applicable;
 unavailable required infrastructure yields `UNKNOWN`, never an invented PASS.
+For product-backed UI, reread `platform-ux.md` and collect reproducible native
+appearance evidence for its scenarios, light/dark/contrast, motion/accessibility
+and availability fallback. This harness gate does not claim actual rendering.
 
 If any row is non-PASS, persist a recovery state: keep `status: implementing`,
 set `verification_status: FAIL` when at least one row is FAIL and otherwise
@@ -57,3 +61,12 @@ After every row is PASS, clear `problems`, capture current state with
 the terminal validator in `verify` mode. If validation fails, retain `implementing` and
 record the failure; writer narrative or prior evidence cannot substitute for a
 fresh run. No production writes or commit.
+
+State capture always includes the common verification evidence rule, this phase
+and the selected platform verify addendum as mandatory terminal contracts. They
+are fingerprinted outside the sealed engineering rule union, deduplicated when
+already selected, and their absence blocks capture.
+
+Any successful reconciliation invalidates prior terminal evidence for affected
+implementation. Run this phase fresh after reconciliation; its package report
+or implement-mode validator is not terminal verification.

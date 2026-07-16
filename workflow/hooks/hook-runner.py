@@ -268,7 +268,10 @@ def edit_policy(repo: Path, payload: dict[str, Any]) -> tuple[str, list[str]]:
     if production:
         coverage = gate.coverage_report(repo, production)
         if coverage.get("status") != "PASS":
-            reasons.append("platform production edit is not covered by an active task")
+            reasons.append(
+                "platform production edit is not covered by an active task; "
+                "before staging run reconcile-implementation with explicit intended --path values"
+            )
     return (DENY, reasons) if reasons else (ALLOW, [])
 
 
@@ -418,7 +421,9 @@ def self_test() -> int:
         assert edit_policy(repo, {"tool": "write", "args": {"filePath": "Android/App/Security.kt"}})[0] == ALLOW
         assert edit_policy(repo, {"file_path": "Android/local.properties"})[0] == DENY
         assert edit_policy(repo, {"file_path": ".env"})[0] == DENY
-        assert edit_policy(repo, {"tool": "write", "args": {"filePath": "iOS/Uncovered.swift"}})[0] == DENY
+        uncovered = edit_policy(repo, {"tool": "write", "args": {"filePath": "iOS/Uncovered.swift"}})
+        assert uncovered[0] == DENY
+        assert any("reconcile-implementation" in reason for reason in uncovered[1])
         ios_contract = repo / "iOS/workflow/platform-contract.json"
         contract_body = ios_contract.read_text(encoding="utf-8")
         ios_contract.write_text("{ malformed\n", encoding="utf-8")

@@ -1,7 +1,9 @@
 name = "implementation-writer"
-description = "Single scoped writer for harness mode or platform-implementation mode."
+description = "Single scoped writer for harness, platform-implementation, or platform-reconciliation mode."
 developer_instructions = """
 Read `workflow/roles/implementation-writer.md` completely, require the caller to
-name `harness` or `platform-implementation` mode, then follow that canonical
-contract. In platform mode load the selected adapter and platform addendum.
+name `harness`, `platform-implementation`, or `platform-reconciliation` mode,
+then follow that canonical contract. In platform mode load the selected adapter
+and platform addendum. Reconciliation requires the active canonical guard and
+never grants production writes.
 """

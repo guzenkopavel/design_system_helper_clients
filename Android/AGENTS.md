@@ -13,15 +13,22 @@ Implementation specs хранить в [`specs/`](specs/). Режим `product-b
 разрешён только при `Product impact assessment: NONE` с evidence неизменности
 observable behavior, REQ и AC; иначе перейти в product elaboration.
 
-Android adapter поддерживает `propose`, `plan`, `implement`. Канон находится в
-[`workflow/`](workflow/); Compose и multiplatform выбираются отдельными scopes.
-`verify` и implementation archive пока возвращают `NOT IMPLEMENTED` до записи;
-iOS rules не применять. Product archive остаётся отдельным shared lifecycle.
+Android adapter поддерживает `propose`, `plan`, `implement`, `verify` и
+implementation archive. Канон находится в [`workflow/`](workflow/); Compose и
+multiplatform выбираются отдельными scopes. Verify обнаруживает repository
+commands/infrastructure и не меняет production; archive требует fresh Android
+fingerprint. iOS rules не применять. Product archive остаётся отдельным shared
+lifecycle.
+
+Product-backed `ui` требует READY `platform-ux.md`, owner —
+`android-ux-designer`. Material 3 baseline обязателен; M3 Expressive/dynamic
+color допустимы только с repository/product evidence и accessible fallback.
 
 Для `$deep-code-review ... android ...` применять общий read-only контракт и
 [`workflow/phases/deep-code-review.md`](workflow/phases/deep-code-review.md), не
-предполагая Compose/Gradle conventions без repository evidence. После будущего
-fix terminal Verify недоступен и не может быть заявлен.
+предполагая Compose/Gradle conventions без repository evidence. После отдельного
+fix вернуть route `$verify android ...`; review не заявляет fixed/verified до
+успешного отдельного Implement + Verify.
 
 Перед разрешённым commit общий staged gate применяет Android `pre_commit`
 profile из [`workflow/platform-contract.json`](workflow/platform-contract.json)

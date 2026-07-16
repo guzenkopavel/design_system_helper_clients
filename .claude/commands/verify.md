@@ -1,5 +1,5 @@
 ---
-description: Проверить platform package; Android blocked без verify capability.
+description: Проверить iOS или Android platform package и получить fresh terminal evidence.
 argument-hint: <platform> <feature> [--change <change-id>]
 ---
 

@@ -15,6 +15,8 @@ verification. Return blockers for any non-PASS and do not claim verified.
 Independently derive the method matrix from scope risks. Use the watchdog for
 nontrivial tests/build/runtime checks and comparable baselines for performance.
 Missing required environment is UNKNOWN, not a skipped PASS.
+For product-backed UI, treat `platform-ux.md` as immutable verification input
+and capture native appearance/light-dark/contrast/motion/fallback evidence.
 
 Verifier runs between canonical verify-snapshot/verify-check guards. It may add
 fresh scoped evidence and update `verification.md`/verification meta fields, but

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reconcile Implementation"
+  short_description: "Сверить platform code с package до staging"
+  default_prompt: "Use $reconcile-implementation with a platform, feature, optional change ID, and explicit repo-relative --path values."
+policy:
+  allow_implicit_invocation: false

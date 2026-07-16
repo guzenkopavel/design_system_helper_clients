@@ -4,7 +4,10 @@ writes_artifacts:
   - specs/product/<feature>/brief.md
   - specs/product/<feature>/ux.md (UI/interaction only)
   - specs/product/<feature>/spec.md
+  - specs/product/<feature>/review-verdicts.json
 requires_verification: focused
+recommended_roles:
+  - product-spec-reviewer
 inputs:
   - product idea, concept, or brief
 outputs:
@@ -24,18 +27,33 @@ outputs:
 2. Если нет качественного brief, выполнить [`discovery`](discovery.md).
 3. Для UI/interaction scope сформировать или обновить
    `specs/product/<feature>/ux.md` по
-   [`product-ux.md`](../templates/product-ux.md). Для non-UI scope явно
+   [`product-ux.md`](../templates/product-ux.md) и общему
+   [`visual-language.md`](../rules/visual-language.md): soft blue выражать
+   semantic roles без platform APIs. Для non-UI scope явно
    зафиксировать `UX artifact: NOT APPLICABLE` с причиной.
 4. Сформировать или обновить `specs/product/<feature>/spec.md` по
    [`product-spec.md`](../templates/product-spec.md).
-5. Провести applicable review lenses и записать verdict/findings/gaps в spec:
-   product; UX/accessibility; design-system; data/analytics/privacy; security;
-   cross-client parity. Для `N/A` обязательна причина.
+5. Через [`validate-product-spec.py`](../scripts/validate-product-spec.py)
+   получить candidate fingerprint. Провести isolated review/fix cycles по
+   [`product-spec-review.md`](../rules/product-spec-review.md); intermediate
+   outputs не являются durable receipt.
 6. Представить пакет человеку для явного product approval. До явного решения
    сохранить `Product approval: PENDING`; approval не выводить из молчания или
    предыдущего обсуждения. При одобрении записать approver и evidence решения.
-7. Провести readiness review и либо поставить `Status: READY`, либо вернуть
-   `Status: DRAFT` со списком gaps.
+7. Approval меняет fingerprint: повторно выполнить `snapshot`, затем ровно шесть
+   финальных вызовов `product-spec-reviewer`, каждый в отдельном fresh context,
+   с одним lens и тем же fingerprint. Не передавать writer rationale или другие
+   lens outputs. Coordinator фиксирует один parent review session и для каждого
+   вызова сохраняет runtime-issued invocation evidence; JSON только attests эти
+   identities и сам по себе не доказывает isolation. Product и cross-client
+   parity всегда REQUIRED.
+8. Coordinator валидирует outputs и выполняет `aggregate --write`; reviewer не
+   пишет `review-verdicts.json`. Exact six valid GAP/UNKNOWN сохраняются в
+   durable non-green receipt; missing/mixed/duplicate/invalid не создают receipt.
+   Любой non-PASS или unavailable independent context сохраняет DRAFT.
+9. После green receipt изменить только exact `Status: DRAFT` на `READY`, затем
+   запустить финальный `validate-product-spec.py check`. Только его PASS
+   разрешает fan-out.
 
 ## Содержание итогового пакета
 
@@ -62,7 +80,9 @@ UX и design-system intent из `ux.md`, но не платформенная р
 - платформенные ограничения не превратились в скрытый fork product intent;
 - для UI/interaction scope существует полный `ux.md`, его screen/flow impact,
   states, semantics и shared design-system intent согласованы со spec;
-- все applicable review lenses имеют `PASS`, gaps закрыты, а `N/A` обоснованы;
+- свежий `review-verdicts.json` содержит exact шесть isolated lens outputs на
+  одном текущем fingerprint и parent review session; applicable verdicts PASS,
+  а N/A обоснованы; provenance attestation ссылается на runtime audit evidence;
 - `Product approval: APPROVED`, указан approver и evidence явного human
   решения;
 - нет блокирующих open questions.
@@ -70,6 +90,8 @@ UX и design-system intent из `ux.md`, но не платформенная р
 Если хотя бы один пункт не выполнен, статус остаётся `DRAFT`. В частности, без
 явного human approval результат обязан быть `DRAFT / PENDING APPROVAL`, даже
 если требования и review уже полны.
+Same-context/no-subagent fallback всегда `independent_context: false`, verdict
+`UNKNOWN` и DRAFT; его нельзя называть independent PASS.
 
 ## Stop boundary
 

@@ -7,3 +7,5 @@ The verifier writes only package evidence and returns exact PASS/FAIL/UNKNOWN.
 Derive commands from project/package configuration, use planned watchdog budgets
 for nontrivial runs, and compare performance only against a recorded compatible
 baseline.
+For product-backed UI, verify native appearance scenarios from `platform-ux.md`;
+unavailable SDK/runtime remains UNKNOWN and is never an invented rendering PASS.

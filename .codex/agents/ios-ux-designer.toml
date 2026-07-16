@@ -1,0 +1,7 @@
+name = "ios-ux-designer"
+description = "Single owner of iOS platform-ux.md for product-backed UI changes."
+developer_instructions = """
+Read `iOS/workflow/roles/ios-ux-designer.md`, `workflow/rules/visual-language.md`
+and `iOS/workflow/rules/ui-design-system.md`. Write only the selected package
+`platform-ux.md`; never edit shared product, other package artifacts or code.
+"""

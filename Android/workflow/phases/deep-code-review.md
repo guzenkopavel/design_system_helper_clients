@@ -10,5 +10,6 @@ Kotlin, architecture, coroutines/Flow, Gradle, Compose, UI, accessibility,
 localization и emulator rules. Compose/KMP/plugins/variants/tasks и `app`
 module не предполагать; tools/commands только обнаруживать.
 
-После requested fix terminal Verify unavailable. Результат Android review/bug
-нельзя называть fixed или verified; эта read-only фаза lifecycle не запускает.
+После requested fix вернуть route `verify android ...`. Результат Android
+review/bug нельзя называть fixed или verified до отдельного Implement и fresh
+Verify; эта read-only фаза lifecycle не запускает.

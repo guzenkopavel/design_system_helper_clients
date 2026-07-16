@@ -28,6 +28,9 @@ recommended_roles:
 5. Перечислить и просмотреть релевантные `scripts/`, skills и роли во всех
    затронутых scope.
 6. Зафиксировать зависимости и инварианты, которые нельзя сломать.
+7. Для каждого root-документа (`README.md`, `workflow.md`, `deep-info.md`)
+   записать `update|no-impact` и rationale по
+   [`../rules/repository-documentation.md`](../rules/repository-documentation.md).
 
 ### 1. Implement
 
@@ -48,10 +51,21 @@ writer. Соблюдать [`../rules/memory-architecture.md`](../rules/memory-a
 - root/platform `AGENTS.md` при изменении entry point или инварианта;
 - test evidence для hard change.
 
+После всех canonical/runtime/process правок выполнить:
+
+```text
+python3 workflow/scripts/harness-docs.py render
+python3 workflow/scripts/harness-docs.py check --json
+```
+
+Render меняет только marked generated blocks. Затем перечитать manual audience
+layers по заявленным dispositions; structural PASS не доказывает semantic
+freshness.
+
 ### 2. Review
 
-Применить [`harness-review.md`](harness-review.md): получить grade A от линтера и
-вердикт `CLEAN` от `harness-auditor`.
+Применить [`harness-review.md`](harness-review.md): получить docs `PASS`, grade A
+от линтера и вердикт `CLEAN` от `harness-auditor`.
 
 Для `cross-platform` отдельно проверить iOS и Android. Общий green не заменяет
 платформенные evidence.

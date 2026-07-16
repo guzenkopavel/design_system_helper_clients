@@ -14,11 +14,12 @@ read-only аудит смысловой согласованности.
 
 ## Процедура
 
-1. Запустить `python3 workflow/scripts/harness-lint.py` или вариант `--json`.
-2. Передать scope и вывод линтера роли `harness-auditor`.
+1. Запустить `python3 workflow/scripts/harness-docs.py check --json` и затем
+   `python3 workflow/scripts/harness-lint.py --json`.
+2. Передать scope и оба machine output роли `harness-auditor`.
 3. Свести результаты в один список: critical → warning → judgment → info.
 4. Передать подтверждённые исправления `implementation-writer`.
-5. Повторять lint и аудит до grade A + `CLEAN`.
+5. Повторять docs check, lint и аудит до PASS + grade A + `CLEAN`.
 
 ## Что проверяет линтер
 
@@ -30,6 +31,8 @@ read-only аудит смысловой согласованности.
 - dead dispatch references на роли;
 - наличие iOS/Android scope-контракта;
 - нейминг harness-файлов.
+- exact root docs, generated freshness, structural inventory и runtime/platform
+  binding graph без рекурсивного запуска lint.
 
 ## Что проверяет аудитор
 
@@ -39,6 +42,9 @@ read-only аудит смысловой согласованности.
 - dead prose references;
 - точность agent roster и process map;
 - корректность common/ios/android/cross-platform placement.
+- semantic freshness `README.md`, `workflow.md`, `deep-info.md`: audience
+  layering, capability/invocation/ownership/write/evidence claims;
+- отдельную точность iOS и Android generated/manual утверждений.
 
 Для `cross-platform` вынести iOS и Android в отдельные секции отчёта.
 Ревью-роли не изменяют файлы. Не создавать коммит без явной просьбы.

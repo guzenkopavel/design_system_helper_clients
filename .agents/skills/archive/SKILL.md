@@ -17,7 +17,9 @@ traversal, ambiguous identity, stale evidence, active product references или
 неполные platform dispositions. Implementation archive обязан сохранить
 исходный verification fingerprint после relocation и создать проверяемый
 `archive-receipt.json`; product disposition ссылается только на этот receipt.
-Android не имеет `archive-implementation` capability и блокируется до записей.
-Product archive capability-independent и требует отдельного retirement approval.
+Implementation archive использует capability выбранного adapter и его
+`archive_namespace`; platform addendum не дублирует общий move/rollback/receipt
+algorithm. Product archive capability-independent и требует отдельного
+retirement approval.
 
 Manual-only. Не коммитить.

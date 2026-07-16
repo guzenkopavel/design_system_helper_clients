@@ -11,6 +11,9 @@
 - [`directions/_common.md`](directions/_common.md) — общий слой;
 - [`directions/ios.md`](directions/ios.md) — iOS placement;
 - [`directions/android.md`](directions/android.md) — Android placement.
+- [`../README.md`](../README.md), [`../workflow.md`](../workflow.md) и
+  [`../deep-info.md`](../deep-info.md) — объясняющие root projections разных
+  уровней; канонические связи остаются в этой карте и `workflow/`.
 
 ## Edit-by-flow
 
@@ -18,4 +21,5 @@
 2. Найти одного канонического владельца.
 3. Изменить канон и только необходимые адаптеры.
 4. Обновить связи в этой карте, если изменилась структура или маршрутизация.
-5. Запустить `$harness-review`.
+5. Записать root documentation impact, выполнить docs render/check.
+6. Запустить `$harness-review`.

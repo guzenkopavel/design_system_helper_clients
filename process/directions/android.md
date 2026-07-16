@@ -13,17 +13,23 @@ Android-специфика реализации — в [`Android/specs/`](../../
 допускается без shared spec только при доказанном
 `Product impact assessment: NONE`.
 
-Android adapter и addenda поддерживают `propose/plan/implement`. Verify и
-implementation archive отсутствуют в `lifecycle_capabilities` и блокируются до
-записи. Product archive остаётся отдельным shared lifecycle. Compose/KMP и
-tooling scopes выбираются только по repository evidence; iOS rules не
-наследуются.
+Android adapter и addenda поддерживают `propose/plan/implement/verify` и
+implementation archive. Verify сохраняет sealed rule selection, обнаруживает
+commands/infrastructure из repository и Plan и пишет только scoped evidence.
+Archive использует fresh fingerprint и общий collision-safe algorithm. Product
+archive остаётся отдельным shared lifecycle. Compose/KMP и tooling scopes
+выбираются только по repository evidence; iOS rules не наследуются.
 
 `$deep-code-review review|feedback|bug android <feature> [--change ...]`
 использует только Android addendum и обнаруженные repository conventions. Skill
-read-only; terminal Verify после отдельного fix недоступен и не заявляется.
+read-only; после отдельного fix возвращается route `verify android`, но
+fixed/verified до отдельного успешного lifecycle не заявляется.
 
 `pre_commit` profile этого adapter владеет Android source, Gradle/project,
 credential/keystore, security, UI и resource globs. Общий gate не содержит
 Android-specific значений; Android evidence трактуется по
 [`pre-commit-check.md`](../../Android/workflow/phases/pre-commit-check.md).
+
+Product-backed `ui` добавляет sequential `android-ux-designer` и
+`platform-ux.md`: Material 3 baseline, а M3 Expressive/dynamic color остаются
+evidence-conditional.

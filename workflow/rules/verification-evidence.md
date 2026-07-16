@@ -25,6 +25,14 @@ JSON itself. It also hashes a deterministic semantic adapter projection:
 identity/ownership boundaries, contract prefix/guard/checks, all phase base
 profiles and only the selected scope mappings. The raw adapter and flat catalog
 are not fingerprint inputs.
+
+For every adapter with the `verify` capability, relevant terminal contracts are
+a platform-neutral mandatory set: this rule, `workflow/phases/verify.md`, and
+`<platform>/workflow/phases/verify.md`. State capture loads and fingerprints
+them directly, outside the sealed engineering union in
+`applicable_rule_files` and `plan/rule-selection.json`. A path already selected
+by that union is deduplicated. A missing mandatory terminal contract blocks
+capture instead of producing a partial fingerprint.
 It writes `evidence/verification-state.json`. `meta.verification_state` points
 to that file, `verification_status` becomes `PASS`, and `verified_at` records an
 explicit timestamp only after the validator accepts the package.
