@@ -6,7 +6,7 @@
 - Status: done
 - Evidence: evidence/task-001.md
 - Estimate (ideal): 0.5–1 days
-- Paths: existing: iOS/SysDevScen/
+- Paths: existing: iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj; existing: iOS/SysDevScen/SysDevScen/Assets.xcassets; existing: iOS/SysDevScen/SysDevScen/Preview\ Content/Preview\ Assets.xcassets
 
 ## Goal
 
