@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "engineering_scopes": [
+    "application",
+    "module",
+    "ui"
+  ],
+  "applicable_rule_files": [
+    "workflow/rules/specification-layers.md",
+    "workflow/rules/artifact-language.md",
+    "workflow/rules/system-design.md",
+    "workflow/rules/system-design/modularity.md",
+    "Android/workflow/rules/architecture.md",
+    "Android/workflow/rules/architecture/modularization.md",
+    "workflow/rules/coding-standards.md",
+    "workflow/rules/tdd-first.md",
+    "workflow/rules/test-execution.md",
+    "workflow/rules/verification-matrix.md",
+    "workflow/rules/code-comments.md",
+    "Android/workflow/rules/kotlin-style.md",
+    "Android/workflow/rules/android-pitfalls.md",
+    "Android/workflow/rules/architecture/data-layer.md",
+    "Android/workflow/rules/architecture/ui-layer.md",
+    "Android/workflow/rules/architecture/domain-layer.md",
+    "Android/workflow/rules/architecture/dependency-injection.md",
+    "Android/workflow/rules/unit-testing.md",
+    "Android/workflow/rules/ui-testing.md",
+    "Android/workflow/rules/accessibility.md",
+    "Android/workflow/rules/ui-design-system.md",
+    "Android/workflow/rules/emulator.md"
+  ],
+  "modularity_contract_version": 1,
+  "fingerprint": "59499910fe9354f0514aaf1c9afec4a6710ce554d57942a78af8f4680fe895cd"
+}
