@@ -1,0 +1,18 @@
+{
+  "feature": "app-shell",
+  "reason": "completed",
+  "retirement_approval": {
+    "approved_by": "Pavel (product owner)",
+    "evidence": "Codex task on 2026-07-16: explicit `$archive product app-shell` request followed by approval to fix archive blockers: «Да давай исправим все что нужно»."
+  },
+  "platforms": {
+    "ios": {
+      "disposition": "archived",
+      "evidence": "iOS/specs/app-shell/archive/2026-07-16-app-shell/archive-receipt.json"
+    },
+    "android": {
+      "disposition": "archived",
+      "evidence": "Android/specs/app-shell/archive/2026-07-16-app-shell/archive-receipt.json"
+    }
+  }
+}

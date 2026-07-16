@@ -22,7 +22,7 @@ ARTIFACT_LANGUAGE_RULE = "workflow/rules/artifact-language.md"
 CURRENT_MODULARITY_CONTRACT_VERSION = 1
 LEGACY_MODULARITY_CONTRACT_VERSION = 0
 LEGACY_REGISTRY_PATH = "workflow/compatibility/modularity-v0.json"
-LEGACY_REGISTRY_CANONICAL_SHA256 = "6a8bbda66f53fdf2b0a8dbe2986d394133f0eec98a63ba047df5e6908c45a47a"
+LEGACY_REGISTRY_CANONICAL_SHA256 = "e84b9492c3574899a7eb9bd22465e322df932aa2c9dd3baab1754827d5ec8f3b"
 LEGACY_REGISTRY_IDENTITIES = (
     ("iOS", "client-bootstrap", "initial-scaffold", "iOS/specs/client-bootstrap/changes/initial-scaffold"),
     ("Android", "client-bootstrap", "initial-scaffold", "Android/specs/client-bootstrap/changes/initial-scaffold"),

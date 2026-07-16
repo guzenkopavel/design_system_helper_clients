@@ -1,0 +1,50 @@
+{
+  "archived_at": "2026-07-16T05:10:21Z",
+  "archived_path": "Android/specs/app-shell/archive/2026-07-16-app-shell",
+  "change_id": "app-shell",
+  "feature": "app-shell",
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "eeae387e37d12aef1266d307aaaeae1a6111af805499dde68aae7c0aae794c85",
+    "files": {
+      "design.md": "1e39a75d5d1717b94e8cb13c1cc6bd1159a358e7a0f93335196ea9475afaf84d",
+      "evidence/reconciliation-20260716T120500Z-task-001-android-aligned.md": "94481b85f3cb0d474706298d774f331c6e4797166d2d41291d61d1d406679ffd",
+      "evidence/reconciliation-20260716T120500Z-task-002-android-aligned.md": "72990526905dedeb866c6aedfa65338c268c50c78fead8fae8dd9a6307049068",
+      "evidence/reconciliation-20260716T120500Z-task-003-android-aligned.md": "f515743dc928980fb447c88380f9c6bf1e46563fb4956468f70855e71f6ff9b9",
+      "evidence/reconciliation-20260716T120500Z-task-004-android-aligned.md": "0c91673d27783c0ef2bc5c67c74729763a6bf73f89b4b7b9b87faa8216bd795f",
+      "evidence/scope-baseline-task-001.json": "0979b6fe10cd23bfee8e6027ded5f629733a47da197a559a1b9be56edbcbdefe",
+      "evidence/scope-baseline-task-002.json": "25a13c7480fcdce5073faa7ea90b7952c7e5f26ddaab98016abe366c9395235e",
+      "evidence/scope-baseline-task-003.json": "252e9b98ea8bb3503ec33bea4d35eea206bbc993ee7edf1406d8a5e3e939d6ad",
+      "evidence/scope-baseline-task-004.json": "0f30542e387fadea76cec38282bf7af0181fdad8c7e50d308a05b94c9eb7b2e0",
+      "evidence/task-001.md": "e74e147eed0d437870d19f01ca408c78a3de98166d60c4d16bcb7543a0ae045d",
+      "evidence/task-002.md": "0ab14c35e23d7f883cf22cd280e617c91de42fe261954f367b3b520705f700af",
+      "evidence/task-003.md": "4db0e824a87644266494cea283275fd8e8bb4d029eb299cc1eb5ad418ab2eb31",
+      "evidence/task-004.md": "9880901cd2aca3d41bb50c09c5c60fa4347831adac6fe8c69ce515ee60eed2af",
+      "evidence/verification-20260716T121500Z.md": "30e57f23bfea20ee5018185445b9766cba0e041c2d27ded27a8a9c65d03a91c1",
+      "evidence/verification-state.json": "5ef816d8d036c8af4e9953456553034c79ff3258a5938efe253a4b0a193a30ba",
+      "evidence/verify-scope-baseline.json": "cad15bf245feaf76acb10b72a7be1fa659645efc99f412685271b4ac09a7c45e",
+      "implementation-spec.md": "a28adacfe7d67a59b7b8a57b37c914e43f5a2a954c9026047d3e2ee5db6f7490",
+      "meta.json": "4a3ff1f88b8ee6b14a7e69d9f6e737ca36d462be9a8960b8fb9f7168b629b802",
+      "plan/README.md": "3a2b732fdac92a1008f67c91302be9ebc1b79bf107dc2a19126d5d1c7cb344c5",
+      "plan/rule-selection.json": "0130eeef68eaf6f51b2e7556f288ae9a2d60a726331ef3ea625e08434bb936c9",
+      "plan/task-001.md": "90642646b39c85496243377b2a670a393f200715d2e73f78e3c78ca3d9f007bb",
+      "plan/task-002.md": "a697f4dad860c2fe7a86158a0185547b0571b9742785ab87ca9591789d1f8844",
+      "plan/task-003.md": "aefff9533a2f2152e9001e3b8246af5c5683f5912f4df70e9b54af4e9407b45e",
+      "plan/task-004.md": "5e20054ce9b1f696a79c3fd9f7debffd2328c9091adac616220f0cd2c6dfadc4",
+      "platform-ux.md": "3321c5a7bb77b00078df6dd821d85720bfa731be4bccadb33a27a91ea4b3ba91",
+      "proposal.md": "75e3f536994e8585eecec615f10330eaa56cfe6172104b3b57fe87d83df4ed45",
+      "provenance/shared-product-spec.md": "2927db5855ecedad8b8afc7671992cff166cecfba6143170e743bcd2226a04ad",
+      "verification.md": "9dc07815f3b9bc110e1588f1193f91df90760587742a6b54c92cefb36fb1013d"
+    }
+  },
+  "mode": "implementation",
+  "platform": "Android",
+  "schema_version": 1,
+  "tasks_done": 4,
+  "tasks_total": 4,
+  "verification_state": {
+    "fingerprint": "d77c0c30b18698693a667c5f19c59cb877a017db1722559b04b3d4675e8933b8",
+    "path": "evidence/verification-state.json"
+  },
+  "verification_status": "PASS"
+}
