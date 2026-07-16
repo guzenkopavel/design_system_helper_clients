@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_shell_soft_blue_primary">#2F5F9F</color>
+    <color name="app_shell_soft_blue_on_primary">#FFFFFF</color>
+    <color name="app_shell_soft_blue_primary_container">#D7E3F8</color>
+    <color name="app_shell_soft_blue_on_primary_container">#102F55</color>
+    <color name="app_shell_light_surface">#FBFCFF</color>
+    <color name="app_shell_light_on_surface">#1A1C20</color>
+    <color name="app_shell_soft_blue_dark_primary">#A8C8FF</color>
+    <color name="app_shell_soft_blue_dark_on_primary">#00315D</color>
+    <color name="app_shell_soft_blue_dark_primary_container">#21466F</color>
+    <color name="app_shell_soft_blue_dark_on_primary_container">#D7E3F8</color>
+    <color name="app_shell_dark_surface">#111318</color>
+    <color name="app_shell_dark_on_surface">#E2E2E9</color>
+</resources>

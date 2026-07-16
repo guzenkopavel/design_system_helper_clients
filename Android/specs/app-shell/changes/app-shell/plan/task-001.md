@@ -4,8 +4,9 @@
 - Boundary owner: Владелец Gradle Android library boundary и project graph для app shell
 - Engineering scopes: ["gradle", "module"]
 - Depends on: none
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260716T120500Z-task-001-android-aligned.md
+- Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 300 --stall-seconds 60 --max-output-lines 1200 -- ./Android/gradlew -p Android --no-daemon :app-shell:assembleDebug --console=plain
 - Estimate (ideal): 0.5–1 days
 - Paths: existing: Android/settings.gradle.kts; existing: Android/build.gradle.kts; existing: Android/gradle/libs.versions.toml; proposed: Android/app-shell/build.gradle.kts; proposed: Android/app-shell/src/main/AndroidManifest.xml
 

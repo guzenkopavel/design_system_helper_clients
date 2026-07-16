@@ -4,8 +4,9 @@
 - Boundary owner: Владелец Material 3 composable, semantics и resource labels для app shell
 - Engineering scopes: ["compose", "localization", "ui"]
 - Depends on: task-002
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260716T120500Z-task-003-android-aligned.md
+- Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 300 --stall-seconds 60 --max-output-lines 700 -- ./Android/gradlew -p Android --no-daemon :app-shell:compileDebugKotlin :app-shell:compileDebugAndroidTestKotlin --console=plain
 - Estimate (ideal): 1–2 days
 - Paths: proposed: Android/app-shell/src/main/java/ru/home/sysdevsc/appshell/AppShell.kt; proposed: Android/app-shell/src/main/res/values/strings.xml; proposed: Android/app-shell/src/androidTest/java/ru/home/sysdevsc/appshell/AppShellTest.kt; proposed: Android/app-shell/src/main/res/values/colors.xml
 

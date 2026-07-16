@@ -4,8 +4,9 @@
 - Boundary owner: Владелец public state contract и deterministic transitions для app shell
 - Engineering scopes: ["application", "module"]
 - Depends on: task-001
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260716T120500Z-task-002-android-aligned.md
+- Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 300 --stall-seconds 60 --max-output-lines 500 -- ./Android/gradlew -p Android --no-daemon :app-shell:compileDebugUnitTestKotlin --console=plain
 - Estimate (ideal): 0.5–1.5 days
 - Paths: proposed: Android/app-shell/src/main/java/ru/home/sysdevsc/appshell/AppShellDestination.kt; proposed: Android/app-shell/src/main/java/ru/home/sysdevsc/appshell/AppShellState.kt; proposed: Android/app-shell/src/test/java/ru/home/sysdevsc/appshell/AppShellStateTest.kt
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_shell_destination_cases">Кейсы</string>
+    <string name="app_shell_destination_knowledge">Знания</string>
+    <string name="app_shell_destination_profile">Профиль</string>
+    <string name="app_shell_semantics_selected">Выбрано</string>
+    <string name="app_shell_semantics_not_selected">Не выбрано</string>
+    <string name="app_shell_surface_cases">Нейтральная поверхность раздела «Кейсы».</string>
+    <string name="app_shell_surface_knowledge">Нейтральная поверхность раздела «Знания».</string>
+    <string name="app_shell_surface_profile">Нейтральная поверхность раздела «Профиль».</string>
+</resources>

@@ -4,8 +4,9 @@
 - Boundary owner: Владелец Android application composition root и consumer integration
 - Engineering scopes: ["application", "compose", "gradle", "module", "ui"]
 - Depends on: task-003
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260716T120500Z-task-004-android-aligned.md
+- Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 420 --stall-seconds 90 --max-output-lines 2000 -- ./Android/gradlew -p Android --no-daemon app:assembleDebug app:testDebugUnitTest app:lintDebug --console=plain
 - Estimate (ideal): 0.5–1.5 days
 - Paths: existing: Android/app/build.gradle.kts; existing: Android/app/src/main/java/ru/home/sysdevsc/MainActivity.kt; existing: Android/app/src/main/AndroidManifest.xml; proposed: Android/app/src/androidTest/java/ru/home/sysdevsc/AppShellIntegrationTest.kt
 

@@ -4,7 +4,7 @@
   "change_id": "app-shell",
   "change_type": "product-backed",
   "tier": "standard",
-  "status": "planned",
+  "status": "implementing",
   "shared_product_spec": "specs/product/app-shell/spec.md",
   "product_status": "READY",
   "product_approval": "APPROVED",
@@ -51,7 +51,7 @@
   "problems": [],
   "design_gate": "PASS",
   "tasks_total": 4,
-  "tasks_done": 0,
+  "tasks_done": 4,
   "verification_status": "pending",
   "verified_at": null,
   "verification_state": null

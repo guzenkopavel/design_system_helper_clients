@@ -78,12 +78,12 @@ run не даст evidence.
 
 ## Applied engineering scopes
 
-- application: Существующая точка входа остаётся composition-only и даёт discovered launch/lifecycle integration.
-- compose: Существующая Compose support позволяет immutable state rendering, явные события выбора и deterministic composable scenarios.
-- gradle: Settings и build scripts должны включить proposed physical library boundary через discovered plugins.
-- localization: Фиксированные русские destination names переходят в resources, которыми владеет новая capability boundary, и сохраняют accessible naming.
-- module: Independent selection capability изолируется в proposed Gradle Android library boundary с minimal public seam.
-- ui: Material 3 navigation, нейтральные surfaces, semantics, font scale, appearance и non-color selected cues требуют focused presentation verification.
+- application: Существующая точка входа остаётся только композицией и даёт обнаруженную интеграцию запуска и жизненного цикла.
+- compose: Существующая поддержка Compose позволяет неизменяемую отрисовку состояния, явные события выбора и детерминированные сценарии composable-проверок.
+- gradle: Settings и build scripts должны включить proposed physical library boundary через обнаруженные plugins и сохранить понятный граф сборки.
+- localization: Фиксированные русские названия направлений переходят в resources, которыми владеет новая capability boundary, и сохраняют доступное именование.
+- module: Независимая возможность выбора изолируется в proposed Gradle Android library boundary с минимальной публичной гранью.
+- ui: Material 3 navigation, нейтральные surfaces, semantics, font scale, appearance и non-color selected cues требуют focused presentation verification, отдельной проверки доступности, читаемости подписей, различимости выбранного состояния и понятного поведения для пользователя.
 - Русское пояснение: выбранные области фиксируют ответственность, сборку,
   состояние, ресурсы и визуальную доступность без добавления данных, сети или
   хранения.
