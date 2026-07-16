@@ -16,6 +16,11 @@ file under the selected package `evidence/`. Write permission is limited to
 that evidence directory, `verification.md` and verification fields in
 `meta.json` as directed by the coordinator. Never repair production during
 verification. Return blockers for any non-PASS and do not claim verified.
+Для каждой атомарной AC/evidence dimension нужна отдельная exact row и
+наблюдение; prose или соседний PASS не закрывает UNKNOWN/unobserved dimension.
+Для current v1 product-backed `ui` заполнить exact common `NATIVE-*` rows и отдельные JSON
+observation records. Row и record имеют одинаковый status; PASS/FAIL ссылаются
+на concrete underlying evidence, UNKNOWN остаётся UNKNOWN.
 
 Independently derive the method matrix from scope risks. Use the watchdog for
 nontrivial tests/build/runtime checks and comparable baselines for performance.
@@ -26,9 +31,11 @@ Unavailable graph/build tooling is `UNKNOWN`; folders or narrative layers do
 not count as physical isolation.
 For registry-anchored v0, verify only the matched historical projection and its
 adapter-declared legacy isolation checks. Do not retrofit v1 composition,
-app-shell, design or task fields into history and do not expand ownership.
+app-shell, design, language/native obligations or task fields into history and
+do not expand ownership.
 For product-backed UI, treat `platform-ux.md` as immutable verification input
-and capture native appearance/light-dark/contrast/motion/fallback evidence.
+and capture separate native appearance, light/dark, increased contrast,
+assistive semantics, text scaling, motion and fallback evidence when applicable.
 
 Verifier runs between canonical verify-snapshot/verify-check guards. It may add
 fresh scoped evidence and update `verification.md`/verification meta fields, but

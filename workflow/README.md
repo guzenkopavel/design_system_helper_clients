@@ -20,7 +20,8 @@
 - [`phases/reconcile-implementation.md`](phases/reconcile-implementation.md) —
   до staging согласовать явный production set с platform package;
 - [`phases/archive.md`](phases/archive.md) — collision-safe архивировать
-  implementation change или shared product package;
+  implementation change или shared product package, сохраняя current
+  feature-root `SPECIFICATION.md`;
 - [`phases/deep-code-review.md`](phases/deep-code-review.md) — manual-only
   read-only review, feedback triage, bug investigation и harness security audit;
 - [`phases/harness-change.md`](phases/harness-change.md) — изменить харнес;
@@ -35,7 +36,8 @@
 - [`rules/specification-layers.md`](rules/specification-layers.md) — общий
   product SSOT и отдельные platform implementation specs;
 - [`rules/artifact-language.md`](rules/artifact-language.md) — русский authored
-  prose во всех v1 platform artifacts с block-level fail-closed проверкой;
+  prose/JSON в product и v1 platform artifacts с sentence-level fail-closed
+  проверкой;
 - [`rules/visual-language.md`](rules/visual-language.md) — shared calm soft-blue
   semantic intent и native adaptation boundary;
 - [`rules/product-spec-review.md`](rules/product-spec-review.md) — isolated
@@ -46,7 +48,7 @@
   — guarded pre-delivery repair без production/shared writes;
 - [`rules/verification-evidence.md`](rules/verification-evidence.md) и
   [`rules/archive-lifecycle.md`](rules/archive-lifecycle.md) — terminal proof и
-  dual archive;
+  dual archive с durable product/platform baselines;
 - [`rules/system-design.md`](rules/system-design.md) — общая mobile system-design
   база для будущих platform adapters;
 - [`rules/system-design/modularity.md`](rules/system-design/modularity.md) —
@@ -122,7 +124,8 @@
   — downstream спека одного направления;
 - [`templates/platform-design.md`](templates/platform-design.md) и
   [`templates/platform-plan-task.md`](templates/platform-plan-task.md) —
-  structured modularity decision и task boundary ownership;
+  structured modularity decision, task boundary ownership и current v1
+  `Implementation deliverables`;
 - [`templates/platform-ux.md`](templates/platform-ux.md) — conditional native
   UX artifact для product-backed `ui`;
 - [`templates/platform-rule-selection.json`](templates/platform-rule-selection.json)

@@ -9,6 +9,9 @@
 Единый источник продуктовой истины для iOS и Android находится в
 `specs/product/<feature>/`:
 
+- `SPECIFICATION.md` — долговечный current baseline уже доставленного поведения;
+  его читает следующая проработка, но он не входит в fingerprint нового active
+  package;
 - `concept.md` — опциональная фиксация результата brainstorming;
 - `brief.md` — результат discovery: проблема, доказательства, выбранное
   направление, scope и черновой поведенческий контракт;
@@ -85,6 +88,15 @@ product elaboration и продолжить как `product-backed`.
 - `Android/specs/<feature>/changes/<change-id>/` — active Android package for
   propose/plan/implement capabilities.
 
+Перед новым циклом Propose/Plan читает существующий
+`<platform>/specs/<feature>/SPECIFICATION.md` как immutable current baseline.
+Новый `implementation-spec.md` описывает полный post-change platform contract,
+а не неполную delta, которую нельзя опубликовать после archive.
+Published product-backed platform baseline ссылается на current product
+`specs/product/<feature>/SPECIFICATION.md`; до completed product archive его
+immutable shared evidence находится в implementation archive provenance.
+Technical-only baseline shared product reference не содержит.
+
 `change_id` отделяет последовательные или параллельные implementation cycles
 одной feature. Product SSOT identity остаётся feature-level. Platform archive
 не меняет shared source, а product archive не переписывает platform packages.
@@ -127,3 +139,8 @@ technical platform change
   поведение, обходит product elaboration и сразу идёт в платформенную
   specification/planning фазу.
 - Ни одна из трёх product-elaboration фаз не пишет production code.
+
+Discovery/Elaborate начинают изменение с чтения product `SPECIFICATION.md`,
+если он существует, и явно отделяют сохраняемое текущее поведение от изменения.
+Archive хранит immutable историю change packages, а корневые
+`SPECIFICATION.md` остаются актуальной базой знаний для следующего цикла.

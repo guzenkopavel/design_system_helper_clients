@@ -59,6 +59,9 @@ EXCLUDED_INVENTORY_PATHS = {
     ".opencode/package-lock.json",
     ".opencode/package.json",
 }
+EXCLUDED_INVENTORY_PREFIXES = (
+    "workflow/archive-requests/",
+)
 REQUIRED_DOCUMENTATION_SURFACES = (
     "workflow/rules/repository-documentation.md",
     "workflow/phases/harness-change.md",
@@ -348,7 +351,8 @@ def inventory_files(root: Path) -> list[Path]:
                 if name.casefold() in EXCLUDED_FILES:
                     continue
                 path = Path(base) / name
-                if repo_path(path, root) in EXCLUDED_INVENTORY_PATHS:
+                relative_path = repo_path(path, root)
+                if relative_path in EXCLUDED_INVENTORY_PATHS or relative_path.startswith(EXCLUDED_INVENTORY_PREFIXES):
                     continue
                 if path.is_file():
                     files.add(path)
@@ -754,6 +758,7 @@ def self_test(root: Path) -> int:
             ".opencode/bun.lock",
             ".opencode/package-lock.json",
             ".opencode/package.json",
+            "workflow/archive-requests/legacy-retirement.json",
         )
         for raw in transient_metadata:
             path = fixture / raw

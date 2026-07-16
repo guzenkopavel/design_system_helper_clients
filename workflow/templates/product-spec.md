@@ -35,7 +35,7 @@ localization, analytics и privacy outcomes.
 
 ## Acceptance Criteria
 
-- `AC-1` — <one observable outcome>. `Covers: REQ-1`
+- `AC-1` — <один наблюдаемый outcome>. `Covers: REQ-1` `Verification dimension: <unique-kebab-case>`
 
 ## Requirement Coverage
 
@@ -50,18 +50,25 @@ localization, analytics и privacy outcomes.
 | Happy path | PASS/GAP | PASS/GAP | |
 | Secondary states | PASS/GAP | PASS/GAP | |
 | Product intent parity | PASS/GAP | PASS/GAP | |
+| Atomic evidence obligations | PASS/GAP | PASS/GAP | |
+
+Client Readiness оценивает полноту shared product contract отдельно для iOS и
+Android. Это не статус platform implementation, build или runtime verification.
 
 ## Common Product Constraints
 
 ## Open Questions
 
-Для `READY` здесь не должно быть блокирующих вопросов.
+Для `READY` значение должно быть exact `None.`.
 
 ## Readiness Decision
 
-`READY` разрешён только при полном REQ↔AC coverage, свежем static-linked
-`review-verdicts.json` со статусом PASS и six isolated PASS/valid N/A, готовом `ux.md` для
-UI/interaction scope, закрытых blockers и явном `Product approval: APPROVED` с
-approver/evidence. Каждое critical metadata поле и каждый REQ/AC ID должны быть
-уникальны. GAP/UNKNOWN findings сохраняются в durable non-green receipt, но не
-разрешают READY. Findings живут в receipt, а не копируются сюда.
+- **Decision:** `DRAFT | READY`
+- **Blocking reasons:** `<причины> | none`
+
+Для terminal `READY` нужны exact `Decision: READY` и `Blocking reasons: none`.
+Каждый AC задаёт ровно один наблюдаемый outcome и одну уникальную
+`Verification dimension`; appearance, assistive semantics, text scaling,
+light/dark и increased contrast не объединяются в один AC/evidence obligation.
+`DRAFT`, `PENDING`, `GAP` или `UNKNOWN` в Client Readiness, Open Questions либо
+Readiness Decision противоречат READY и блокируют fan-out.

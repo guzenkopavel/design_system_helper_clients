@@ -26,7 +26,8 @@ invocation evidence never becomes an independent PASS.
 ## Lens semantics
 
 - `product`: problem/outcome/scope/non-goals, requirement clarity, observable
-  behavior, success signals, alternatives and REQ↔AC coherence;
+  behavior, success signals, alternatives, exact READY coherence и атомарная
+  REQ↔AC/evidence dimension;
 - `ux-accessibility`: journey/flows/states, content, interaction semantics,
   accessibility and localization outcomes without platform widgets;
 - `design-system`: shared component roles, token/semantic intent, consistency
@@ -78,9 +79,11 @@ validate-product-spec.py check --feature <feature>
 ```
 
 `snapshot` fingerprints every recursively discovered regular file in the active
-package, including unknown files and human approval metadata. Add/delete/edit
+package except feature-root `SPECIFICATION.md`, including unknown files and
+human approval metadata. `SPECIFICATION.md` is immutable read-only delivered
+baseline for the candidate lifecycle, not candidate input to final lenses. Add/delete/edit
 changes the fingerprint. Symlinks and unsafe feature identity fail closed. Only
-root `review-verdicts.json` is excluded. In `spec.md` only the exact Status
+root `review-verdicts.json` is also excluded. In `spec.md` only the exact Status
 metadata line is normalized, so `DRAFT → READY` after a green receipt does not
 make that receipt self-stale. No other subject content is normalized/excluded.
 
@@ -96,7 +99,9 @@ receipt, not a copied/self-referential verdict table.
 `check` requires a current `PASS` receipt, exact lenses, READY, exactly one of
 every critical metadata field, explicit APPROVED human metadata, unique REQ/AC
 IDs with complete coverage, both clients and coherent UX artifact/readiness
-links. GAP, UNKNOWN, ambiguous metadata, a missing/duplicate lens, mixed/stale
+links. Он также требует exact `Readiness Decision: READY/none`, terminal PASS
+во всех Client Readiness rows, `None` в Open Questions и уникальную
+`Verification dimension` для каждого атомарного AC. GAP, UNKNOWN, ambiguous metadata, a missing/duplicate lens, mixed/stale
 fingerprint or missing receipt keeps the package DRAFT and blocks fan-out.
 
 ## Ordering
@@ -106,7 +111,8 @@ fingerprint or missing receipt keeps the package DRAFT and blocks fan-out.
    durable receipt.
 3. Obtain explicit human approval and record approver/evidence. This changes the
    subject fingerprint.
-4. Snapshot again; run all six final fresh isolated lenses against that exact
+4. Close blockers and set exact `Readiness Decision: READY/none` while metadata
+   Status remains `DRAFT`; snapshot again; run all six final fresh isolated lenses against that exact
    approved fingerprint.
 5. Coordinator aggregates the receipt.
 6. Change only exact Status metadata from `DRAFT` to `READY`.

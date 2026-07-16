@@ -10,6 +10,31 @@ writer narrative. The read-only `verifier` assigns every active row in
 - expected evidence from propose is not terminal proof.
 - focused task evidence proves task completion but does not prove the whole
   package verified.
+- каждый атомарный AC/`Verification dimension` имеет ровно одну verification
+  row и собственное concrete observation; adjacent PASS и prose не заменяют
+  отсутствующую evidence;
+- ненаблюдённая required runtime, appearance или accessibility dimension имеет
+  статус `UNKNOWN`, даже если соседний outcome прошёл.
+
+Для каждого current v1 product-backed `ui` package common exact set:
+`NATIVE-APPEARANCE`, `NATIVE-LIGHT`, `NATIVE-DARK`,
+`NATIVE-INCREASED-CONTRAST`, `NATIVE-ASSISTIVE-SEMANTICS`,
+`NATIVE-TEXT-SCALING`, `NATIVE-MOTION`, `NATIVE-DEVICE-ADAPTATION`,
+`NATIVE-AVAILABILITY-FALLBACK`. Каждая row ссылается на отдельный exact JSON
+observation record (`schema_version`, `obligation_id`, `status`, `observation`,
+`evidence_refs`). Row/record status обязаны совпадать; PASS/FAIL record имеет
+concrete non-empty underlying refs внутри package evidence и не может ссылаться
+ни на себя, ни на любой другой native observation record. Underlying refs —
+только raw/non-observation evidence artifacts, поэтому cross-record и циклическое
+обоснование PASS запрещены. UNKNOWN record не превращается в PASS через prose.
+Schema задан в
+[`native-verification-observation.json`](../templates/native-verification-observation.json).
+
+Non-PASS native ID входит в `meta.problems` и переоткрывает все `ui` tasks с их
+dependent closure. Если `ui` task отсутствует, recovery fail-closed возвращает
+plan repair; native ID не подменяется REQ/AC.
+Registry-anchored v0 завершает только historical verification rows/checks:
+`NATIVE-*` rows/records к нему не добавляются даже при UI scope.
 
 Verify is bounded by `evidence/verify-scope-baseline.json`. Pre-verifier snapshot
 and immediate post-verifier check require zero production/task/plan/contract/

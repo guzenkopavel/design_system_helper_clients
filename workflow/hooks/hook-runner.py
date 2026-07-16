@@ -228,9 +228,11 @@ def command_policy(repo: Path, payload: dict[str, Any]) -> tuple[str, list[str]]
             elif subcommand == "commit" and "--amend" in args and not explicit:
                 reasons.append("git commit --amend requires explicit authorization")
             if subcommand == "commit" and not reasons:
-                gate = load_gate(repo).evaluate(repo)
+                gate = load_gate(repo).hook_evaluate(repo, consume=False)
                 if gate.get("status") != "PASS":
-                    reasons.append(f"pre-commit gate is {gate.get('status', 'UNKNOWN')}")
+                    reasons.append(
+                        f"pre-commit receipt/integrity preview is {gate.get('status', 'UNKNOWN')}"
+                    )
 
     inspect(command_from(payload), 0)
     return (DENY, reasons) if reasons else (ALLOW, [])
@@ -346,7 +348,10 @@ def configure_git(repo: Path) -> None:
 def write_fixture(repo: Path) -> None:
     (repo / "workflow/scripts").mkdir(parents=True)
     source = Path(__file__).resolve().parents[1] / "scripts"
-    for name in ("pre-commit-check.py", "platform_rule_profiles.py"):
+    for name in (
+        "pre-commit-check.py", "platform_rule_profiles.py",
+        "platform_path_ownership.py", "git_change_paths.py",
+    ):
         (repo / "workflow/scripts" / name).write_text((source / name).read_text(encoding="utf-8"), encoding="utf-8")
     for platform, suffix in (("iOS", ".swift"), ("Android", ".kt")):
         contract = {
@@ -385,6 +390,19 @@ def self_test() -> int:
         (repo / "README.md").write_text("base\n", encoding="utf-8")
         subprocess.run(["git", "add", "."], cwd=repo, check=True)
         subprocess.run(["git", "commit", "-qm", "base"], cwd=repo, check=True)
+        assert command_policy(repo, {"command": "git commit -m absent-receipt"})[0] == DENY
+        (repo / "delivery.md").write_text("exact delivery\n", encoding="utf-8")
+        subprocess.run(["git", "add", "delivery.md"], cwd=repo, check=True)
+        gate_module = load_gate(repo)
+        exact = gate_module.evaluate(repo, ["delivery.md"], require_intended=True)
+        assert exact["status"] == "PASS"
+        gate_module.issue_receipt(repo, ["delivery.md"], exact["fingerprint"])
+        assert command_policy(repo, {"command": "git commit -m preview-one"})[0] == ALLOW
+        assert command_policy(repo, {"command": "git commit -m preview-two"})[0] == ALLOW
+        assert gate_module.hook_evaluate(repo, consume=True)["status"] == "PASS"
+        assert command_policy(repo, {"command": "git commit -m replay"})[0] == DENY
+        subprocess.run(["git", "reset", "-q", "HEAD", "delivery.md"], cwd=repo, check=True)
+        (repo / "delivery.md").unlink()
         assert command_policy(repo, {"command": "echo 'git reset --hard'"})[0] == ALLOW
         for command in (
             "git reset --hard", "cd app && git clean -fd", "git -C app branch -D old",

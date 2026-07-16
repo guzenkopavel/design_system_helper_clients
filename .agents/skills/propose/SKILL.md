@@ -12,6 +12,8 @@ description: Создать platform implementation package при поддер�
    omitted change равен feature. Unsupported/unknown/unsafe/collision — blocker и
    ноль записей.
 3. Применить product-backed либо доказанный technical-only intake.
+   Существующий platform/product `SPECIFICATION.md` читать как immutable current
+   baseline; `implementation-spec.md` создавать как полный post-change contract.
 4. По repository evidence выбрать adapter-defined engineering scopes, получить
    exact proposal rules через `find-platform-context.py --phase propose` и
    записать scopes + полный derived lifecycle union в meta/proposal.

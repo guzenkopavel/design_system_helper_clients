@@ -1,8 +1,8 @@
 ---
 phase: archive
 writes_artifacts:
-  - platform archive package and ARCHIVED.md tombstone
-  - product archive package and spec.md tombstone
+  - platform archive package, durable SPECIFICATION.md and ARCHIVED.md tombstone
+  - product archive package, durable SPECIFICATION.md and spec.md tombstone
 requires_verification: terminal
 recommended_roles: []
 ---
@@ -14,13 +14,25 @@ Public forms:
 - `archive implementation <platform> <feature> [--change <change-id>]`
 - `archive product <feature>`
 
+Product form по умолчанию читает
+`specs/product/_retirement-requests/<feature>/<YYYY-MM-DD-feature>.json`; для
+явного safe override CLI поддерживает `--request <repo-relative-path>`.
+Override внутри active `specs/product/<feature>/` запрещён до mutation.
+
 Both are deterministic, collision-safe and dry-run first. Implementation mode
 requires validator `archive` success, then invokes `archive-change.py
 implementation ... --apply`, preserves the original verification fingerprint
 after relocation and emits `archive-receipt.json`; it first requires
-`archive-implementation` capability. Product mode is capability-independent and requires a complete retirement
+`archive-implementation` capability. Apply additionally publishes the full
+verified post-change contract as feature-root `SPECIFICATION.md` and binds its
+archived source/published bytes in receipt v2. Product mode is
+capability-independent and requires a complete retirement
 request, scans every adapter and conventional platform package root for active
-references, then invokes `archive-change.py product ... --apply`.
+references, then invokes `archive-change.py product ... --apply`. Apply сохраняет
+validated request внутри product archive как `retirement-request.json`.
+`completed` publishes the approved full product contract to the feature-root
+`SPECIFICATION.md`; `superseded`/`cancelled` preserves the previous baseline and
+never promotes the retired candidate.
 
 Never overwrite, force, silently infer Android disposition, rewrite platform
 packages or treat product approval as retirement approval. On failure, preserve

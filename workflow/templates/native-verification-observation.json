@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-<EXACT-ID>",
+  "status": "PASS | FAIL | UNKNOWN",
+  "observation": "<русское описание отдельного наблюдения>",
+  "evidence_refs": [
+    "evidence/<underlying-evidence>"
+  ]
+}

@@ -25,8 +25,10 @@ emitted SHA-256 token outside repository state and passes it to `verify-check`
 as `--expected-sha256`; baseline rewriting is therefore a failure. Immediately
 after verifier writes rows/new evidence and permitted verification meta fields,
 run `verify-check`. It rejects every production, task, plan, contract, adapter or
-rule change and overwrite of pre-existing evidence while preserving unrelated
-dirty/index state that existed before the baseline. Only after this guard is green may
+rule change and overwrite of pre-existing evidence in the selected verify lane.
+Lane включает package, union realized task Paths, Read-only context, shared
+spec, applicable rules, adapter и common/platform control plane; disjoint
+platform/feature/product dirty, index и commits не инвалидируют baseline. Only after this guard is green may
 the coordinator persist recovery task reopening or terminal state capture.
 
 The read-only-for-production `verifier` rereads current shared/platform
@@ -34,6 +36,10 @@ contracts, task files, realized code and applicable platform rules. It reruns
 each declared method and writes only scoped evidence under package `evidence/`.
 Every verification row receives exact `PASS`, `FAIL` or `UNKNOWN`; concrete
 evidence paths are mandatory.
+Каждая атомарная AC/verification dimension обязана иметь ровно одну собственную
+row и concrete evidence observation. Terminal `PASS` разрешён только при exact
+coverage всех atomic obligations; PASS соседней строки или prose summary не
+закрывают отсутствующую dimension.
 Authored prose в `verification.md` и собственных reports писать по-русски по
 [`artifact-language`](../rules/artifact-language.md); exact statuses, IDs,
 paths, commands и API names сохранять без перевода.
@@ -44,6 +50,11 @@ the verification matrix and selected scope risks. Nontrivial commands use the
 watchdog with discovered plan budgets. Runtime, UI, accessibility, localization,
 concurrency and performance evidence is required only when selected/applicable;
 unavailable required infrastructure yields `UNKNOWN`, never an invented PASS.
+Ненаблюдённая runtime/appearance/accessibility dimension всегда `UNKNOWN`, даже
+если связанный happy path имеет `PASS`.
+Для current v1 product-backed `ui` verifier заполняет exact common `NATIVE-*` set из
+verification template structured observation records. Missing/duplicate ID,
+row/record mismatch или PASS без underlying evidence блокируют terminal state.
 For product-backed UI, reread `platform-ux.md` and collect reproducible native
 appearance evidence for its scenarios, light/dark/contrast, motion/accessibility
 and availability fallback. This harness gate does not claim actual rendering.
@@ -56,6 +67,7 @@ graph/build tooling produces `UNKNOWN`. Registry-anchored v0 instead verifies
 only its resolver-selected historical projection and adapter
 `legacy_task_checks`; it receives no retroactive v1 Modularity decision or
 app-shell checks and cannot expand ownership or immutable package structure.
+Он также не получает новые v1 authored-meta language или `NATIVE-*` obligations.
 
 If any row is non-PASS, persist a recovery state: keep `status: implementing`,
 set `verification_status: FAIL` when at least one row is FAIL and otherwise
@@ -66,6 +78,9 @@ dependent closure of each such task. Every reopened task becomes
 `Status: pending`, `Evidence: none`; downstream tasks need not cite the failed
 contract. Re-derive `tasks_done`. If no task directly maps a failing contract,
 block and require plan repair; never invent implementation scope.
+Native non-PASS obligations маппятся не на fake contract IDs, а на все tasks с
+sealed `ui` scope и их dependent closure; отсутствие такой task требует plan
+repair.
 
 After every row is PASS, clear `problems`, capture current state with
 `capture-verification-state.py --write`, set candidate `status: verified`,

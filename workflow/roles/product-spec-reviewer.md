@@ -31,10 +31,17 @@ validator, establishes real independence by creating the fresh read-only
 runtime context and retaining its invocation evidence.
 
 Apply only the requested lens checklist: product checks problem/outcome/scope,
-observable behavior, success and REQ↔AC; UX/accessibility checks flows/states,
+observable behavior, success, READY coherence and atomic REQ↔AC/evidence
+dimensions; UX/accessibility checks flows/states,
 content, interaction, accessibility and localization; design-system checks
 component roles and token/semantic intent; data/analytics/privacy checks data
 lifecycle, minimization, consent, retention and event measurement; security
 checks trust boundaries, threats, abuse cases, authorization and sensitive
 data; cross-client parity checks iOS/Android states, intentional differences and
 hidden product forks. Do not silently apply or report another lens.
+
+`Client Readiness` означает полноту shared contract для каждого клиента, не
+состояние implementation. Один AC не может скрывать несколько независимо
+проверяемых outcomes; отдельные appearance/accessibility dimensions требуют
+отдельных AC и evidence obligations. Authored rationale/findings писать
+по-русски; exact JSON schema, IDs и paths не переводить.

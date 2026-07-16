@@ -9,12 +9,14 @@ import importlib.util
 import json
 import re
 import shutil
-import stat
 import tempfile
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
 import platform_rule_profiles as rule_profiles
+import artifact_language
+import platform_path_ownership as path_ownership
 
 from platform_rule_profiles import (
     ARTIFACT_LANGUAGE_RULE,
@@ -36,6 +38,36 @@ from platform_rule_profiles import (
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TASK_RE = re.compile(r"^task-\d{3}$")
 PLACEHOLDER_RE = re.compile(r"\b(?:TODO|TBD|FIXME)\b|<[^>\n]+>|\{\{|\}\}|\.\.\.", re.I)
+DELIVERABLE_ACTION_RE = re.compile(
+    r"^(?:реализова|выполн|созда|добав|сдела|подготов|обнов)\w*$"
+    r"|^(?:implement|complet|creat|add|prepar|updat)\w*$"
+    r"|^do(?:es|ing|ne)?$",
+    re.I,
+)
+DELIVERABLE_GENERIC_WORD_RE = re.compile(
+    r"^(?:необходим|требуем|нужн|соответствующ|нов|текущ|планов|базов|минимальн|"
+    r"задач|работ|изменен|проект|файл|тест|проверк|результат|артефакт|код|реализац|"
+    r"конфигурац|настройк|продукт|контракт)\w*$"
+    r"|^(?:the|a|an|this|that|in|on|for|of|to|and|with|as|"
+    r"all|necessary|required|needed|appropriate|new|current|planned|relevant|basic|minimal|"
+    r"task|work|change|project|file|test|check|result|artifact|code|implementation|"
+    r"configuration|config|outcome|product|contract)s?$"
+    r"|^(?:в|на|для|по|и|с|к|из|как|эту|этот|эти|все|вся|весь)$",
+    re.I,
+)
+DELIVERABLE_ID_RE = re.compile(
+    r"\b(?:[a-z][a-z0-9]*-)*(?:req|ac)-[a-z0-9]+\b|\btask-[0-9]{3}\b",
+    re.I,
+)
+DELIVERABLE_PATH_RE = re.compile(
+    r"(?<![\w.-])(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+"
+    r"|\b[A-Za-z0-9_.-]+\.(?:swift|kt|kts|java|m|mm|h|json|ya?ml|toml|xml|gradle|md)\b",
+    re.I,
+)
+DELIVERABLE_PROSE_MIN_WORDS = 4
+DELIVERABLE_PROSE_MIN_LETTERS = 24
+DELIVERABLE_INTERNAL_JOINERS = frozenset("-'’ʼ‐‑‒–—")
+DELIVERABLE_FRAGMENT_SEPARATOR_CLASS = r"\-\u2010\u2011\u2012\u2013\u2014\./\\'\u2019\u02bc"
 PLATFORM_UX_UNRESOLVED_RE = re.compile(r"\b(?:UNKNOWN|GAPS?|PENDING|UNRESOLVED)\b", re.I)
 SHARED_REQ_RE = re.compile(r"(?m)^-\s+`(REQ-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
 SHARED_AC_RE = re.compile(r"(?m)^-\s+`(AC-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
@@ -76,6 +108,20 @@ COMMON_DESIGN = (
     "Data and control flow", "Error and recovery model", "Verification strategy",
 )
 TERMINAL_MODES = {"verify", "archive"}
+NATIVE_OBLIGATION_IDS = (
+    "NATIVE-APPEARANCE",
+    "NATIVE-LIGHT",
+    "NATIVE-DARK",
+    "NATIVE-INCREASED-CONTRAST",
+    "NATIVE-ASSISTIVE-SEMANTICS",
+    "NATIVE-TEXT-SCALING",
+    "NATIVE-MOTION",
+    "NATIVE-DEVICE-ADAPTATION",
+    "NATIVE-AVAILABILITY-FALLBACK",
+)
+NATIVE_OBSERVATION_KEYS = {
+    "schema_version", "obligation_id", "status", "observation", "evidence_refs",
+}
 PLATFORM_UX_KEYS = {"role", "artifact", "design_language", "required_terms", "task_checks"}
 PLATFORM_UX_HEADINGS = (
     "Evidence inspected", "Shared intent mapping",
@@ -85,42 +131,10 @@ PLATFORM_UX_HEADINGS = (
     "Device and layout adaptation", "Fallback and availability",
     "Verification scenarios", "Open gaps",
 )
-LANGUAGE_MACHINE_ROW_LABELS = {
-    "Change type", "Shared product spec", "Product status / approval",
-    "Product impact assessment", "Product Impact Assessment", "Tier",
-    "Selected scopes", "Applicable rule files", "Considered but not selected",
-    "Selection snapshot", "UX status", "Platform", "Source product UX",
-    "Native design language adapter", "Color direction", "Outcome",
-    "Capability triggers", "Physical boundaries",
-    "Public contracts and dependency direction", "App-shell responsibilities",
-    "App-shell capability ownership", "Repository evidence",
-    "Rationale and trade-offs", "Migration boundary and trigger",
-    "Over-modularization check", "Boundary guard verdict", "Dependency graph",
-    "Public API and visibility", "Module-level tests",
-    "Consumer integration and build", "App-shell allowlist", "Layer",
-    "Boundary owner", "Engineering scopes", "Depends on", "Status", "Evidence",
-    "Estimate (ideal)", "Paths", "Discovered command",
-    "Watchdog max/stall/output budget for nontrivial checks",
-    "Applicable rule/check mapping",
-}
-LANGUAGE_AUTHORED_ROW_LABELS = {
-    "Evidence for each scope", "Considered but not selected", "Selection evidence",
-    "Public contracts and dependency direction", "Rationale and trade-offs",
-    "Migration boundary and trigger", "Over-modularization check",
-}
-LANGUAGE_TECHNICAL_WORDS = {
-    "android", "api", "compose", "core", "data", "dynamic", "expressive",
-    "glass", "gradle", "ios", "kotlin", "liquid", "material", "sdk", "swift",
-    "swiftui", "ui", "ux", "xcode", "materialtheme", "talkback",
-}
 TASK_AUTHORED_REPORT_RE = re.compile(r"^task-[0-9]{3}\.md$")
 RECONCILIATION_AUTHORED_REPORT_RE = re.compile(
     r"^reconciliation-[0-9]{8}T[0-9]{6}Z-task-[0-9]{3}(?:-[a-z0-9-]+)?\.md$"
 )
-LANGUAGE_MACHINE_TABLE_HEADERS = {
-    "contract id", "layer", "evidence", "evidence path",
-    "status", "path", "id", "file", "command", "enum", "key", "value",
-}
 _PRODUCT_VALIDATOR = None
 
 
@@ -156,163 +170,9 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore")
 
 
-def _language_residual(raw: str) -> str:
-    text = re.sub(r"`[^`\n]*`", " ", raw)
-    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r" \1 ", text)
-    text = re.sub(r"https?://\S+", " ", text)
-    text = re.sub(r"\b(?:REQ|AC|[A-Z][A-Z0-9]*-(?:REQ|AC))-\d+\b", " ", text)
-    text = re.sub(r"\btask-\d{3}\b", " ", text, flags=re.I)
-    text = re.sub(r"(?<!\w)(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.*/-]+", " ", text)
-    text = re.sub(r"\b[A-Za-z0-9_-]+\.(?:md|json|swift|kt|kts|xml|toml|yaml|yml|py|sh)\b", " ", text, flags=re.I)
-    text = re.sub(r"\b(?:READY|APPROVED|PASS|FAIL|UNKNOWN|BLOCK|PRESENT|NONE|N/A|pending|done|isolated|deviation|not-applicable)\b", " ", text, flags=re.I)
-    words = re.findall(r"[A-Za-z]+|[А-Яа-яЁё]+", text)
-    return " ".join(
-        word for word in words
-        if word.casefold() not in LANGUAGE_TECHNICAL_WORDS
-        and not (word.isascii() and any(char.isupper() for char in word[1:]))
-    )
-
-
-def _authored_language_blocks(markdown: str) -> list[str]:
-    blocks: list[str] = []
-    current: list[str] = []
-    in_fence = False
-    table_headers: list[str] | None = None
-
-    def flush() -> None:
-        if current:
-            value = " ".join(current).strip()
-            if value:
-                blocks.append(value)
-            current.clear()
-
-    lines = markdown.splitlines()
-    for line_index, raw in enumerate(lines):
-        line = raw.strip()
-        if line.startswith("```") or line.startswith("~~~"):
-            flush(); in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        if not line:
-            flush(); table_headers = None; continue
-        if line.startswith("#"):
-            flush(); table_headers = None
-            continue
-        if line.startswith("|"):
-            flush()
-            cells = [cell.strip() for cell in line.strip("|").split("|")]
-            if all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
-                continue
-            next_line = lines[line_index + 1].strip() if line_index + 1 < len(lines) else ""
-            next_cells = [cell.strip() for cell in next_line.strip("|").split("|")] if next_line.startswith("|") else []
-            if next_cells and all(re.fullmatch(r":?-{3,}:?", cell) for cell in next_cells):
-                table_headers = [cell.casefold() for cell in cells]
-                continue
-            if table_headers and len(table_headers) == len(cells):
-                for header, cell in zip(table_headers, cells):
-                    if header not in LANGUAGE_MACHINE_TABLE_HEADERS and cell:
-                        current.append(cell); flush()
-                continue
-            for cell in cells:
-                if cell:
-                    current.append(cell); flush()
-            continue
-        list_match = re.match(r"^(?:[-*+]\s+|\d+[.)]\s+)(.*)$", line)
-        if list_match:
-            flush(); table_headers = None
-            stripped = list_match.group(1)
-        else:
-            stripped = line
-        label_match = re.match(r"^(?:\*\*)?([^:*]+?)(?:\*\*)?:\s*(.*)$", stripped)
-        if label_match and label_match.group(1).strip() in LANGUAGE_AUTHORED_ROW_LABELS:
-            flush()
-            current.append(label_match.group(2))
-            if list_match is None:
-                flush()
-            continue
-        if label_match and label_match.group(1).strip() in LANGUAGE_MACHINE_ROW_LABELS:
-            flush()
-            # Exact structured rows are machine schema. Their values are validated
-            # separately and deliberately do not act as Russian padding.
-            continue
-        if re.fullmatch(r"(?:None|None\.|N/A|Covers:\s*\S+)", stripped, re.I):
-            flush(); continue
-        current.append(stripped)
-    flush()
-    return blocks
-
-
-def validate_authored_markdown_language(
-    repo: Path, package: Path, path: Path,
-) -> list[str]:
-    try:
-        repo_relative = path.relative_to(repo)
-        label = repo_relative.as_posix()
-    except ValueError:
-        repo_relative = None
-        label = "<outside-repository>"
-
-    boundary_error = f"artifact language requires safe regular authored Markdown file: {label}"
-    try:
-        package_relative = package.relative_to(repo)
-        authored_relative = path.relative_to(package)
-    except ValueError:
-        return [boundary_error]
-    if (
-        repo_relative is None
-        or ".." in package_relative.parts
-        or ".." in authored_relative.parts
-        or ".." in repo_relative.parts
-    ):
-        return [boundary_error]
-
-    try:
-        resolved_repo = repo.resolve()
-        resolved_package = package.resolve()
-        resolved_path = path.resolve()
-    except (OSError, RuntimeError):
-        return [boundary_error]
-    if (
-        not is_subpath(resolved_package, resolved_repo)
-        or not is_subpath(resolved_path, resolved_package)
-    ):
-        return [boundary_error]
-
-    current = repo
-    for component in repo_relative.parts:
-        current = current / component
-        if current.is_symlink():
-            return [boundary_error]
-    try:
-        mode = path.lstat().st_mode
-    except OSError:
-        return [boundary_error]
-    if not stat.S_ISREG(mode):
-        return [boundary_error]
-    try:
-        markdown = path.read_text(encoding="utf-8", errors="strict")
-    except (OSError, UnicodeDecodeError):
-        return [f"artifact language requires safe UTF-8 authored Markdown file: {label}"]
-    failing_blocks: list[int] = []
-    for index, block in enumerate(_authored_language_blocks(markdown), start=1):
-        residual = _language_residual(block)
-        cyrillic = re.findall(r"[А-Яа-яЁё]{2,}", residual)
-        latin = re.findall(r"[A-Za-z]{2,}", residual)
-        if not cyrillic and len(latin) < 2:
-            continue
-        cyrillic_letters = sum(len(word) for word in cyrillic)
-        latin_letters = sum(len(word) for word in latin)
-        if cyrillic_letters < 6 or latin_letters > cyrillic_letters:
-            failing_blocks.append(index)
-    if not failing_blocks:
-        return []
-    shown = ", ".join(str(index) for index in failing_blocks[:3])
-    remainder = len(failing_blocks) - 3
-    suffix = f" (+{remainder} more)" if remainder > 0 else ""
-    return [
-        f"artifact language requires Russian authored prose: {label} blocks {shown}{suffix}"
-    ]
+_language_residual = artifact_language.language_residual
+_authored_language_blocks = artifact_language.authored_markdown_blocks
+validate_authored_markdown_language = artifact_language.validate_authored_markdown_language
 
 
 def typed_authored_report_paths(package: Path) -> list[Path]:
@@ -472,6 +332,30 @@ def active_change_ids(repo: Path, adapter: dict[str, object], feature: str) -> l
     )
 
 
+def active_change_inventory(
+    repo: Path, adapter: dict[str, object], feature: str,
+) -> tuple[list[str], list[str]]:
+    root = changes_root(repo, adapter, feature)
+    if not root.is_dir():
+        return [], []
+    active: list[str] = []
+    partial: list[str] = []
+    for item in sorted(root.iterdir(), key=lambda value: value.name):
+        if item.is_symlink() or not item.is_dir() or not SLUG_RE.fullmatch(item.name):
+            partial.append(item.name)
+            continue
+        children = sorted(child.name for child in item.iterdir())
+        tombstone = item / "ARCHIVED.md"
+        if children == ["ARCHIVED.md"] and tombstone.is_file() and not tombstone.is_symlink():
+            continue
+        meta = item / "meta.json"
+        if not tombstone.exists() and meta.is_file() and not meta.is_symlink():
+            active.append(item.name)
+        else:
+            partial.append(item.name)
+    return active, partial
+
+
 def resolve_change(
     repo: Path, adapter: dict[str, object], feature: str,
     change: str | None, mode: str,
@@ -482,10 +366,11 @@ def resolve_change(
         if mode == "propose":
             change = feature
         else:
-            active = active_change_ids(repo, adapter, feature)
-            if len(active) != 1:
+            active, partial = active_change_inventory(repo, adapter, feature)
+            if len(active) != 1 or partial:
                 raise AdapterError(
-                    f"omitted --change requires exactly one active package; found {len(active)}"
+                    "omitted --change requires exactly one classified active package; "
+                    f"found {len(active)} active and {len(partial)} partial/unclassified sibling(s)"
                 )
             change = active[0]
     if not SLUG_RE.fullmatch(change):
@@ -495,6 +380,35 @@ def resolve_change(
     if package.parent != root or not is_subpath(package, root):
         raise AdapterError("change_id escapes active package root")
     return change, package
+
+
+def active_task_path_owners(
+    repo: Path, adapter: dict[str, object], candidates: list[str],
+) -> dict[str, list[str]]:
+    """Return active package identities whose task Paths overlap each candidate."""
+    root = safe_repo_path(repo, str(adapter["package_root"]), "package_root")
+    owners: dict[str, set[str]] = {raw: set() for raw in candidates}
+    if not root.is_dir():
+        return {raw: [] for raw in candidates}
+    namespace = str(adapter["active_changes_namespace"])
+    for meta_path in sorted(root.glob(f"*/{namespace}/*/meta.json")):
+        package = meta_path.parent
+        if (package / "ARCHIVED.md").exists():
+            continue
+        try:
+            meta = json.loads(read(meta_path))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if meta.get("status") not in {"planned", "implementing", "verified"}:
+            continue
+        tasks, _errors = parse_tasks(repo, package, require_boundary_owner=False)
+        identity = package.relative_to(repo).as_posix()
+        for task in tasks:
+            for _kind, declared in task.get("paths", []):
+                for candidate in candidates:
+                    if paths_overlap(str(declared), candidate):
+                        owners[candidate].add(identity)
+    return {raw: sorted(values) for raw, values in owners.items()}
 
 
 def section(text: str, heading: str) -> str | None:
@@ -510,6 +424,205 @@ def substantive(value: str | None, minimum: int = 12) -> bool:
     return len(cleaned) >= minimum and len(cleaned.split()) >= 2 and cleaned.casefold() not in {
         "n/a", "none", "нет", "pending", "not applicable",
     }
+
+
+def markdown_lines_outside_fences(text: str) -> list[tuple[int, str]]:
+    """Return raw-indentation lines outside top-level fences and blockquotes."""
+    result: list[tuple[int, str]] = []
+    fence: tuple[str, int] | None = None
+    for index, line in enumerate(text.splitlines(keepends=True)):
+        raw = line.rstrip("\r\n")
+        if fence is not None:
+            if re.fullmatch(rf" {{0,3}}{re.escape(fence[0])}{{{fence[1]},}}[ \t]*", raw):
+                fence = None
+            continue
+        if re.match(r"^ {0,3}>", raw):
+            continue
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", raw)
+        if opening:
+            marker = opening.group(1)
+            fence = (marker[0], len(marker))
+            continue
+        result.append((index, raw))
+    return result
+
+
+def actual_h2_sections(text: str) -> list[tuple[str, str, int]]:
+    """Parse actual column-zero H2 sections without losing body indentation."""
+    lines = text.splitlines(keepends=True)
+    headings: list[tuple[str, int]] = []
+    for index, line in markdown_lines_outside_fences(text):
+        match = re.fullmatch(r"##[ \t]+(.+?)[ \t]*", line)
+        if match:
+            headings.append((match.group(1), index))
+    return [
+        (
+            heading,
+            "".join(lines[index + 1:headings[position + 1][1] if position + 1 < len(headings) else len(lines)]),
+            index,
+        )
+        for position, (heading, index) in enumerate(headings)
+    ]
+
+
+def implementation_deliverable_items(value: str) -> list[str]:
+    """Extract only column-zero list items outside fences/blockquote."""
+    result: list[str] = []
+    for _index, line in markdown_lines_outside_fences(value):
+        item_match = re.fullmatch(r"(?:-\s+|[0-9]+[.)]\s+)(.+?)[ \t]*", line)
+        if item_match:
+            result.append(item_match.group(1).strip())
+    return result
+
+
+def normalize_deliverable_unicode(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value)
+    return "".join(
+        character for character in normalized
+        if unicodedata.category(character) not in {"Mn", "Me", "Cf"}
+    ).casefold()
+
+
+def deliverable_semantic_prose(item: str) -> str:
+    prose = re.sub(r"`[^`\n]*`", " ", item)
+    prose = normalize_deliverable_unicode(prose)
+    prose = re.sub(r"!?\[([^\]]*)\]\([^)]+\)", r"\1", prose)
+    prose = DELIVERABLE_PATH_RE.sub(" ", prose)
+    prose = DELIVERABLE_ID_RE.sub(" ", prose)
+    return re.sub(r"[*_#|>]", " ", prose)
+
+
+def deliverable_linguistic_tokens(prose: str) -> list[str]:
+    tokens: list[str] = []
+    current: list[str] = []
+    for index, character in enumerate(prose):
+        if character.isalpha():
+            current.append(character)
+            continue
+        if (
+            character in DELIVERABLE_INTERNAL_JOINERS and current
+            and index + 1 < len(prose) and prose[index + 1].isalpha()
+        ):
+            current.append(character)
+            continue
+        if current:
+            tokens.append("".join(current)); current = []
+    if current:
+        tokens.append("".join(current))
+    return tokens
+
+
+def deliverable_token_scripts(token: str) -> set[str]:
+    scripts: set[str] = set()
+    for character in token:
+        if not character.isalpha():
+            continue
+        name = unicodedata.name(character, "")
+        if "CYRILLIC" in name:
+            scripts.add("cyrillic")
+        elif "LATIN" in name:
+            scripts.add("latin")
+    return scripts
+
+
+def deliverable_fragment_chain(prose: str) -> bool:
+    letter = r"[^\W\d_]"
+    separator = rf"[\s{DELIVERABLE_FRAGMENT_SEPARATOR_CLASS}]*[{DELIVERABLE_FRAGMENT_SEPARATOR_CLASS}][\s{DELIVERABLE_FRAGMENT_SEPARATOR_CLASS}]*"
+    return re.search(
+        rf"(?<!{letter}){letter}(?:{separator}{letter}){{3,}}(?!{letter})",
+        prose,
+        flags=re.UNICODE,
+    ) is not None
+
+
+def deliverable_prose_analysis(item: str) -> dict[str, object]:
+    prose = deliverable_semantic_prose(item)
+    tokens = deliverable_linguistic_tokens(prose)
+    return {
+        "prose": prose,
+        "tokens": tokens,
+        "letters": sum(character.isalpha() for character in prose),
+        "fragment_chain": deliverable_fragment_chain(prose),
+        "mixed_script_tokens": [
+            token for token in tokens
+            if {"cyrillic", "latin"}.issubset(deliverable_token_scripts(token))
+        ],
+    }
+
+
+def deliverable_prose_floor(analysis: dict[str, object]) -> bool:
+    tokens = analysis["tokens"]
+    letters = analysis["letters"]
+    return (
+        isinstance(tokens, list) and len(tokens) >= DELIVERABLE_PROSE_MIN_WORDS
+        and isinstance(letters, int)
+        and letters >= DELIVERABLE_PROSE_MIN_LETTERS
+    )
+
+
+def generic_deliverable(analysis: dict[str, object]) -> bool:
+    tokens = analysis["tokens"]
+    if not isinstance(tokens, list):
+        return True
+    if not tokens:
+        return True
+    action_positions = [index for index, token in enumerate(tokens) if DELIVERABLE_ACTION_RE.fullmatch(token)]
+    if action_positions and all(
+        DELIVERABLE_ACTION_RE.fullmatch(token) or DELIVERABLE_GENERIC_WORD_RE.fullmatch(token)
+        for token in tokens
+    ):
+        return True
+    return all(DELIVERABLE_GENERIC_WORD_RE.fullmatch(token) for token in tokens)
+
+
+def validate_implementation_deliverables(task_name: str, body: str) -> tuple[list[str], list[str]]:
+    errors: list[str] = []
+    sections = actual_h2_sections(body)
+    deliverable_sections = [item for item in sections if item[0] == "Implementation deliverables"]
+    if not deliverable_sections:
+        return [], [f"{task_name} missing section: Implementation deliverables"]
+    if len(deliverable_sections) != 1:
+        errors.append(
+            f"{task_name} Implementation deliverables section must appear exactly once"
+        )
+    inline_headings = [item for item in sections if item[0] == "Inline contract context"]
+    steps_headings = [item for item in sections if item[0] == "Steps"]
+    if (
+        len(inline_headings) == 1 and len(steps_headings) == 1
+        and not (inline_headings[0][2] < deliverable_sections[0][2] < steps_headings[0][2])
+    ):
+        errors.append(
+            f"{task_name} Implementation deliverables must be between Inline contract context and Steps"
+        )
+    items = implementation_deliverable_items(deliverable_sections[0][1])
+    if len(items) < 2:
+        errors.append(
+            f"{task_name} Implementation deliverables requires at least two top-level Markdown list items"
+        )
+    for index, item in enumerate(items, start=1):
+        analysis = deliverable_prose_analysis(item)
+        if not substantive(item, 12):
+            errors.append(
+                f"{task_name} Implementation deliverables item {index} must be substantive"
+            )
+        elif analysis["fragment_chain"]:
+            errors.append(
+                f"{task_name} Implementation deliverables item {index} contains a punctuation-separated one-letter fragment chain"
+            )
+        elif analysis["mixed_script_tokens"]:
+            errors.append(
+                f"{task_name} Implementation deliverables item {index} contains mixed Cyrillic/Latin script in one prose token"
+            )
+        elif not deliverable_prose_floor(analysis):
+            errors.append(
+                f"{task_name} Implementation deliverables item {index} requires independent prose with at least "
+                f"{DELIVERABLE_PROSE_MIN_WORDS} alphabetic words and {DELIVERABLE_PROSE_MIN_LETTERS} letters"
+            )
+        elif generic_deliverable(analysis):
+            errors.append(
+                f"{task_name} Implementation deliverables item {index} is generic"
+            )
+    return items, errors
 
 
 def explicit_none(value: str | None) -> bool:
@@ -804,8 +917,41 @@ def parse_paths(raw: str) -> tuple[list[tuple[str, str]], list[str]]:
     return result, errors
 
 
+def parse_read_only_context(raw: str) -> tuple[list[str], list[str]]:
+    if raw.strip().casefold() == "none":
+        return [], []
+    try:
+        values = json.loads(raw)
+    except json.JSONDecodeError:
+        return [], ["Read-only context must be exact none or a JSON array of repo-relative paths"]
+    if (
+        not isinstance(values, list) or not values
+        or not all(isinstance(item, str) and item.strip() for item in values)
+        or values != sorted(set(values))
+    ):
+        return [], ["Read-only context must be a sorted unique non-empty JSON array"]
+    errors: list[str] = []
+    for value in values:
+        path = Path(value)
+        if path.is_absolute() or ".." in path.parts or path.as_posix() != value:
+            errors.append(f"Read-only context rejects unsafe path: {value}")
+    return values, errors
+
+
+def path_is_within(raw: str, roots: list[str]) -> bool:
+    value = Path(raw)
+    return any(value == Path(root) or Path(root) in value.parents for root in roots)
+
+
+def paths_overlap(left: str, right: str) -> bool:
+    lhs = Path(left); rhs = Path(right)
+    return lhs == rhs or lhs in rhs.parents or rhs in lhs.parents
+
+
 def parse_tasks(
-    repo: Path, package: Path, require_boundary_owner: bool = True
+    repo: Path, package: Path, require_boundary_owner: bool = True,
+    adapter: dict[str, object] | None = None, validate_plan_paths: bool = False,
+    require_implementation_deliverables: bool = False,
 ) -> tuple[list[dict[str, object]], list[str]]:
     errors: list[str] = []
     plan = package / "plan"
@@ -821,6 +967,8 @@ def parse_tasks(
             errors.append(f"{path.name} contains unresolved placeholder")
         fields: dict[str, str] = {}
         field_names = ["Layer", "Engineering scopes", "Depends on", "Status", "Evidence", "Estimate (ideal)", "Paths"]
+        if validate_plan_paths:
+            field_names.append("Read-only context")
         if require_boundary_owner:
             field_names.insert(1, "Boundary owner")
         for name in field_names:
@@ -832,6 +980,12 @@ def parse_tasks(
         for name in ("Goal", "Inline contract context", "Steps", "Verification", "Expected result", "Out of scope"):
             if not substantive(section(body, name), 12):
                 errors.append(f"{path.name} missing substantive section: {name}")
+        implementation_deliverables: list[str] = []
+        if require_implementation_deliverables:
+            implementation_deliverables, deliverable_errors = validate_implementation_deliverables(
+                path.name, body,
+            )
+            errors.extend(deliverable_errors)
         layer = fields.get("Layer", "").casefold()
         if layer not in {"domain", "data", "presentation", "infrastructure", "tests"}:
             errors.append(f"{path.name} must declare one allowed Layer")
@@ -873,6 +1027,17 @@ def parse_tasks(
                 errors.append(f"{path.name} path escapes repository")
             elif kind == "existing" and not target.exists():
                 errors.append(f"{path.name} existing path does not exist: {raw}")
+        read_only_context, context_errors = parse_read_only_context(fields.get("Read-only context", "none"))
+        for error in context_errors:
+            errors.append(f"{path.name} {error}")
+        for raw in read_only_context:
+            try:
+                target = safe_repo_path(repo, raw, "Read-only context")
+            except AdapterError as error:
+                errors.append(f"{path.name} {error}")
+                continue
+            if not target.exists():
+                errors.append(f"{path.name} Read-only context does not exist: {raw}")
         raw_deps = fields.get("Depends on", "")
         deps = set() if raw_deps.casefold() in {"none", "-", "—"} else set(re.findall(r"\btask-\d{3}\b", raw_deps))
         if raw_deps.casefold() not in {"none", "-", "—"} and not deps:
@@ -881,7 +1046,7 @@ def parse_tasks(
             errors.append(f"{path.name} depends on missing {dep}")
         if path.stem in deps:
             errors.append(f"{path.name} depends on itself")
-        tasks.append({"id": path.stem, "path": path, "body": body, "layer": layer, "engineering_scopes": task_scopes, "status": status, "evidence": evidence, "deps": deps, "paths": parsed_paths})
+        tasks.append({"id": path.stem, "path": path, "body": body, "layer": layer, "engineering_scopes": task_scopes, "status": status, "evidence": evidence, "deps": deps, "paths": parsed_paths, "read_only_context": read_only_context, "implementation_deliverables": implementation_deliverables})
     by_id = {str(t["id"]): t for t in tasks}
     visiting: set[str] = set()
     visited: set[str] = set()
@@ -903,6 +1068,41 @@ def parse_tasks(
             for dep in task["deps"]:
                 if by_id[str(dep)]["status"] != "done":
                     errors.append(f"{task['id']} is done before dependency {dep}")
+    if validate_plan_paths:
+        if adapter is None:
+            errors.append("plan path validation requires platform adapter boundaries")
+        else:
+            production = [str(item) for item in adapter.get("production_roots", [])]
+            denied = [str(item) for item in adapter.get("protected_roots", [])] + [
+                str(item) for item in adapter.get("production_exclusions", [])
+            ]
+            writable: list[tuple[str, str, str]] = []
+            contexts: list[tuple[str, str]] = []
+            for task in tasks:
+                task_id = str(task["id"])
+                for kind, raw in task["paths"]:
+                    writable.append((task_id, kind, raw))
+                    try:
+                        path_ownership.validate_platform_writable_path(
+                            repo, adapter, raw, require_existing=kind == "existing"
+                        )
+                    except path_ownership.PathOwnershipError as error:
+                        errors.append(f"{task_id} Paths ownership invalid: {error}")
+                    target = repo / raw
+                    if kind == "proposed" and target.exists():
+                        errors.append(f"{task_id} proposed path already exists: {raw}")
+                contexts.extend((task_id, raw) for raw in task.get("read_only_context", []))
+            for index, (task_id, _kind, raw) in enumerate(writable):
+                for other_task, _other_kind, other in writable[index + 1:]:
+                    if paths_overlap(raw, other):
+                        errors.append(
+                            f"plan writable Paths overlap across {task_id}/{other_task}: {raw} <> {other}"
+                        )
+                for context_task, context in contexts:
+                    if paths_overlap(raw, context):
+                        errors.append(
+                            f"writable Paths overlaps Read-only context in {task_id}/{context_task}: {raw} <> {context}"
+                        )
     return tasks, errors
 
 
@@ -1004,6 +1204,122 @@ def validate_state(repo: Path, adapter: dict[str, object], package: Path, meta: 
     return []
 
 
+def native_obligation_table(status: str = "pending") -> str:
+    rows = "\n".join(
+        f"| {obligation} | pending | {status} |" for obligation in NATIVE_OBLIGATION_IDS
+    )
+    return (
+        "## Native obligation coverage\n\n"
+        "| Obligation ID | Observation record | Status |\n"
+        "|---|---|---|\n" + rows + "\n"
+    )
+
+
+def validate_native_obligations(
+    package: Path, verification: str, mode: str,
+) -> tuple[dict[str, str], list[str]]:
+    errors: list[str] = []
+    body = section(verification, "Native obligation coverage") or ""
+    rows: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for line in body.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or cells[0].casefold() == "obligation id" or set(cells[0]) <= {"-", ":"}:
+            continue
+        rows[cells[0]].append((cells[1], cells[2]))
+    expected = set(NATIVE_OBLIGATION_IDS)
+    if set(rows) != expected:
+        missing = sorted(expected - set(rows)); extra = sorted(set(rows) - expected)
+        if missing: errors.append(f"native obligation rows missing: {', '.join(missing)}")
+        if extra: errors.append(f"unknown native obligation rows: {', '.join(extra)}")
+    observation_targets: set[Path] = set()
+    for values in rows.values():
+        for record_raw, _status_value in values:
+            value = Path(record_raw)
+            target = (package / value).resolve()
+            if (
+                record_raw != "pending" and not value.is_absolute()
+                and ".." not in value.parts and is_subpath(target, package / "evidence")
+            ):
+                observation_targets.add(target)
+    statuses: dict[str, str] = {}
+    for obligation in NATIVE_OBLIGATION_IDS:
+        values = rows.get(obligation, [])
+        if len(values) != 1:
+            if len(values) > 1: errors.append(f"native obligation row duplicate: {obligation}")
+            continue
+        record_raw, status_value = values[0]
+        statuses[obligation] = status_value
+        if mode in {"propose", "plan"} or (
+            mode == "implement" and record_raw == "pending" and status_value == "pending"
+        ):
+            if record_raw != "pending" or status_value != "pending":
+                errors.append(f"pre-verification native obligation must be pending: {obligation}")
+            continue
+        if status_value not in {"PASS", "FAIL", "UNKNOWN"}:
+            errors.append(f"native obligation status is invalid: {obligation}")
+            continue
+        record_path = Path(record_raw)
+        target = (package / record_path).resolve()
+        if (
+            record_path.is_absolute() or ".." in record_path.parts
+            or not is_subpath(target, package / "evidence") or not target.is_file()
+        ):
+            errors.append(f"native observation record missing/unsafe: {obligation}")
+            continue
+        try:
+            record = json.loads(read(target))
+        except (OSError, json.JSONDecodeError):
+            errors.append(f"native observation record JSON invalid: {obligation}")
+            continue
+        if not isinstance(record, dict) or set(record) != NATIVE_OBSERVATION_KEYS:
+            errors.append(f"native observation record schema must be exact: {obligation}")
+            continue
+        if record.get("schema_version") != 1 or record.get("obligation_id") != obligation:
+            errors.append(f"native observation record identity mismatch: {obligation}")
+        if record.get("status") != status_value:
+            errors.append(f"native row/record status mismatch: {obligation}")
+        if not substantive(str(record.get("observation", "")), 12):
+            errors.append(f"native observation is not substantive: {obligation}")
+        else:
+            errors.extend(artifact_language.validate_authored_json_string(
+                record.get("observation"), f"native observation {obligation}"
+            ))
+        evidence_refs = record.get("evidence_refs")
+        if not isinstance(evidence_refs, list) or not all(isinstance(item, str) for item in evidence_refs):
+            errors.append(f"native observation evidence_refs must be an array: {obligation}")
+            evidence_refs = []
+        if status_value in {"PASS", "FAIL"} and not evidence_refs:
+            errors.append(f"native {status_value} requires underlying evidence refs: {obligation}")
+        for raw in evidence_refs:
+            value = Path(raw); evidence = (package / value).resolve()
+            if (
+                value.is_absolute() or ".." in value.parts
+                or not is_subpath(evidence, package / "evidence")
+                or evidence in observation_targets
+                or not evidence.is_file() or evidence.stat().st_size == 0
+            ):
+                if evidence in observation_targets:
+                    errors.append(f"native underlying evidence cannot reference observation record: {obligation}")
+                else:
+                    errors.append(f"native underlying evidence missing/unsafe: {obligation}")
+        if mode in TERMINAL_MODES and status_value != "PASS":
+            errors.append(f"terminal native obligation must be PASS: {obligation}")
+    return statuses, errors
+
+
+def affected_tasks_for_problem(
+    tasks: list[dict[str, object]], task_context_ids: dict[str, set[str]], problem: str,
+) -> list[dict[str, object]]:
+    if problem in NATIVE_OBLIGATION_IDS:
+        return [task for task in tasks if "ui" in set(task.get("engineering_scopes", []))]
+    return [
+        task for task in tasks
+        if problem in task_context_ids.get(str(task["id"]), set())
+    ]
+
+
 def validate_package(repo: Path, adapter: dict[str, object], feature: str, change_id: str, mode: str) -> list[str]:
     try:
         require_capability(adapter, "archive-implementation" if mode == "archive" else mode)
@@ -1066,10 +1382,23 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         errors.extend(validate_rule_selection_snapshot(package, meta))
     if not isinstance(meta.get("blocking_questions"), list) or meta.get("blocking_questions"):
         errors.append("blocking_questions must be an empty array")
+    if language_required and isinstance(meta.get("blocking_questions"), list):
+        for index, value in enumerate(meta["blocking_questions"]):
+            if isinstance(value, str):
+                errors.extend(artifact_language.validate_authored_json_string(
+                    value, f"meta.blocking_questions[{index}]"
+                ))
     if not isinstance(meta.get("problems"), list):
         errors.append("problems must be an array")
     elif not all(isinstance(item, str) for item in meta.get("problems", [])):
         errors.append("problems entries must be contract ID strings")
+    else:
+        for value in meta.get("problems", []):
+            if (
+                not re.fullmatch(r"(?:REQ|AC|[A-Z][A-Z0-9]*-(?:REQ|AC))-\d+", value)
+                and value not in NATIVE_OBLIGATION_IDS
+            ):
+                errors.append(f"problems entry is not a known contract/native obligation ID: {value}")
 
     shared_reqs: set[str] = set(); shared_acs: set[str] = set()
     if meta.get("change_type") == "product-backed":
@@ -1094,6 +1423,11 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     else:
         if meta.get("shared_product_spec") is not None: errors.append("technical-only shared_product_spec must be null")
         if meta.get("product_impact") != "NONE" or not substantive(str(meta.get("impact_evidence", ""))): errors.append("technical-only requires NONE impact evidence")
+    impact_evidence = meta.get("impact_evidence")
+    if language_required and isinstance(impact_evidence, str):
+        errors.extend(artifact_language.validate_authored_json_string(
+            impact_evidence, "meta.impact_evidence"
+        ))
 
     package_scopes = set(raw_scopes) if isinstance(raw_scopes, list) else set()
     platform_ux_errors = validate_platform_ux(repo, adapter, package, feature, meta, package_scopes)
@@ -1183,9 +1517,17 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     verification = read(package / "verification.md")
     if contract_version == CURRENT_MODULARITY_CONTRACT_VERSION:
         errors.extend(validate_modularity_verification(verification, mode))
-    if meta.get("change_type") == "product-backed" and "ui" in package_scopes:
+    native_required = (
+        contract_version == CURRENT_MODULARITY_CONTRACT_VERSION
+        and meta.get("change_type") == "product-backed"
+        and "ui" in package_scopes
+    )
+    native_status: dict[str, str] = {}
+    if native_required:
         if not substantive(section(verification, "Native UX verification"), 20):
             errors.append("verification.md requires Native UX verification")
+        native_status, native_errors = validate_native_obligations(package, verification, mode)
+        errors.extend(native_errors)
     rows: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     for line in verification.splitlines():
         if not line.lstrip().startswith("|"): continue
@@ -1217,10 +1559,12 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
                 concrete_evidence(contract, evidence)
             elif status.lower() != "pending":
                 errors.append(f"pre-verification row has invalid status: {contract}")
+    all_verification_status = dict(row_status)
+    all_verification_status.update(native_status)
 
     if mode == "propose":
         if meta.get("problems") != []: errors.append("propose requires empty problems")
-        if any(status.casefold() != "pending" for status in row_status.values()): errors.append("propose verification rows must be pending")
+        if any(status.casefold() != "pending" for status in all_verification_status.values()): errors.append("propose verification rows must be pending")
         if meta.get("status") != "specified": errors.append("propose requires specified status")
         if meta.get("tasks_total") != 0 or meta.get("tasks_done") != 0: errors.append("specified package task counts must be zero")
         if meta.get("verification_status") != "pending" or meta.get("verified_at") is not None or meta.get("verification_state") is not None: errors.append("specified verification fields must be pending/null")
@@ -1229,6 +1573,9 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     tasks, task_errors = parse_tasks(
         repo, package,
         require_boundary_owner=contract_version == CURRENT_MODULARITY_CONTRACT_VERSION,
+        adapter=adapter,
+        validate_plan_paths=mode == "plan" and contract_version == CURRENT_MODULARITY_CONTRACT_VERSION,
+        require_implementation_deliverables=contract_version == CURRENT_MODULARITY_CONTRACT_VERSION,
     ); errors.extend(task_errors)
     readme = package / "plan" / "README.md"
     if not readme.is_file(): errors.append("plan/README.md missing")
@@ -1280,7 +1627,7 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
 
     if mode == "plan":
         if meta.get("problems") != []: errors.append("plan requires empty problems")
-        if any(status.casefold() != "pending" for status in row_status.values()): errors.append("plan verification rows must be pending")
+        if any(status.casefold() != "pending" for status in all_verification_status.values()): errors.append("plan verification rows must be pending")
         if meta.get("status") != "planned": errors.append("plan requires planned status")
         if done: errors.append("new plan tasks must all be pending")
         if meta.get("verification_status") != "pending": errors.append("plan verification must be pending")
@@ -1290,20 +1637,20 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         problems = [item for item in meta.get("problems", []) if isinstance(item, str)] if isinstance(meta.get("problems"), list) else []
         if verification_status == "pending":
             if problems: errors.append("initial implement state requires empty problems")
-            if any(status.casefold() != "pending" for status in row_status.values()): errors.append("initial implement verification rows must be pending")
+            if any(status.casefold() != "pending" for status in all_verification_status.values()): errors.append("initial implement verification rows must be pending")
             if meta.get("verified_at") is not None or meta.get("verification_state") is not None: errors.append("initial implement verification timestamp/state must be null")
         elif verification_status in {"FAIL", "UNKNOWN"}:
             if meta.get("status") != "implementing": errors.append("recovery state requires implementing status")
             if meta.get("verified_at") is not None or meta.get("verification_state") is not None: errors.append("recovery verified_at/state must be null")
-            if any(status not in {"PASS", "FAIL", "UNKNOWN"} for status in row_status.values()): errors.append("recovery rows must be exact PASS/FAIL/UNKNOWN")
-            non_pass = {contract for contract, status in row_status.items() if status in {"FAIL", "UNKNOWN"}}
+            if any(status not in {"PASS", "FAIL", "UNKNOWN"} for status in all_verification_status.values()): errors.append("recovery rows must be exact PASS/FAIL/UNKNOWN")
+            non_pass = {contract for contract, status in all_verification_status.items() if status in {"FAIL", "UNKNOWN"}}
             if not non_pass: errors.append("recovery state requires at least one FAIL/UNKNOWN row")
-            expected_status = "FAIL" if any(row_status.get(contract) == "FAIL" for contract in non_pass) else "UNKNOWN"
+            expected_status = "FAIL" if any(all_verification_status.get(contract) == "FAIL" for contract in non_pass) else "UNKNOWN"
             if verification_status != expected_status: errors.append("recovery verification_status does not match row precedence")
             if set(problems) != non_pass or len(problems) != len(non_pass): errors.append("recovery problems must exactly equal non-PASS contract IDs")
             direct_affected: set[str] = set()
             for contract in non_pass:
-                mapped = [task for task in tasks if contract in task_context_ids.get(str(task["id"]), set())]
+                mapped = affected_tasks_for_problem(tasks, task_context_ids, contract)
                 if not mapped:
                     errors.append(f"recovery problem has no task mapping; repair plan: {contract}")
                 direct_affected.update(str(task["id"]) for task in mapped)
@@ -1538,8 +1885,8 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
     common_phase.write_text("Current universal terminal verification phase.\n", encoding="utf-8")
     product_validator = load_product_validator()
     product = repo / "specs/product/sample/spec.md"; product.parent.mkdir(parents=True)
-    (product.parent / "brief.md").write_text("Substantive shared product fixture brief.\n", encoding="utf-8")
-    (product.parent / "ux.md").write_text("Shared calm soft-blue UX intent for both clients.\n", encoding="utf-8")
+    (product.parent / "brief.md").write_text("Содержательный общий продуктовый brief для fixture.\n", encoding="utf-8")
+    (product.parent / "ux.md").write_text("Общий спокойный soft-blue UX замысел для обоих клиентов.\n", encoding="utf-8")
     product.write_text(product_validator.fixture_spec(), encoding="utf-8")
     product_validator.write_fixture_receipt(repo, "sample")
     product.write_text(product.read_text(encoding="utf-8").replace("`DRAFT`", "`READY`", 1), encoding="utf-8")
@@ -1547,7 +1894,7 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
     if fixture_product_errors:
         raise AssertionError(fixture_product_errors)
     package = repo / "TestClient/specs/sample/changes/sample"; package.mkdir(parents=True)
-    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"modularity_contract_version":1,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
+    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"одобренное общее поведение применимо","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"modularity_contract_version":1,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
     (package/"meta.json").write_text(json.dumps(meta), encoding="utf-8")
     (package/"proposal.md").write_text("# Proposal\n\n## Intake\nApproved shared product contract is the implementation intake.\n\n## Goal\nDeliver the selected behavior within the platform boundary.\n\n## Scope\nTyped platform implementation and focused verification are included.\n\n## Engineering scope selection\nApplication scope is selected from discovered production ownership.\n\n## Applicable rule files\nExact lifecycle union includes the base and selected application rules.\n\n## Non-goals\nOther platforms and unrelated cleanup remain outside this change.\n\n## Accepted decisions\nUse adapter ownership and preserve the approved shared behavior.\n\n## Open questions\nNone.\n\n## Risks\nGreenfield integration requires focused boundary verification.\n", encoding="utf-8")
     (package/"implementation-spec.md").write_text("# Spec\n\n## Intake reference\nApproved shared contract applies to this platform change.\n\n## Shared contract references\nReferences REQ-1 and AC-1 without copying behavior text.\n\n## Platform requirements\n### TST-REQ-1 — Boundary\nA typed boundary isolates platform integration and supports focused verification.\n\n## Platform acceptance criteria\n### TST-AC-1 — Boundary result\nA focused test observes the typed boundary returning a deterministic result.\nCovers: TST-REQ-1\n\n## Constraints\nPreserve shared behavior and adapter ownership boundaries.\n\n## Integration points\nConnect through the discovered platform composition boundary.\n\n## Open questions\nNone.\n", encoding="utf-8")
@@ -1582,6 +1929,441 @@ def self_test() -> int:
             ARTIFACT_LANGUAGE_RULE in real_adapter["phase_rule_profiles"][phase]
             for phase in ("propose", "plan", "implement", "verify")
         )
+        legacy_errors = validate_package(
+            repository_root(), real_adapter,
+            "client-bootstrap", "initial-scaffold", "implement",
+        )
+        assert legacy_errors == [], (
+            f"{platform} registry-anchored v0 implement regression",
+            legacy_errors,
+        )
+    for real_adapter in real_adapters:
+        with tempfile.TemporaryDirectory() as adapter_tmp:
+            synthetic_repo = Path(adapter_tmp).resolve()
+            platform_root = str(real_adapter["platform_root"])
+            package = synthetic_repo / platform_root / "specs/sample/changes/sample"
+            plan = package / "plan"; plan.mkdir(parents=True)
+            context_ref = f"{platform_root}/specs/context.md"
+            context_path = synthetic_repo / context_ref; context_path.parent.mkdir(parents=True, exist_ok=True)
+            context_path.write_text("Контекст только для чтения.\n", encoding="utf-8")
+            source_suffix = ".swift" if str(real_adapter["platform_input"]) == "ios" else ".kt"
+            writable_ref = f"{platform_root}/Synthetic/Feature{source_suffix}"
+            deliverables_block = (
+                "## Implementation deliverables\n"
+                "- Типизированная граница поведения в production файле.\n"
+                "- Focused test для наблюдаемого результата границы.\n\n"
+            )
+            synthetic_task = (
+                "# task-001\n- Layer: domain\n- Boundary owner: Synthetic capability boundary\n"
+                "- Engineering scopes: [\"application\"]\n- Depends on: none\n"
+                "- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n"
+                f"- Read-only context: [\"{context_ref}\"]\n- Paths: proposed: {writable_ref}\n\n"
+                "## Goal\nСоздать синтетическую границу.\n\n## Inline contract context\n"
+                "REQ-1 и AC-1 задают наблюдаемую границу.\n\n" + deliverables_block +
+                "## Steps\nСоздать production файл.\n\n"
+                "## Verification\nПроверить focused сценарий.\n\n## Expected result\n"
+                "Сценарий подтверждает результат.\n\n## Out of scope\nОстальные изменения исключены.\n"
+            )
+            task_path = plan / "task-001.md"; task_path.write_text(synthetic_task, encoding="utf-8")
+            _tasks, real_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter, validate_plan_paths=True,
+                require_implementation_deliverables=True,
+            )
+            assert real_errors == [], (real_adapter["platform_input"], real_errors)
+            russian_outcomes = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Пользователь увидит сохранённый выбор после повторного открытия.\n"
+                "2. Возврат на экран восстанавливает выбранную вкладку навигации.\n\n",
+                1,
+            )
+            task_path.write_text(russian_outcomes, encoding="utf-8")
+            _tasks, russian_outcome_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert russian_outcome_errors == [], (
+                real_adapter["platform_input"], russian_outcome_errors,
+            )
+            russian_hyphenated = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Северо-западный маршрут сохраняет выбранную вкладку навигации.\n"
+                "2. Повторное открытие восстанавливает выбранное состояние экрана.\n\n",
+                1,
+            )
+            task_path.write_text(russian_hyphenated, encoding="utf-8")
+            _tasks, russian_hyphenated_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert russian_hyphenated_errors == [], (
+                real_adapter["platform_input"], russian_hyphenated_errors,
+            )
+            separate_technical_terms = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- SwiftUI отображает сохранённое состояние выбранной вкладки навигации.\n"
+                "2. Material восстанавливает понятный маршрут после повторного открытия.\n\n",
+                1,
+            )
+            task_path.write_text(separate_technical_terms, encoding="utf-8")
+            _tasks, separate_technical_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert separate_technical_errors == [], (
+                real_adapter["platform_input"], separate_technical_errors,
+            )
+            missing_deliverables = synthetic_task.replace(deliverables_block, "", 1)
+            task_path.write_text(missing_deliverables, encoding="utf-8")
+            _tasks, missing_deliverable_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("missing section: Implementation deliverables" in error for error in missing_deliverable_errors), (
+                real_adapter["platform_input"], missing_deliverable_errors,
+            )
+            fenced_only = missing_deliverables.replace(
+                "## Steps\n",
+                "```markdown\n## Implementation deliverables\n"
+                "- Fake boundary artifact inside code.\n"
+                "- Fake focused test inside code.\n```\n\n## Steps\n",
+                1,
+            )
+            task_path.write_text(fenced_only, encoding="utf-8")
+            _tasks, fenced_only_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("missing section: Implementation deliverables" in error for error in fenced_only_errors), (
+                real_adapter["platform_input"], fenced_only_errors,
+            )
+            quoted_only = missing_deliverables.replace(
+                "## Steps\n",
+                "> ## Implementation deliverables\n"
+                "> - Quoted boundary artifact.\n"
+                "> - Quoted focused test.\n\n## Steps\n",
+                1,
+            )
+            task_path.write_text(quoted_only, encoding="utf-8")
+            _tasks, quoted_only_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("missing section: Implementation deliverables" in error for error in quoted_only_errors), (
+                real_adapter["platform_input"], quoted_only_errors,
+            )
+            nested_first = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "  - Вложенное описание навигационного перехода.\n"
+                "- Пользователь увидит сохранённый выбор после возврата.\n\n",
+                1,
+            )
+            task_path.write_text(nested_first, encoding="utf-8")
+            _tasks, nested_first_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("at least two top-level" in error for error in nested_first_errors), (
+                real_adapter["platform_input"], nested_first_errors,
+            )
+            fenced_literal_heading = synthetic_task.replace(
+                deliverables_block,
+                deliverables_block.replace(
+                    "\n\n", "\n```markdown\n## Implementation deliverables\n- Literal heading in code.\n```\n\n", 1,
+                ),
+                1,
+            )
+            task_path.write_text(fenced_literal_heading, encoding="utf-8")
+            _tasks, fenced_literal_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert fenced_literal_errors == [], (
+                real_adapter["platform_input"], fenced_literal_errors,
+            )
+            misplaced_deliverables = synthetic_task.replace(deliverables_block, "", 1).replace(
+                "## Verification\n", deliverables_block + "## Verification\n", 1,
+            )
+            task_path.write_text(misplaced_deliverables, encoding="utf-8")
+            _tasks, misplaced_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("must be between" in error for error in misplaced_errors), (
+                real_adapter["platform_input"], misplaced_errors,
+            )
+            duplicate_deliverables = synthetic_task.replace(
+                "## Steps\n", deliverables_block + "## Steps\n", 1,
+            )
+            task_path.write_text(duplicate_deliverables, encoding="utf-8")
+            _tasks, duplicate_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("appear exactly once" in error for error in duplicate_errors), (
+                real_adapter["platform_input"], duplicate_errors,
+            )
+            prose_only = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\nБудет создана граница и проверено её поведение.\n\n",
+                1,
+            )
+            task_path.write_text(prose_only, encoding="utf-8")
+            _tasks, prose_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("at least two top-level" in error for error in prose_errors), (
+                real_adapter["platform_input"], prose_errors,
+            )
+            one_item = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n- Типизированная граница поведения в production файле.\n\n",
+                1,
+            )
+            task_path.write_text(one_item, encoding="utf-8")
+            _tasks, one_item_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("at least two top-level" in error for error in one_item_errors), (
+                real_adapter["platform_input"], one_item_errors,
+            )
+            generic_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Реализовать необходимую задачу.\n"
+                "- Выполнить требуемую работу.\n\n",
+                1,
+            )
+            task_path.write_text(generic_items, encoding="utf-8")
+            _tasks, generic_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("Implementation deliverables item" in error for error in generic_errors) == 2, (
+                real_adapter["platform_input"], generic_errors,
+            )
+            generic_project_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Создать необходимые изменения в проекте.\n"
+                "- Добавить нужные проверки результата.\n\n",
+                1,
+            )
+            task_path.write_text(generic_project_items, encoding="utf-8")
+            _tasks, generic_project_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in generic_project_errors) == 2, (
+                real_adapter["platform_input"], generic_project_errors,
+            )
+            assert normalize_deliverable_unicode("файлы и настройки") == "файлы и настройки"
+            generic_files_settings = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Подготовить необходимые файлы и настройки проекта для проверки результата.\n"
+                "- Обновить требуемые настройки и файлы проекта для теста результата.\n\n",
+                1,
+            )
+            task_path.write_text(generic_files_settings, encoding="utf-8")
+            _tasks, generic_files_settings_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in generic_files_settings_errors) == 2, (
+                real_adapter["platform_input"], generic_files_settings_errors,
+            )
+            combining_generic_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Создать необхо́димые изменения в проекте и проверки результата.\n"
+                "- Добавить тре́буемые файлы проекта и тесты проверки результата.\n\n",
+                1,
+            )
+            task_path.write_text(combining_generic_items, encoding="utf-8")
+            _tasks, combining_generic_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in combining_generic_errors) == 2, (
+                real_adapter["platform_input"], combining_generic_errors,
+            )
+            mixed_script_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Создать всe нeобходимыe изменения в проекте и проверки результата.\n"
+                "- Добавить всe трeбуемыe файлы проекта и тесты проверки результата.\n\n",
+                1,
+            )
+            task_path.write_text(mixed_script_items, encoding="utf-8")
+            _tasks, mixed_script_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("mixed Cyrillic/Latin" in error for error in mixed_script_errors) == 2, (
+                real_adapter["platform_input"], mixed_script_errors,
+            )
+            zero_width_generic_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Создать все необхо\u200bдимые изменения в проекте и проверки результата.\n"
+                "- Добавить все тре\u200bбуемые файлы проекта и тесты проверки результата.\n\n",
+                1,
+            )
+            task_path.write_text(zero_width_generic_items, encoding="utf-8")
+            _tasks, zero_width_generic_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in zero_width_generic_errors) == 2, (
+                real_adapter["platform_input"], zero_width_generic_errors,
+            )
+            hyphen_fragment_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- а-б-в-г-д сохраняет выбранное состояние вкладки навигации.\n"
+                "- a-b-c-d-e восстанавливает выбранное состояние экрана навигации.\n\n",
+                1,
+            )
+            task_path.write_text(hyphen_fragment_items, encoding="utf-8")
+            _tasks, hyphen_fragment_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("one-letter fragment chain" in error for error in hyphen_fragment_errors) == 2, (
+                real_adapter["platform_input"], hyphen_fragment_errors,
+            )
+            punctuation_fragment_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- а.б.в.г.д сохраняет выбранное состояние вкладки навигации.\n"
+                "- а/б/в/г/д восстанавливает выбранное состояние экрана навигации.\n\n",
+                1,
+            )
+            task_path.write_text(punctuation_fragment_items, encoding="utf-8")
+            _tasks, punctuation_fragment_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("one-letter fragment chain" in error for error in punctuation_fragment_errors) == 2, (
+                real_adapter["platform_input"], punctuation_fragment_errors,
+            )
+            path_padding_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- `iOS/Sources/Feature.swift` — production файл.\n"
+                "- `Android/src/FeatureTest.kt` — production файл.\n\n",
+                1,
+            )
+            task_path.write_text(path_padding_items, encoding="utf-8")
+            _tasks, path_padding_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("requires independent prose" in error for error in path_padding_errors) == 2, (
+                real_adapter["platform_input"], path_padding_errors,
+            )
+            code_padding_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- `NavigationState` — Swift тип для REQ-1 и AC-1.\n"
+                "- `SelectionStore` — Swift тип для REQ-1 и AC-1.\n\n",
+                1,
+            )
+            task_path.write_text(code_padding_items, encoding="utf-8")
+            _tasks, code_padding_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("requires independent prose" in error for error in code_padding_errors) == 2, (
+                real_adapter["platform_input"], code_padding_errors,
+            )
+            id_padding_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- REQ-1 / AC-1 — product контракт и результат.\n"
+                "- TST-REQ-1 / TST-AC-1 — product контракт и результат.\n\n",
+                1,
+            )
+            task_path.write_text(id_padding_items, encoding="utf-8")
+            _tasks, id_padding_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in id_padding_errors) == 2, (
+                real_adapter["platform_input"], id_padding_errors,
+            )
+            jargon_padding_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Флюксорная синхронизация завершена.\n"
+                "- Квазимодульный оркестратор подготовлен.\n\n",
+                1,
+            )
+            task_path.write_text(jargon_padding_items, encoding="utf-8")
+            _tasks, jargon_padding_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("requires independent prose" in error for error in jargon_padding_errors) == 2, (
+                real_adapter["platform_input"], jargon_padding_errors,
+            )
+            long_generic_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n"
+                "- Подготовить все необходимые текущие изменения в проекте и требуемые проверки результата.\n"
+                "- Обновить все нужные файлы проекта и необходимые тесты проверки результата.\n\n",
+                1,
+            )
+            task_path.write_text(long_generic_items, encoding="utf-8")
+            _tasks, long_generic_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert sum("is generic" in error for error in long_generic_errors) == 2, (
+                real_adapter["platform_input"], long_generic_errors,
+            )
+            placeholder_items = synthetic_task.replace(
+                deliverables_block,
+                "## Implementation deliverables\n- Production файл `<artifact>`.\n- Focused test для границы поведения.\n\n",
+                1,
+            )
+            task_path.write_text(placeholder_items, encoding="utf-8")
+            _tasks, placeholder_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("unresolved placeholder" in error for error in placeholder_errors), (
+                real_adapter["platform_input"], placeholder_errors,
+            )
+            missing_steps = synthetic_task.replace(
+                "## Steps\nСоздать production файл.\n\n", "## Steps\n\n", 1,
+            )
+            task_path.write_text(missing_steps, encoding="utf-8")
+            _tasks, missing_steps_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter,
+                require_implementation_deliverables=True,
+            )
+            assert any("missing substantive section: Steps" in error for error in missing_steps_errors), (
+                real_adapter["platform_input"], missing_steps_errors,
+            )
+            task_path.write_text(synthetic_task, encoding="utf-8")
+            task_path.write_text(
+                synthetic_task.replace(f"proposed: {writable_ref}", f"existing: {context_ref}"),
+                encoding="utf-8",
+            )
+            _tasks, protected_errors = parse_tasks(
+                synthetic_repo, package, adapter=real_adapter, validate_plan_paths=True,
+                require_implementation_deliverables=True,
+            )
+            assert any("protected/excluded boundary" in error for error in protected_errors), (
+                real_adapter["platform_input"], protected_errors,
+            )
     with tempfile.TemporaryDirectory() as language_tmp:
         language_repo = Path(language_tmp)
         scenarios = {
@@ -1600,6 +2382,7 @@ def self_test() -> int:
             ),
             "machine-only": (
                 "# Verification\n\n- Status: pending\n- Evidence: none\n"
+                "- Read-only context: none\n"
                 "- Paths: proposed: Android/features/app-shell/build.gradle.kts\n"
                 "| Contract ID | Status |\n|---|---|\n| AND-REQ-1 | PASS |\n"
             ),
@@ -1790,6 +2573,20 @@ def self_test() -> int:
             assert validate_authored_markdown_language(
                 language_repo, language_package, task_report,
             ) == []
+            task_report.write_text(
+                "This standalone English sentence must remain invalid. "
+                "Длинное русское пояснение подтверждает результат, описывает проверку, "
+                "границы и наблюдаемое поведение, но не компенсирует английское предложение.\n",
+                encoding="utf-8",
+            )
+            padding_errors = validate_authored_markdown_language(
+                language_repo, language_package, task_report,
+            )
+            assert len(padding_errors) == 1 and "task-001.md" in padding_errors[0]
+            task_report.write_text(
+                "Отчёт задачи написан по-русски и фиксирует проверенный результат.\n",
+                encoding="utf-8",
+            )
 
             reconciliation_report = (
                 evidence / "reconciliation-20260716T120000Z-task-001-platform-drift.md"
@@ -2036,7 +2833,8 @@ def self_test() -> int:
         )
         (package / "meta.json").write_text(json.dumps(isolated_meta))
         (package / "design.md").write_text(isolated_with_scope)
-        assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        propose_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert propose_errors == [], propose_errors
         deviation_with_scope = original_design.replace(base_decision, deviation).replace(
             "- application: Typed application boundaries and deterministic tests apply to this change.",
             "- application: Typed application boundaries and deterministic tests apply to this change.\n"
@@ -2077,7 +2875,7 @@ def self_test() -> int:
         technical.update(
             change_type="technical-only", shared_product_spec=None,
             product_status="N/A", product_approval="N/A", product_impact="NONE",
-            impact_evidence="Repository-only infrastructure has no observable product behavior impact.",
+            impact_evidence="Репозиторная инфраструктура не влияет на наблюдаемое продуктовое поведение.",
         )
         (package / "meta.json").write_text(json.dumps(technical))
         assert validate_package(repo, adapter, "sample", "sample", "propose") == []
@@ -2104,16 +2902,41 @@ def self_test() -> int:
         other = package.parent / "other"; other.mkdir(); (other/"meta.json").write_text("{}")
         try: resolve_change(repo, adapter, "sample", None, "plan"); raise AssertionError("ambiguity passed")
         except AdapterError: pass
-        (other/"meta.json").unlink(); other.rmdir()
+        (other/"meta.json").unlink()
+        try: resolve_change(repo, adapter, "sample", None, "plan"); raise AssertionError("partial sibling passed")
+        except AdapterError: pass
+        assert resolve_change(repo, adapter, "sample", "sample", "plan")[0] == "sample"
+        other.rmdir()
+        tombstone = package.parent / "old-change"; tombstone.mkdir()
+        (tombstone / "ARCHIVED.md").write_text("# Archived\n")
+        assert resolve_change(repo, adapter, "sample", None, "plan")[0] == "sample"
+        junk = package.parent / "owner-note.txt"; junk.write_text("unclassified sibling\n")
+        try: resolve_change(repo, adapter, "sample", None, "plan"); raise AssertionError("junk direct child passed omission")
+        except AdapterError: pass
+        assert resolve_change(repo, adapter, "sample", "sample", "plan")[0] == "sample"
+        junk.unlink()
+        (tombstone / "extra.txt").write_text("extra tombstone state\n")
+        try: resolve_change(repo, adapter, "sample", None, "plan"); raise AssertionError("non-tombstone-only child passed omission")
+        except AdapterError: pass
+        assert resolve_change(repo, adapter, "sample", "sample", "plan")[0] == "sample"
+        (tombstone / "extra.txt").unlink(); shutil.rmtree(tombstone)
+        linked = package.parent / "linked-change"; linked.symlink_to(package.name, target_is_directory=True)
+        try: resolve_change(repo, adapter, "sample", None, "plan"); raise AssertionError("symlink direct child passed omission")
+        except AdapterError: pass
+        assert resolve_change(repo, adapter, "sample", "sample", "plan")[0] == "sample"
+        linked.unlink()
 
         plan = package/"plan"; plan.mkdir()
         (plan/"README.md").write_text("# Plan\n\n## Planning frame\nImplement three bounded tasks after approved specification.\n\n## Revalidated engineering scopes and exact rules\n- Engineering scopes: [\"application\"]\n- Applicable rule files: [\"TestClient/workflow/base.md\", \"TestClient/workflow/application.md\"]\n\n## DAG\ntask-001 precedes dependent task-002; task-003 is independent.\n\n## Estimates and multipliers\nThe estimate includes greenfield integration uncertainty.\n\n## Verification strategy\nRun focused boundary and integration tests.\n")
-        task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nCreate the typed platform behavior boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its deterministic result.\n\n## Steps\nImplement the typed boundary and its focused behavior test.\n\n## Verification\nRun the focused deterministic boundary test.\n\n## Expected result\nThe boundary returns the expected typed result.\n\n## Out of scope\nOther features and unrelated platform cleanup remain excluded.\n"
-        task_2 = "# task-002\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: task-001\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/SampleTests.swift\n\n## Goal\nVerify the dependent shared behavior integration.\n\n## Inline contract context\nREQ-1 defines shared behavior and AC-1 observes the integrated result.\n\n## Steps\nAdd the dependent integration scenario after the boundary task.\n\n## Verification\nRun the focused shared integration test.\n\n## Expected result\nThe dependent integration test records the expected result.\n\n## Out of scope\nPlatform boundary changes remain owned by task-001.\n"
-        task_3 = "# task-003\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/IndependentTests.swift\n\n## Goal\nVerify an independent owner of the platform acceptance criterion.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the independent result.\n\n## Steps\nAdd the independent focused acceptance scenario.\n\n## Verification\nRun the independent deterministic acceptance test.\n\n## Expected result\nThe independent test records the expected boundary result.\n\n## Out of scope\nDependent integration remains owned by task-002.\n"
+        task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nCreate the typed platform behavior boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its deterministic result.\n\n## Implementation deliverables\n- Typed platform behavior boundary in `Sample.swift`.\n- Focused boundary behavior test with deterministic result.\n\n## Steps\nImplement the typed boundary and its focused behavior test.\n\n## Verification\nRun the focused deterministic boundary test.\n\n## Expected result\nThe boundary returns the expected typed result.\n\n## Out of scope\nOther features and unrelated platform cleanup remain excluded.\n"
+        task_2 = "# task-002\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: task-001\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/SampleTests.swift\n\n## Goal\nVerify the dependent shared behavior integration.\n\n## Inline contract context\nREQ-1 defines shared behavior and AC-1 observes the integrated result.\n\n## Implementation deliverables\n- Shared behavior integration scenario in `SampleTests.swift`.\n- Deterministic integration assertion for the approved result.\n\n## Steps\nAdd the dependent integration scenario after the boundary task.\n\n## Verification\nRun the focused shared integration test.\n\n## Expected result\nThe dependent integration test records the expected result.\n\n## Out of scope\nPlatform boundary changes remain owned by task-001.\n"
+        task_3 = "# task-003\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/IndependentTests.swift\n\n## Goal\nVerify an independent owner of the platform acceptance criterion.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the independent result.\n\n## Implementation deliverables\n- Independent acceptance scenario in `IndependentTests.swift`.\n- Focused assertion for the typed boundary result.\n\n## Steps\nAdd the independent focused acceptance scenario.\n\n## Verification\nRun the independent deterministic acceptance test.\n\n## Expected result\nThe independent test records the expected boundary result.\n\n## Out of scope\nDependent integration remains owned by task-002.\n"
         task = task.replace("- Layer: domain\n", "- Layer: domain\n- Boundary owner: Sample capability boundary\n", 1)
         task_2 = task_2.replace("- Layer: tests\n", "- Layer: tests\n- Boundary owner: Sample integration test boundary\n", 1)
         task_3 = task_3.replace("- Layer: tests\n", "- Layer: tests\n- Boundary owner: Sample independent test boundary\n", 1)
+        task = task.replace("- Paths:", "- Read-only context: none\n- Paths:", 1)
+        task_2 = task_2.replace("- Paths:", "- Read-only context: none\n- Paths:", 1)
+        task_3 = task_3.replace("- Paths:", "- Read-only context: none\n- Paths:", 1)
         (plan/"task-001.md").write_text(task)
         (plan/"task-002.md").write_text(task_2)
         (plan/"task-003.md").write_text(task_3)
@@ -2121,6 +2944,43 @@ def self_test() -> int:
         (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
         (package/"meta.json").write_text(json.dumps(planned))
         assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        protected_plan_task = task.replace(
+            "proposed: TestClient/Sources/Sample.swift",
+            "existing: TestClient/specs/sample/changes/sample/meta.json",
+        )
+        (plan / "task-001.md").write_text(protected_plan_task)
+        protected_plan_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("protected/excluded boundary" in error for error in protected_plan_errors), protected_plan_errors
+        context_task = task.replace(
+            "Read-only context: none",
+            'Read-only context: ["TestClient/specs/sample/changes/sample/meta.json"]',
+        )
+        (plan / "task-001.md").write_text(context_task)
+        assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        existing_source = repo / "TestClient/Sources/Sample.swift"
+        existing_source.parent.mkdir(parents=True); existing_source.write_text("struct Sample {}\n")
+        proposed_existing_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("proposed path already exists" in error for error in proposed_existing_errors)
+        existing_source.unlink(); existing_source.parent.rmdir()
+        missing_existing_task = task.replace(
+            "proposed: TestClient/Sources/Sample.swift",
+            "existing: TestClient/Sources/Missing.swift",
+        )
+        (plan / "task-001.md").write_text(missing_existing_task)
+        missing_existing_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("existing path does not exist" in error for error in missing_existing_errors)
+        overlap_task = task.replace(
+            "TestClient/Sources/Sample.swift", "TestClient/Sources"
+        )
+        overlap_task_2 = task_2.replace(
+            "TestClient/Tests/SampleTests.swift", "TestClient/Sources/SampleTests.swift"
+        )
+        (plan / "task-001.md").write_text(overlap_task)
+        (plan / "task-002.md").write_text(overlap_task_2)
+        overlap_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("writable Paths overlap" in error for error in overlap_errors), overlap_errors
+        (plan / "task-001.md").write_text(task)
+        (plan / "task-002.md").write_text(task_2)
         legacy = dict(planned)
         legacy.pop("modularity_contract_version")
         legacy_design = (package / "design.md").read_text().replace(fixture_modularity_decision(), "")
@@ -2303,6 +3163,7 @@ def self_test() -> int:
         (package / "verification.md").write_text(
             original_verification
             + "\n## Native UX verification\n\nCapture native appearance, accessibility, light/dark and fallback evidence.\n"
+            + native_obligation_table()
         )
         (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(conditional)))
         ui_test_task = task_2.replace('["application"]', '["application", "ui"]')
@@ -2416,6 +3277,76 @@ def self_test() -> int:
         (plan / "task-002.md").write_text(ui_test_task_green)
         (plan / "task-003.md").write_text(localized_resource_green)
         assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        conditional_tasks, conditional_task_errors = parse_tasks(repo, package, adapter=adapter)
+        assert conditional_task_errors == [], conditional_task_errors
+        affected_native = affected_tasks_for_problem(
+            conditional_tasks, {}, "NATIVE-ASSISTIVE-SEMANTICS"
+        )
+        assert [task["id"] for task in affected_native] == ["task-002"]
+        native_verification = (package / "verification.md").read_text(encoding="utf-8")
+        missing_native = native_verification.replace(
+            "| NATIVE-TEXT-SCALING | pending | pending |\n", "", 1
+        )
+        _native_status, missing_native_errors = validate_native_obligations(
+            package, missing_native, "plan"
+        )
+        assert any("NATIVE-TEXT-SCALING" in error and "missing" in error for error in missing_native_errors)
+        native_evidence = package / "evidence"; native_evidence.mkdir(exist_ok=True)
+        underlying = native_evidence / "native-underlying.txt"
+        underlying.write_text("Наблюдаемое native evidence.\n", encoding="utf-8")
+        terminal_rows: list[str] = []
+        for obligation in NATIVE_OBLIGATION_IDS:
+            record_ref = f"evidence/{obligation.casefold()}.json"
+            (package / record_ref).write_text(json.dumps({
+                "schema_version": 1,
+                "obligation_id": obligation,
+                "status": "PASS",
+                "observation": "Отдельное наблюдение подтверждает эту native dimension.",
+                "evidence_refs": ["evidence/native-underlying.txt"],
+            }, ensure_ascii=False), encoding="utf-8")
+            terminal_rows.append(f"| {obligation} | {record_ref} | PASS |")
+        terminal_native = (
+            "## Native obligation coverage\n\n"
+            "| Obligation ID | Observation record | Status |\n|---|---|---|\n"
+            + "\n".join(terminal_rows) + "\n"
+        )
+        _native_status, terminal_native_errors = validate_native_obligations(
+            package, terminal_native, "verify"
+        )
+        assert terminal_native_errors == [], terminal_native_errors
+        appearance_record = package / "evidence/native-appearance.json"
+        light_record = package / "evidence/native-light.json"
+        appearance_data = json.loads(appearance_record.read_text(encoding="utf-8"))
+        light_data = json.loads(light_record.read_text(encoding="utf-8"))
+        appearance_data["evidence_refs"] = ["evidence/native-light.json"]
+        appearance_record.write_text(json.dumps(appearance_data, ensure_ascii=False), encoding="utf-8")
+        _native_status, cross_record_errors = validate_native_obligations(
+            package, terminal_native, "verify"
+        )
+        assert any(
+            "cannot reference observation record: NATIVE-APPEARANCE" in error
+            for error in cross_record_errors
+        )
+        light_data["evidence_refs"] = ["evidence/native-appearance.json"]
+        light_record.write_text(json.dumps(light_data, ensure_ascii=False), encoding="utf-8")
+        _native_status, cycle_errors = validate_native_obligations(
+            package, terminal_native, "verify"
+        )
+        assert sum("cannot reference observation record" in error for error in cycle_errors) >= 2
+        appearance_data["evidence_refs"] = ["evidence/native-underlying.txt"]
+        light_data["evidence_refs"] = ["evidence/native-underlying.txt"]
+        appearance_record.write_text(json.dumps(appearance_data, ensure_ascii=False), encoding="utf-8")
+        light_record.write_text(json.dumps(light_data, ensure_ascii=False), encoding="utf-8")
+        mismatch_record = package / "evidence/native-text-scaling.json"
+        mismatch_data = json.loads(mismatch_record.read_text(encoding="utf-8"))
+        mismatch_data["status"] = "UNKNOWN"
+        mismatch_record.write_text(json.dumps(mismatch_data, ensure_ascii=False), encoding="utf-8")
+        _native_status, mismatch_errors = validate_native_obligations(
+            package, terminal_native, "verify"
+        )
+        assert any("row/record status mismatch: NATIVE-TEXT-SCALING" in error for error in mismatch_errors)
+        mismatch_data["status"] = "PASS"
+        mismatch_record.write_text(json.dumps(mismatch_data, ensure_ascii=False), encoding="utf-8")
         presentation_without_ui = task.replace("Layer: domain", "Layer: presentation")
         (plan / "task-001.md").write_text(presentation_without_ui)
         assert any("presentation task must include ui" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
@@ -2494,7 +3425,7 @@ def self_test() -> int:
         source=repo/"TestClient/Sources/Sample.swift"; source.parent.mkdir(parents=True); source.write_text("struct Sample {}\n")
         test_source=repo/"TestClient/Tests/SampleTests.swift"; test_source.parent.mkdir(parents=True); test_source.write_text("final class SampleTests {}\n")
         independent_source=repo/"TestClient/Tests/IndependentTests.swift"; independent_source.write_text("final class IndependentTests {}\n")
-        evidence=package/"evidence"; evidence.mkdir(); (evidence/"task-001.md").write_text("Focused test PASS.\n"); (evidence/"task-002.md").write_text("Integration test PASS.\n"); (evidence/"task-003.md").write_text("Independent test PASS.\n")
+        evidence=package/"evidence"; evidence.mkdir(exist_ok=True); (evidence/"task-001.md").write_text("Focused test PASS.\n"); (evidence/"task-002.md").write_text("Integration test PASS.\n"); (evidence/"task-003.md").write_text("Independent test PASS.\n")
         done_task=task.replace("Status: pending", "Status: done").replace("Evidence: none", "Evidence: evidence/task-001.md").replace("proposed:", "existing:")
         done_task_2=task_2.replace("Status: pending", "Status: done").replace("Evidence: none", "Evidence: evidence/task-002.md").replace("proposed:", "existing:")
         done_task_3=task_3.replace("Status: pending", "Status: done").replace("Evidence: none", "Evidence: evidence/task-003.md").replace("proposed:", "existing:")

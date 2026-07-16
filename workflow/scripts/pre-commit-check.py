@@ -7,14 +7,19 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import math
 import os
 import re
+import stat
 import subprocess
 import tempfile
-from dataclasses import dataclass
+import time
+import uuid
 from pathlib import Path, PurePosixPath
 
 from platform_rule_profiles import RuleProfileError, validate_pre_commit_profile
+import git_change_paths as change_paths
+import platform_path_ownership as path_ownership
 
 
 FAIL = "FAIL"
@@ -51,13 +56,10 @@ SECRET_PATTERNS = (
 )
 PLACEHOLDER_RE = re.compile(rb"\b(?:TODO|TBD|FIXME)\b|<[^>\r\n]+>|\{\{|\}\}", re.I)
 CONFLICT_RE = re.compile(rb"(?m)^(?:<<<<<<< |=======\s*$|>>>>>>> )")
-
-
-@dataclass(frozen=True)
-class Entry:
-    status: str
-    path: str
-    old_path: str | None = None
+RECEIPT_SCHEMA_VERSION = 1
+RECEIPT_TTL_SECONDS = 300
+RECEIPT_DIRECTORY_MODE = 0o700
+RECEIPT_FILE_MODE = 0o600
 
 
 def git(repo: Path, *args: str, input_bytes: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
@@ -73,26 +75,222 @@ def repository_root(start: Path | None = None) -> Path:
     return Path(result.stdout.decode().strip()).resolve()
 
 
-def staged_entries(repo: Path) -> list[Entry]:
-    raw = git(repo, "diff", "--cached", "--name-status", "-z", "--find-renames", "--find-copies-harder").stdout
-    parts = raw.split(b"\0"); result: list[Entry] = []; index = 0
-    while index < len(parts) and parts[index]:
-        status = parts[index].decode("utf-8", errors="replace"); index += 1
-        if status.startswith(("R", "C")):
-            old_path = parts[index].decode("utf-8", errors="surrogateescape"); index += 1
-            path = parts[index].decode("utf-8", errors="surrogateescape"); index += 1
-            result.append(Entry(status[0], path, old_path))
-        else:
-            path = parts[index].decode("utf-8", errors="surrogateescape"); index += 1
-            result.append(Entry(status[:1], path))
-    return result
+def staged_entries(repo: Path) -> list[change_paths.ChangeEntry]:
+    return change_paths.staged_entries(repo)
 
 
 def staged_fingerprint(repo: Path) -> str:
-    names = git(repo, "diff", "--cached", "--name-status", "-z", "--find-renames", "--find-copies-harder").stdout
+    names = git(repo, "diff", "--cached", "--name-status", "-z", "--find-renames").stdout
     index = git(repo, "ls-files", "-s", "-z").stdout
     diff = git(repo, "diff", "--cached", "--binary", "--no-ext-diff").stdout
     return hashlib.sha256(names + b"\0INDEX\0" + index + b"\0DIFF\0" + diff).hexdigest()
+
+
+class ReceiptError(ValueError):
+    pass
+
+
+def reject_non_finite_json(value: str):
+    raise ReceiptError(f"pre-commit receipt contains non-finite JSON constant: {value}")
+
+
+def git_directory(repo: Path) -> str:
+    result = git(repo, "rev-parse", "--absolute-git-dir")
+    if result.returncode:
+        raise ReceiptError("repository Git directory is unavailable")
+    return str(Path(result.stdout.decode().strip()).resolve())
+
+
+def receipt_directory(*, create: bool) -> Path:
+    root = Path(tempfile.gettempdir()) / f"mobile-harness-precommit-{os.getuid()}"
+    if create:
+        try:
+            root.mkdir(mode=RECEIPT_DIRECTORY_MODE)
+        except FileExistsError:
+            pass
+    try:
+        metadata = root.lstat()
+    except FileNotFoundError as error:
+        raise ReceiptError("pre-commit receipt is absent") from error
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != RECEIPT_DIRECTORY_MODE
+        or metadata.st_uid != os.getuid()
+    ):
+        raise ReceiptError("pre-commit receipt directory is not private mode 0700")
+    return root
+
+
+def receipt_path(repo: Path, *, create_directory: bool = False) -> Path:
+    root = receipt_directory(create=create_directory)
+    identity = hashlib.sha256(
+        (str(repo.resolve()) + "\0" + git_directory(repo)).encode("utf-8")
+    ).hexdigest()
+    return root / f"{identity}.json"
+
+
+def staged_path_set(repo: Path, intended: list[str] | None = None) -> tuple[list[str], list[str]]:
+    entries = staged_entries(repo)
+    if intended is not None:
+        entries, errors = change_paths.normalize_for_intent(repo, entries, intended, staged=True)
+    else:
+        errors = []
+    return change_paths.path_sets(entries)["identity_paths"], errors
+
+
+def issue_receipt(repo: Path, intended_paths: list[str], fingerprint: str) -> None:
+    target = receipt_path(repo, create_directory=True)
+    now = time.time()
+    payload = {
+        "schema_version": RECEIPT_SCHEMA_VERSION,
+        "repo": str(repo.resolve()),
+        "git_dir": git_directory(repo),
+        "fingerprint": fingerprint,
+        "intended_paths": sorted(intended_paths),
+        "created_at": now,
+        "expires_at": now + RECEIPT_TTL_SECONDS,
+    }
+    temporary = target.parent / f".{target.name}.{uuid.uuid4().hex}.tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(temporary, flags, RECEIPT_FILE_MODE)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, sort_keys=True, separators=(",", ":"))
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+        os.chmod(target, RECEIPT_FILE_MODE, follow_symlinks=False)
+    finally:
+        if temporary.exists() and not temporary.is_symlink():
+            temporary.unlink()
+
+
+def read_receipt(repo: Path, *, consume: bool) -> dict[str, object]:
+    target = receipt_path(repo)
+    try:
+        metadata = target.lstat()
+    except FileNotFoundError as error:
+        raise ReceiptError("pre-commit receipt is absent") from error
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != RECEIPT_FILE_MODE
+        or metadata.st_uid != os.getuid()
+        or metadata.st_nlink != 1
+    ):
+        raise ReceiptError("pre-commit receipt must be a private regular mode 0600 file")
+    source = target
+    if consume:
+        source = target.parent / f".{target.name}.{uuid.uuid4().hex}.consuming"
+        try:
+            os.replace(target, source)
+        except FileNotFoundError as error:
+            raise ReceiptError("pre-commit receipt was already consumed") from error
+    try:
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(source, flags)
+        with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != RECEIPT_FILE_MODE:
+                raise ReceiptError("pre-commit receipt mode changed during validation")
+            try:
+                payload = json.load(stream, parse_constant=reject_non_finite_json)
+            except json.JSONDecodeError as error:
+                raise ReceiptError("pre-commit receipt JSON is malformed") from error
+    finally:
+        if consume:
+            try:
+                source.unlink()
+            except FileNotFoundError:
+                pass
+    if not isinstance(payload, dict):
+        raise ReceiptError("pre-commit receipt payload is malformed")
+    return payload
+
+
+def validate_receipt(repo: Path, payload: dict[str, object]) -> str:
+    expected_keys = {
+        "schema_version", "repo", "git_dir", "fingerprint", "intended_paths",
+        "created_at", "expires_at",
+    }
+    if set(payload) != expected_keys or payload.get("schema_version") != RECEIPT_SCHEMA_VERSION:
+        return "pre-commit receipt schema is malformed"
+    if payload.get("repo") != str(repo.resolve()) or payload.get("git_dir") != git_directory(repo):
+        return "pre-commit receipt belongs to a different repository"
+    intended = payload.get("intended_paths")
+    if (
+        not isinstance(intended, list)
+        or not intended
+        or any(not isinstance(item, str) for item in intended)
+        or intended != sorted(set(intended))
+        or intended != staged_path_set(repo, intended)[0]
+    ):
+        return "pre-commit receipt intended paths do not match the staged index"
+    identity_errors = staged_path_set(repo, intended)[1]
+    if identity_errors:
+        return "pre-commit receipt change identity is invalid: " + "; ".join(identity_errors)
+    created = payload.get("created_at")
+    expires = payload.get("expires_at")
+    now = time.time()
+    if (
+        isinstance(created, bool)
+        or isinstance(expires, bool)
+        or not isinstance(created, (int, float))
+        or not isinstance(expires, (int, float))
+        or not math.isfinite(created)
+        or not math.isfinite(expires)
+        or created > now + 5
+        or expires <= created
+        or expires - created > RECEIPT_TTL_SECONDS
+        or now > expires
+    ):
+        return "pre-commit receipt is stale or has an invalid lifetime"
+    if payload.get("fingerprint") != staged_fingerprint(repo):
+        return "pre-commit receipt staged fingerprint is stale"
+    return ""
+
+
+def hook_evaluate(repo: Path, *, consume: bool) -> dict[str, object]:
+    checks: list[dict[str, str]] = []
+    intended: list[str] = []
+    try:
+        payload = read_receipt(repo, consume=consume)
+        detail = validate_receipt(repo, payload)
+        if detail:
+            add(checks, "receipt.authorization", FAIL, detail)
+        else:
+            intended = [str(item) for item in payload["intended_paths"]]
+            action = "consumed" if consume else "validated without consumption"
+            add(checks, "receipt.authorization", PASS, f"fresh exact receipt {action}")
+    except (OSError, ReceiptError, ValueError) as error:
+        add(checks, "receipt.authorization", FAIL, str(error))
+    if any(item["status"] == FAIL for item in checks):
+        return {"status": FAIL, "fingerprint": staged_fingerprint(repo), "checks": checks}
+    integrity = evaluate(repo, intended, require_intended=True)
+    combined = checks + list(integrity["checks"])
+    statuses = {item["status"] for item in combined}
+    status = FAIL if FAIL in statuses else UNKNOWN if UNKNOWN in statuses else PASS
+    return {"status": status, "fingerprint": integrity["fingerprint"], "checks": combined}
+
+
+def canonical_evaluate(repo: Path, intended_paths: list[str]) -> dict[str, object]:
+    report = evaluate(repo, intended_paths, require_intended=True)
+    if report["status"] != PASS:
+        return report
+    try:
+        intended, _errors = safe_intended_paths(intended_paths)
+        issue_receipt(repo, intended, str(report["fingerprint"]))
+        add(report["checks"], "receipt.created", PASS, "fresh private exact receipt created")
+    except (OSError, ReceiptError, ValueError) as error:
+        add(report["checks"], "receipt.created", FAIL, str(error))
+        report["status"] = FAIL
+    return report
 
 
 def staged_blob(repo: Path, path: str) -> tuple[bytes | None, str | None]:
@@ -209,15 +407,15 @@ def declared_covers(repo: Path, declared: str, candidate: str) -> bool:
     return directory_boundary and raw in value.parents
 
 
-def task_trail(
+def task_trails(
     repo: Path, adapter: dict[str, object], candidate: str, changed_paths: set[str]
-) -> dict[str, object] | None:
+) -> list[dict[str, object]]:
     package_root = str(adapter["package_root"]).rstrip("/")
     meta_re = re.compile(
         rf"^{re.escape(package_root)}/[^/]+/{re.escape(str(adapter['active_changes_namespace']))}/[^/]+/meta\.json$"
     )
     paths = index_paths(repo)
-    fallback: dict[str, object] | None = None
+    results: list[dict[str, object]] = []
     for meta_path in paths:
         if not meta_re.fullmatch(meta_path):
             continue
@@ -252,16 +450,29 @@ def task_trail(
                 "scopes": parse_task_scopes(body),
                 "command": parse_task_command(body),
             }
-            if result["done"] and result["evidence"]:
-                return result
-            fallback = fallback or result
-    return fallback
+            results.append(result)
+    return results
 
 
-def worktree_task_trail(repo: Path, adapter: dict[str, object], candidate: str) -> dict[str, object] | None:
+def select_package_trail(
+    trails: list[dict[str, object]],
+) -> tuple[dict[str, object] | None, list[str]]:
+    packages = sorted(set(str(item["package"]) for item in trails))
+    if len(packages) > 1:
+        return None, packages
+    if not trails:
+        return None, []
+    completed = next(
+        (item for item in trails if item.get("done") and item.get("evidence")), None
+    )
+    return completed or trails[0], packages
+
+
+def worktree_task_trails(repo: Path, adapter: dict[str, object], candidate: str) -> list[dict[str, object]]:
     package_root = repo / str(adapter["package_root"])
     if not package_root.is_dir():
-        return None
+        return []
+    results: list[dict[str, object]] = []
     for meta_path in package_root.glob(f"*/{adapter['active_changes_namespace']}/*/meta.json"):
         try:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -273,13 +484,13 @@ def worktree_task_trail(repo: Path, adapter: dict[str, object], candidate: str) 
         for task_path in sorted((package / "plan").glob("task-*.md")):
             body = task_path.read_text(encoding="utf-8", errors="replace")
             if any(declared_covers(repo, declared, candidate) for declared in parse_task_paths(body)):
-                return {
+                results.append({
                     "package": package.relative_to(repo).as_posix(),
                     "task": task_path.stem,
                     "scopes": parse_task_scopes(body),
                     "command": parse_task_command(body),
-                }
-    return None
+                })
+    return results
 
 
 def active_spec(path: str) -> bool:
@@ -315,7 +526,23 @@ def run_staged_harness_lint(repo: Path) -> tuple[str, str]:
         return (PASS, "staged harness lint passed") if result.returncode == 0 else (FAIL, "staged harness lint failed")
 
 
-def evaluate(repo: Path) -> dict[str, object]:
+def safe_intended_paths(paths: list[str]) -> tuple[list[str], list[str]]:
+    normalized: list[str] = []
+    errors: list[str] = []
+    for raw in paths:
+        value = PurePosixPath(raw)
+        if value.is_absolute() or ".." in value.parts or value.as_posix() in {"", "."}:
+            errors.append(f"unsafe intended path: {raw}")
+            continue
+        normalized.append(value.as_posix())
+    if len(normalized) != len(set(normalized)):
+        errors.append("intended paths must be unique")
+    return sorted(set(normalized)), errors
+
+
+def evaluate(
+    repo: Path, intended_paths: list[str] | None = None, *, require_intended: bool = False,
+) -> dict[str, object]:
     before = staged_fingerprint(repo)
     entries = staged_entries(repo)
     checks: list[dict[str, str]] = []
@@ -323,6 +550,30 @@ def evaluate(repo: Path) -> dict[str, object]:
         add(checks, "staged.non-empty", FAIL, "no staged changes")
         return {"status": FAIL, "fingerprint": before, "checks": checks}
     add(checks, "staged.non-empty", PASS, f"{len(entries)} staged entries")
+    identity_errors: list[str] = []
+    if intended_paths:
+        entries, identity_errors = change_paths.normalize_for_intent(
+            repo, entries, sorted(set(intended_paths)), staged=True
+        )
+    entry_sets = change_paths.path_sets(entries)
+    staged_path_set = set(entry_sets["identity_paths"])
+    intended, intended_errors = safe_intended_paths(intended_paths or [])
+    if require_intended:
+        if not intended_paths:
+            add(checks, "staged.intended-binding", FAIL, "canonical staged gate requires explicit --path for the exact intended set")
+        for detail in intended_errors:
+            add(checks, "staged.intended-binding", FAIL, detail)
+        for detail in identity_errors:
+            add(checks, "staged.intended-binding", FAIL, detail)
+        intended_set = set(intended)
+        missing = sorted(intended_set - staged_path_set)
+        extra = sorted(staged_path_set - intended_set)
+        if missing:
+            add(checks, "staged.intended-binding", FAIL, "intended paths are missing from index: " + ", ".join(missing))
+        if extra:
+            add(checks, "staged.intended-binding", FAIL, "index contains foreign staged paths: " + ", ".join(extra))
+        if intended_paths and not intended_errors and not missing and not extra:
+            add(checks, "staged.intended-binding", PASS, "staged paths exactly match the explicit intended set")
 
     if git(repo, "ls-files", "-u").stdout:
         add(checks, "staged.unmerged", FAIL, "unmerged index entries exist")
@@ -334,19 +585,18 @@ def evaluate(repo: Path) -> dict[str, object]:
         add(checks, "staged.diff-check", PASS, "staged diff check passed")
 
     adapters, adapter_errors = load_adapter_state(repo, from_index=True)
-    changed_paths = {
-        path for entry in entries for path in (entry.path, entry.old_path) if path
-    }
+    changed_paths = set(entry_sets["identity_paths"])
     indexed_paths = set(index_paths(repo))
     production_seen = False
     harness_seen = False
     trails_by_platform: dict[str, list[dict[str, object]]] = {}
     for entry in entries:
         path = entry.path
-        candidates = [path] + ([entry.old_path] if entry.old_path else [])
+        identity_candidates = change_paths.identity_paths(entry)
+        candidates = change_paths.mutable_paths(entry)
         harness_seen = harness_seen or any(
             candidate == prefix or candidate.startswith(prefix)
-            for candidate in candidates for prefix in HARNESS_PREFIXES
+            for candidate in identity_candidates for prefix in HARNESS_PREFIXES
         )
         adapter = adapter_for_production(path, adapters)
         profile = adapter["pre_commit"] if adapter else None
@@ -356,6 +606,29 @@ def evaluate(repo: Path) -> dict[str, object]:
             add(checks, "path.generated-local", FAIL, "generated/local artifact is staged", path)
         if entry.status != "D" and glob_match(path, secrets):
             add(checks, "path.secret-material", FAIL, "secret/key material path is staged", path)
+
+        for source in change_paths.read_only_paths(entry):
+            source_adapter = adapter_for_production(source, adapters)
+            destination_adapter = adapter_for_production(path, adapters)
+            if destination_adapter is None:
+                continue
+            if (
+                source_adapter is None
+                or source_adapter.get("platform_root") != destination_adapter.get("platform_root")
+            ):
+                add(checks, "copy.source-identity", FAIL, "copy source/destination must share selected adapter ownership", source)
+                continue
+            try:
+                path_ownership.validate_platform_writable_path(
+                    repo, source_adapter, source, require_existing=True
+                )
+            except path_ownership.PathOwnershipError as error:
+                add(checks, "copy.source-identity", FAIL, str(error), source)
+                continue
+            if not change_paths.worktree_source_unchanged(repo, source):
+                add(checks, "copy.source-identity", FAIL, "copy source must remain an unchanged regular tracked file", source)
+            else:
+                add(checks, "copy.source-identity", PASS, "copy source is an unchanged safe read-only identity peer", source)
 
         for candidate in candidates:
             invalid_root = next(
@@ -372,7 +645,20 @@ def evaluate(repo: Path) -> dict[str, object]:
             if not candidate_adapter:
                 continue
             production_seen = True
-            trail = task_trail(repo, candidate_adapter, candidate, changed_paths)
+            try:
+                path_ownership.validate_platform_writable_path(repo, candidate_adapter, candidate)
+            except path_ownership.PathOwnershipError as error:
+                add(checks, "path.production-ownership", FAIL, str(error), candidate)
+                continue
+            trails = task_trails(repo, candidate_adapter, candidate, changed_paths)
+            trail, owner_packages = select_package_trail(trails)
+            if len(owner_packages) > 1:
+                add(
+                    checks, "trail.production-owner", FAIL,
+                    "production path has ambiguous active package owners: " + ", ".join(owner_packages),
+                    candidate,
+                )
+                continue
             if not trail:
                 add(
                     checks, "trail.production-task", FAIL,
@@ -402,6 +688,8 @@ def evaluate(repo: Path) -> dict[str, object]:
         blob, mode = staged_blob(repo, path)
         if entry.status != "D" and blob is not None:
             if mode == "120000":
+                if adapter_for_production(path, adapters):
+                    add(checks, "path.symlink", FAIL, "platform production writable path may not be a symlink", path)
                 target = blob.decode("utf-8", errors="replace")
                 if target.startswith("/") or ".." in PurePosixPath(target).parts:
                     add(checks, "path.symlink", FAIL, "symlink target escapes repository", path)
@@ -474,7 +762,19 @@ def coverage_report(repo: Path, paths: list[str]) -> dict[str, object]:
         adapter = adapter_for_production(path, adapters)
         if not adapter:
             add(checks, "trail.path", NA, "path is not platform production", path); continue
-        trail = worktree_task_trail(repo, adapter, path)
+        try:
+            path_ownership.validate_platform_writable_path(repo, adapter, path)
+        except path_ownership.PathOwnershipError as error:
+            add(checks, "trail.path", FAIL, str(error), path); continue
+        trails = worktree_task_trails(repo, adapter, path)
+        packages = sorted(set(str(item["package"]) for item in trails))
+        if len(packages) > 1:
+            add(
+                checks, "trail.path", FAIL,
+                "ambiguous active package owners: " + ", ".join(packages), path,
+            )
+            continue
+        trail = trails[0] if trails else None
         profile = adapter["pre_commit"]
         scoped_surface = glob_match(path, list(profile["security_sensitive_globs"]) + list(profile["project_globs"]))
         valid = bool(trail) and (not scoped_surface or bool(trail["scopes"]))
@@ -504,6 +804,7 @@ def configure_git(repo: Path) -> None:
     git(repo, "init", "-q")
     git(repo, "config", "user.email", "precommit@example.invalid")
     git(repo, "config", "user.name", "Precommit Test")
+    git(repo, "config", "core.filemode", "true")
 
 
 def fixture_adapter(platform: str) -> dict[str, object]:
@@ -596,11 +897,78 @@ def self_test() -> int:
         (repo / "tracked.txt").rename(repo / "renamed.txt"); git(repo, "add", "-A")
         rename_report = evaluate(repo)
         assert rename_report["status"] == PASS, rename_report
+        assert evaluate(
+            repo, ["tracked.txt", "renamed.txt"], require_intended=True
+        )["status"] == PASS
+        assert evaluate(repo, ["renamed.txt"], require_intended=True)["status"] == FAIL
         git(repo, "reset", "-q", "--hard", "HEAD")
         write(repo / "unrelated.tmp", "untracked owner state\n")
         before_untracked = (repo / "unrelated.tmp").read_text()
         write(repo / "safe.md", "safe\n"); git(repo, "add", "safe.md"); assert evaluate(repo)["status"] == PASS
+        assert evaluate(repo, ["safe.md"], require_intended=True)["status"] == PASS
+        assert evaluate(repo, ["missing.md"], require_intended=True)["status"] == FAIL
+        assert evaluate(repo, ["../escape"], require_intended=True)["status"] == FAIL
+        write(repo / "foreign.md", "foreign staged\n"); git(repo, "add", "foreign.md")
+        assert evaluate(repo, ["safe.md"], require_intended=True)["status"] == FAIL
+        git(repo, "reset", "-q", "HEAD", "foreign.md"); (repo / "foreign.md").unlink()
         assert (repo / "unrelated.tmp").read_text() == before_untracked
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); configure_git(repo)
+        write(repo / "README.md", "base\n"); git(repo, "add", "README.md"); git(repo, "commit", "-qm", "base")
+        write(repo / "delivery.md", "exact staged delivery\n"); git(repo, "add", "delivery.md")
+        assert hook_evaluate(repo, consume=False)["status"] == FAIL
+        exact = canonical_evaluate(repo, ["delivery.md"])
+        assert exact["status"] == PASS
+        target = receipt_path(repo)
+        assert stat.S_IMODE(target.parent.stat().st_mode) == RECEIPT_DIRECTORY_MODE
+        assert stat.S_IMODE(target.stat().st_mode) == RECEIPT_FILE_MODE
+        assert hook_evaluate(repo, consume=False)["status"] == PASS
+        assert hook_evaluate(repo, consume=False)["status"] == PASS
+        assert hook_evaluate(repo, consume=True)["status"] == PASS
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+
+        def mutate_receipt(mutator) -> None:
+            issue_receipt(repo, ["delivery.md"], staged_fingerprint(repo))
+            payload = json.loads(target.read_text(encoding="utf-8"))
+            mutator(payload)
+            target.write_text(json.dumps(payload), encoding="utf-8")
+            os.chmod(target, RECEIPT_FILE_MODE)
+
+        mutate_receipt(lambda payload: payload.update(repo="/wrong/repository"))
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        mutate_receipt(lambda payload: payload.update(fingerprint="0" * 64))
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        mutate_receipt(lambda payload: payload.update(intended_paths=["foreign.md"]))
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        mutate_receipt(
+            lambda payload: payload.update(
+                created_at=time.time() - RECEIPT_TTL_SECONDS - 10,
+                expires_at=time.time() - 10,
+            )
+        )
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        issue_receipt(repo, ["delivery.md"], staged_fingerprint(repo))
+        target.write_text("{ malformed\n", encoding="utf-8"); os.chmod(target, RECEIPT_FILE_MODE)
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        for constant in ("NaN", "Infinity", "-Infinity"):
+            issue_receipt(repo, ["delivery.md"], staged_fingerprint(repo))
+            body = target.read_text(encoding="utf-8")
+            body = re.sub(r'"created_at":[^,]+', f'"created_at":{constant}', body)
+            target.write_text(body, encoding="utf-8"); os.chmod(target, RECEIPT_FILE_MODE)
+            assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        mutate_receipt(lambda payload: payload.update(created_at=True))
+        assert hook_evaluate(repo, consume=True)["status"] == FAIL
+        issue_receipt(repo, ["delivery.md"], staged_fingerprint(repo)); os.chmod(target, 0o644)
+        assert hook_evaluate(repo, consume=False)["status"] == FAIL
+        target.unlink()
+        link_target = repo / "receipt-link-target.json"; link_target.write_text("{}\n", encoding="utf-8")
+        target.symlink_to(link_target)
+        assert hook_evaluate(repo, consume=False)["status"] == FAIL
+        target.unlink(); link_target.unlink()
+        issue_receipt(repo, ["delivery.md"], staged_fingerprint(repo))
+        os.chmod(target.parent, 0o755)
+        assert hook_evaluate(repo, consume=False)["status"] == FAIL
+        os.chmod(target.parent, RECEIPT_DIRECTORY_MODE); target.unlink()
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); configure_git(repo)
         for platform in ("iOS", "Android"):
@@ -625,8 +993,8 @@ def self_test() -> int:
                 f"- Paths: proposed: {platform}/App/{source}; proposed: {platform}/App/Project.config\n"
                 "- Status: pending\n- Evidence: none\n- Discovered command: build-tool verify\n",
             )
-            write(repo / f"{platform}/App/{source}", "safe source\n")
-            write(repo / f"{platform}/App/Project.config", "project fixture\n")
+            write(repo / f"{platform}/App/{source}", f"safe {platform} source\n")
+            write(repo / f"{platform}/App/Project.config", f"{platform} project fixture\n")
             git(repo, "add", f"{platform}/specs", f"{platform}/App")
             pending = evaluate(repo)
             assert pending["status"] == UNKNOWN, pending
@@ -668,14 +1036,52 @@ def self_test() -> int:
             git(repo, "reset", "-q", "--hard", "HEAD")
             copied = orphan.with_name(f"Copied{Path(source).suffix}")
             write(copied, orphan.read_bytes()); git(repo, "add", copied.relative_to(repo).as_posix())
+            source_baseline = orphan.read_bytes()
+            orphan.write_text("staged source mutation\n", encoding="utf-8"); git(repo, "add", orphan.relative_to(repo).as_posix())
+            orphan.write_bytes(source_baseline)
+            copy_identity = sorted([orphan.relative_to(repo).as_posix(), copied.relative_to(repo).as_posix()])
+            assert evaluate(repo, copy_identity, require_intended=True)["status"] == FAIL
+            git(repo, "reset", "-q", "HEAD", "--", orphan.relative_to(repo).as_posix())
+            orphan.chmod(0o755); git(repo, "add", orphan.relative_to(repo).as_posix()); orphan.chmod(0o644)
+            assert evaluate(repo, copy_identity, require_intended=True)["status"] == FAIL
+            git(repo, "reset", "-q", "HEAD", "--", orphan.relative_to(repo).as_posix())
+            git(repo, "rm", "--cached", "-q", "--", orphan.relative_to(repo).as_posix())
+            assert evaluate(repo, copy_identity, require_intended=True)["status"] == FAIL
+            git(repo, "reset", "-q", "HEAD", "--", orphan.relative_to(repo).as_posix())
             copy_entries = staged_entries(repo)
-            assert any(entry.status == "C" and entry.old_path == orphan.relative_to(repo).as_posix() for entry in copy_entries)
-            copied_report = evaluate(repo)
+            normalized_copy, copy_errors = change_paths.normalize_for_intent(
+                repo, copy_entries, copy_identity, staged=True
+            )
+            assert copy_errors == []
+            assert any(
+                entry.status == "C" and entry.old_path == orphan.relative_to(repo).as_posix()
+                for entry in normalized_copy
+            )
+            assert evaluate(repo, [copied.relative_to(repo).as_posix()], require_intended=True)["status"] == FAIL
+            assert evaluate(repo, [orphan.relative_to(repo).as_posix()], require_intended=True)["status"] == FAIL
+            copied_report = evaluate(repo, copy_identity, require_intended=True)
             assert copied_report["status"] == FAIL
             copy_paths = {item.get("path") for item in copied_report["checks"]}
             assert orphan.relative_to(repo).as_posix() in copy_paths
             assert copied.relative_to(repo).as_posix() in copy_paths
             git(repo, "reset", "-q", "--hard", "HEAD")
+
+        duplicate = repo / "iOS/specs/duplicate/changes/second"
+        write(duplicate / "meta.json", json.dumps({"status": "implementing"}))
+        write(
+            duplicate / "plan/task-001.md",
+            "# duplicate owner\n- Engineering scopes: [\"application\"]\n"
+            "- Paths: existing: iOS/App/Sample.swift\n- Status: done\n"
+            "- Evidence: evidence/task-001.md\n- Discovered command: build-tool verify\n",
+        )
+        write(duplicate / "evidence/task-001.md", "duplicate proof\n")
+        ios_source = repo / "iOS/App/Sample.swift"
+        write(ios_source, "ambiguous owner mutation\n")
+        git(repo, "add", "iOS/specs/duplicate", "iOS/App/Sample.swift")
+        ambiguous_owner = evaluate(repo)
+        assert ambiguous_owner["status"] == FAIL
+        assert any(item["id"] == "trail.production-owner" for item in ambiguous_owner["checks"])
+        git(repo, "reset", "-q", "--hard", "HEAD")
 
         ios_source = repo / "iOS/App/Sample.swift"
         write(ios_source, "adapter mutation\n"); git(repo, "add", ios_source.relative_to(repo).as_posix())
@@ -697,13 +1103,15 @@ def self_test() -> int:
         assert coverage_report(repo, ["iOS/workflow/rules/new.md"])["status"] == FAIL
         hint = coverage_report(repo, ["iOS/App/Uncovered.swift"])
         assert any("reconcile-implementation" in item.get("detail", "") for item in hint["checks"])
-    print("pre-commit-check self-test: PASS (index-only, evidence/tools, adapter fail-closed, rename/copy/delete)")
+    print("pre-commit-check self-test: PASS (exact one-shot receipt, index-only, evidence/tools, adapter fail-closed, rename/copy/delete)")
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--staged", action="store_true")
+    parser.add_argument("--path", action="append", default=[], dest="intended_paths")
+    parser.add_argument("--hook", action="store_true", help="generic read-only hook integrity mode")
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--path-coverage", action="append", default=[])
     parser.add_argument("--root", type=Path)
@@ -719,7 +1127,12 @@ def main() -> int:
     if args.path_coverage:
         report = coverage_report(repo, args.path_coverage)
     elif args.staged:
-        report = evaluate(repo)
+        if args.hook and args.intended_paths:
+            parser.error("--hook generic mode does not accept delivery --path binding")
+        if args.hook:
+            report = hook_evaluate(repo, consume=True)
+        else:
+            report = canonical_evaluate(repo, args.intended_paths)
     else:
         parser.error("--staged or --path-coverage is required")
     emit(report, args.as_json)

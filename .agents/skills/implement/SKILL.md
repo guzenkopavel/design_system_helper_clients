@@ -19,7 +19,10 @@ status/evidence и derived `tasks_done`. SHA token из snapshot не запис
 writer-accessible repo state и не передавать writer роли.
 Scope допускает только каждый declared production Path и точные файлы
 `evidence/task-NNN.md`, `evidence/scope-baseline-task-NNN.json`; mixed unsafe
-Path блокирует весь task. Recovery после Verify обрабатывается только через
+Path и ambiguous owner из другого active package блокируют весь task. Canonical
+ownership helper также блокирует symlink file/directory/proposed-child. Scoped
+lane baseline охраняет выбранный package/Paths/read dependencies/control plane,
+но не блокируется disjoint dirty/index/commit другой identity. Recovery после Verify обрабатывается только через
 reopened tasks и точные problems/FAIL/UNKNOWN rows. После первого успешного
 recovery task сбросить все verification rows/meta в pending/null, не удаляя
 historical evidence; только recovery baseline разрешает запись verification.md.

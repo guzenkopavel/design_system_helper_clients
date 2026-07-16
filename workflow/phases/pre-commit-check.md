@@ -14,14 +14,26 @@ commit. После commit intent и до staging получить явный int
 Затем сверить requested ownership/scope с `git status`; сама фаза никогда не
 выполняет `git add`.
 
-Запустить `python3 workflow/scripts/pre-commit-check.py --staged`. Требовать
-свежий staged fingerprint и точный общий `PASS`. Проверить разделение scope,
+Запустить `python3 workflow/scripts/pre-commit-check.py --staged --path <path>...`
+с одним `--path` для каждого exact intended path. Для rename передать mutable
+old/new; для copy — read-only unchanged source и mutable destination. Требовать
+свежий staged fingerprint, точный общий `PASS` и созданный private short-lived
+receipt. Проверить разделение scope,
 влияние на документацию и platform addenda. Для harness changes staged-index
 checkout запускает `harness-lint --warn-as-error`. Для production paths
 обязательны active task trail coverage и adapter obligations.
 
-Gate остаётся read-only и не запускает reconciliation. Uncovered production
-path даёт только actionable hint; автоматический repair или staging запрещены.
+Gate остаётся read-only для repository/index/worktree, не запускает reconciliation;
+единственная запись — private ephemeral receipt вне repo.
+Uncovered production path даёт только actionable hint; автоматический repair
+или staging запрещены.
+Extra staged path, missing intended path, unsafe path или production boundary с
+несколькими active package owners дают `FAIL`. Unrelated unstaged state
+допустим, потому что Git commit включает index, а не worktree. Runtime hook
+делает non-consuming receipt preview, tracked `--hook` атомарно потребляет
+one-shot receipt и повторяет integrity. Generic hook без receipt не разрешает
+commit; canonical coordinator проверка всегда выполняется с exact intended
+binding.
 
 `FAIL`/`UNKNOWN` останавливает commit и сообщает paths/check identifiers без
 значений секретов. После GREEN уже разрешённый commit можно продолжить без

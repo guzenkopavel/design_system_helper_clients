@@ -23,7 +23,9 @@ problems, выставить candidate `status: verified`, захватить st
 
 До coordinator recovery/terminal writes выполнить verify scope check с исходным
 `--expected-sha256`: production,
-tasks, plan, contracts, rules и pre-existing evidence должны совпасть с baseline.
+tasks, plan, contracts, rules и pre-existing evidence selected lane должны
+совпасть с baseline. Disjoint platform/feature/product dirty, index и commits
+не принадлежат этой projection и не инвалидируют Verify.
 
 Manual-only. Старое или writer-authored утверждение не является доказательством;
 не коммитить.

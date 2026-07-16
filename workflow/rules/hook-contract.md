@@ -4,7 +4,9 @@
 нормализуют payload и вызывают её с runtime/event; policy в них не копируется.
 
 Pre-tool guards запрещают dangerous Git и запись secret/key paths. Вызов commit
-запускает staged pre-commit gate. Common harness/spec edits проходят с native
+делает non-consuming preview private pre-commit receipt и staged integrity;
+отсутствующий/stale receipt даёт deny, а one-shot consumption принадлежит
+tracked Git hook. Common harness/spec edits проходят с native
 runtime payload без синтетического mode. Platform production edits требуют
 active task coverage; project/security surfaces дополнительно требуют
 engineering scopes из task. Pre-edit не требует post-edit evidence. Post-edit

@@ -19,11 +19,16 @@ dirty worktree. Cross-platform change — два независимых запу
 Сначала read-only `reconcile-implementation.py inspect`, затем semantic
 classification canonical roles. Shared behavior `PRESENT`/`UNCERTAIN`, archive,
 ambiguity, unsafe/outside/mixed ownership paths маршрутизируются с нулём
-записей. Adapter-owned uncovered path — это drift: добавить/исправить task,
+записей; symlink file/directory/proposed-child блокируется canonical ownership
+helper. Adapter-owned uncovered path — это drift: добавить/исправить task,
 plan state и fresh evidence. `draft` идёт в Propose, `specified` в Plan, а
 `FAIL`/`UNKNOWN` в canonical `$implement` recovery до guard. Для
 поддержанного класса запустить guard `start`, менять только разрешённые package
 artifacts, выполнить focused checks и завершить `check`.
+Guard scoped выбранной identity и не блокируется disjoint platform/feature/
+product dirty, index или commit; selected package/intended paths/shared spec/
+rules/adapter/control plane остаются неизменяемыми вне allowlist. Ambiguous
+cross-package production owner блокирует `inspect` до записей.
 
 Не менять production/index/shared product/proposal/rules/hooks/history и не
 stage/commit/push. Перед staging выдать полный reconciliation report.

@@ -20,6 +20,8 @@
 
 `verify` заменяет ожидаемые описания конкретными package-relative путями
 `evidence/...` и точными статусами `PASS`, `FAIL` или `UNKNOWN`.
+Каждая атомарная AC/verification dimension получает отдельную row и отдельное
+наблюдаемое evidence; одна row не агрегирует независимые dimensions.
 
 ## Revalidated engineering scopes and exact verify rules
 ## Derived method matrix
@@ -29,7 +31,31 @@
 ## Native UX verification
 
 Для product-backed `ui` проверить native appearance scenarios из
-`platform-ux.md`, включая light/dark/contrast, accessibility/motion, device
+`platform-ux.md`, включая раздельные light/dark, increased contrast, assistive
+semantics, text scaling, motion, device
 adaptation и availability fallback с конкретным evidence.
+
+## Native obligation coverage
+
+| Obligation ID | Observation record | Status |
+|---|---|---|
+| NATIVE-APPEARANCE | pending | pending |
+| NATIVE-LIGHT | pending | pending |
+| NATIVE-DARK | pending | pending |
+| NATIVE-INCREASED-CONTRAST | pending | pending |
+| NATIVE-ASSISTIVE-SEMANTICS | pending | pending |
+| NATIVE-TEXT-SCALING | pending | pending |
+| NATIVE-MOTION | pending | pending |
+| NATIVE-DEVICE-ADAPTATION | pending | pending |
+| NATIVE-AVAILABILITY-FALLBACK | pending | pending |
+
+Для current v1 product-backed `ui` exact set обязателен. Registry-anchored v0
+не получает эту секцию. Verify заменяет `pending` на
+package-relative JSON observation record с exact `obligation_id`, собственным
+status, русским observation и underlying `evidence_refs`. Row status обязан
+совпасть с record; `PASS`/`FAIL` требуют concrete non-empty underlying evidence.
+Underlying refs не могут указывать на этот или другой native observation record;
+они ссылаются только на raw/non-observation proof.
+Exact record schema: [`native-verification-observation.json`](native-verification-observation.json).
 
 ## Unverified risks

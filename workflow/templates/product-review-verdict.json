@@ -13,14 +13,14 @@
   "applicability": "REQUIRED | NOT_APPLICABLE",
   "verdict": "PASS | GAP | UNKNOWN | N/A",
   "clients_checked": ["iOS", "Android"],
-  "rationale": "<lens decision grounded in the exact package>",
+  "rationale": "<решение линзы с опорой на exact package>",
   "evidence_refs": ["spec.md"],
   "findings": [
     {
       "id": "<unique finding identity>",
       "severity": "blocker | major | minor | info",
-      "summary": "<specific finding>",
-      "evidence": "<exact package evidence>",
+      "summary": "<конкретный finding>",
+      "evidence": "<точное package evidence>",
       "requirement_ids": ["REQ-1"]
     }
   ]

@@ -32,6 +32,9 @@ Technical-only intake requires `Product impact assessment: NONE` and evidence.
 Workflow:
 
 1. Discover real context and separate existing paths from greenfield proposals.
+   Read `<platform>/specs/<feature>/SPECIFICATION.md` when present as immutable
+   current platform baseline; for product-backed intake also distinguish the
+   active shared candidate from `specs/product/<feature>/SPECIFICATION.md`.
    Select one or more adapter-defined `engineering_scopes` from evidence. Run
    `find-platform-context.py --phase propose` with each selected `--scope` and
    load the exact returned proposal profile plus scope rules.
@@ -48,6 +51,8 @@ Workflow:
    каждому substantive block, поэтому русский padding не скрывает English prose.
 4. Reference shared IDs without copying their observable text. Use adapter
    prefix for platform REQ/AC and trace every ID in verification.
+   `implementation-spec.md` must be the complete post-change platform contract,
+   not a delta: unchanged applicable platform requirements remain represented.
 5. Record sorted unique scopes and the exact derived union of adapter-supported
    phase bases plus those scopes in `applicable_rule_files`. Proposal records
    selection evidence, considered exclusions and the exact list; design maps

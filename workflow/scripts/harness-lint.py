@@ -405,6 +405,8 @@ PRE_COMMIT_REQUIRED = (
     "workflow/rules/pre-commit-integrity.md",
     "workflow/rules/hook-contract.md",
     "workflow/scripts/pre-commit-check.py",
+    "workflow/scripts/git_change_paths.py",
+    "workflow/scripts/platform_path_ownership.py",
     "workflow/scripts/configure-git-hooks.sh",
     "workflow/hooks/hook-runner.py",
     ".githooks/pre-commit",
@@ -513,7 +515,7 @@ def check_pre_commit_hooks(root: Path) -> list[dict[str, str]]:
         text = hook.read_text(encoding="utf-8")
         if not os.access(hook, os.X_OK):
             findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "tracked hook is not executable"))
-        if "workflow/scripts/pre-commit-check.py" not in text or "--staged" not in text:
+        if "workflow/scripts/pre-commit-check.py" not in text or "--staged" not in text or "--hook" not in text:
             findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "hook must invoke the canonical staged gate"))
         if "--no-verify" in text or "git commit" in text:
             findings.append(finding("critical", "pre-commit-hook", ".githooks/pre-commit", "hook must not bypass or perform commit"))
@@ -1314,6 +1316,8 @@ def self_test_android_lint(root: Path) -> int:
         assert result.returncode == 0, f"OpenCode worktree-root payload failed from {start}: {result.stdout} {result.stderr}"
     for script in (
         "workflow/scripts/pre-commit-check.py",
+        "workflow/scripts/git_change_paths.py",
+        "workflow/scripts/platform_path_ownership.py",
         "workflow/hooks/hook-runner.py",
         "workflow/scripts/configure-git-hooks.sh",
         "workflow/scripts/validate-deep-code-review.py",
@@ -1492,6 +1496,8 @@ RECONCILIATION_REQUIRED = (
     "workflow/rules/pre-commit-integrity.md",
     "workflow/rules/hook-contract.md",
     "workflow/scripts/pre-commit-check.py",
+    "workflow/scripts/git_change_paths.py",
+    "workflow/scripts/platform_path_ownership.py",
     "workflow/hooks/hook-runner.py",
     "iOS/workflow/phases/reconcile-implementation.md",
     "Android/workflow/phases/reconcile-implementation.md",
@@ -1525,7 +1531,7 @@ def check_reconciliation_flow(root: Path) -> list[dict[str, str]]:
             "implementation-writer", "inspect", "start", "check <token>",
         ),
         "workflow/scripts/reconcile-implementation.py": (
-            "repository_snapshot", "index_fingerprint", "task_coverage",
+            "repository_snapshot", "index_projection", "lane_projection", "task_coverage",
             "affected_task_closure", "verification_status", "validate_package",
             "os.chmod", "--self-test",
         ),
@@ -1534,6 +1540,21 @@ def check_reconciliation_flow(root: Path) -> list[dict[str, str]]:
         ),
         "workflow/phases/pre-commit-check.md": (
             "$reconcile-implementation", "не запускает reconciliation",
+            "exact intended", "--hook", "one-shot receipt",
+        ),
+        "workflow/rules/pre-commit-integrity.md": (
+            "non-consuming preview", "one-shot", "wrong-mode", "replay", "-Infinity",
+        ),
+        "workflow/scripts/pre-commit-check.py": (
+            "issue_receipt", "hook_evaluate", "RECEIPT_TTL_SECONDS", "0o700", "0o600",
+            "parse_constant", "math.isfinite",
+        ),
+        "workflow/scripts/git_change_paths.py": (
+            "normalize_for_intent", "identity_paths", "mutable_paths", "read_only_paths",
+            "head_path_entry", "index_path_entries", "index_stage != \"0\"",
+        ),
+        "workflow/scripts/platform_path_ownership.py": (
+            "validate_platform_writable_path", "first_symlink", "proposed-child symlinks",
         ),
         "workflow/rules/hook-contract.md": (
             "не запускает `reconcile-implementation`", "actionable hint",
@@ -1926,11 +1947,15 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "Android/workflow/roles/android-ux-designer.md": ("artifact-language", "по-русски"),
         "workflow/scripts/validate-platform-change.py": (
             "validate_authored_markdown_language", "ARTIFACT_LANGUAGE_RULE",
-            "(+{remainder} more)", "authored_relative = path.relative_to(package)",
-            "current.is_symlink()", "resolved_path, resolved_package",
-            'encoding="utf-8", errors="strict"',
+            "import artifact_language",
             "TASK_AUTHORED_REPORT_RE", "RECONCILIATION_AUTHORED_REPORT_RE",
             "typed_authored_report_paths", "evidence.iterdir()",
+        ),
+        "workflow/scripts/artifact_language.py": (
+            "(+{len(failing) - 3} more)", "authored_relative = path.relative_to(package)",
+            "current.is_symlink()", "resolved_path, resolved_package",
+            'encoding="utf-8", errors="strict"',
+            "_english_sentence", "validate_authored_json_string",
         ),
         "workflow/phases/implement.md": ("artifact-language", "evidence/task-NNN.md"),
         "workflow/phases/reconcile-implementation.md": (

@@ -18,9 +18,16 @@ reconcile-implementation <platform> <feature> [--change <change-id>] \
 Every path must be repo-relative, belong to the selected adapter production
 roots and be present in the current Git change set. Deletion is named by its
 old path. Rename requires both old and new paths; neither side may be inferred.
-A pre-stage copy is an explicit new changed path; its read-only source need not
-be authorized. If staged Git later classifies it as a copy, the read-only gate
-checks both candidates and task trails. Unknown platform/package, ambiguity,
+Copy identity also requires both explicit source and destination. One canonical
+change-entry helper is shared with pre-commit: rename old/new are both mutable,
+while copy destination is mutable and its source is an unchanged safe read-only
+peer. Exact byte matches elsewhere never auto-select a source. Zero/multiple
+explicit peers, cross-adapter source, changed/symlink source, reused source or a
+missing side fail before writes. Read-only means exact HEAD/index/worktree
+agreement: one regular tracked stage-0 entry, unchanged mode/blob, no cached or
+unstaged delta and no unmerged stages. Task ownership/coverage applies only to the
+copy destination, but source and destination both remain in intended evidence,
+guard projection, receipt and exact staged identity. Unknown platform/package, ambiguity,
 archived package, unsafe/outside-ownership path or a mixed ownership set routes
 without writes. An adapter-owned uncovered path is valid drift: repair or add
 its task and focused evidence inside the guard.
@@ -62,15 +69,20 @@ write allowlist is limited to the selected active platform package:
 - a new uniquely named `evidence/reconciliation-*.md` file.
 
 No other write is authorized. In particular reconciliation never changes
-production, the Git index, shared product artifacts, `proposal.md`, adapter or
-workflow authorities, historical evidence, hooks, archive, another package or
-unrelated dirty state. Existing evidence files are immutable.
+production, selected-lane Git index, shared product artifacts, `proposal.md`,
+adapter or workflow authorities, historical evidence, hooks и archive.
+Disjoint package/platform/product/unrelated state не входит в write authority,
+но может независимо измениться и потому не сравнивается guard. Existing
+evidence files are immutable.
 
 For `aligned`, contract and task semantics remain unchanged. `task-drift` may
 change task semantics and coherent plan state but not upstream platform
 contracts or sealed engineering-scope authority. `platform-implementation-drift`
 may repair platform implementation spec, design, verification mapping and the
 affected task graph, while shared product contracts and proposal remain fixed.
+Current v1 task semantics include exact `Implementation deliverables`: aligned
+preserves the section, while drift repair may update it only coherently with
+the repaired task and must retain its substantive top-level list contract.
 Task-file add/change/delete is limited to the union of baseline and final direct
 owners of the explicit paths plus their transitive dependent closures. Every
 unrelated task is full-content immutable, including `Status` and `Evidence`,
@@ -117,13 +129,15 @@ Use `workflow/scripts/reconcile-implementation.py`:
 1. `inspect` validates identity, intended paths, coverage and routing without
    writes. `DRIFT` is an expected non-failure result; `ROUTE_REQUIRED` blocks.
 2. `start` requires the explicit semantic classification and captures a private
-   mode `0600` baseline outside the repository, including exact HEAD commit and
-   symbolic/detached identity.
+   mode `0600` baseline outside the repository: selected package, intended
+   production paths, shared/rule/adapter/control-plane dependencies and their
+   exact projected index.
 3. Roles make only allowed package repairs and focused checks.
-4. `check <token>` proves production, index, shared/proposal/rules/history and
-   unrelated state were preserved, HEAD did not move, required state/evidence
-   semantics hold, and the final validator is green. A commit or branch/detached
-   HEAD move between `start` and `check` is invalid.
+4. `check <token>` proves selected production, selected-lane index,
+   shared/proposal/rules/history and required state/evidence semantics hold, and
+   the final validator is green. Disjoint package/product/platform state and an
+   unrelated commit не инвалидируют guard; drift любой watched dependency
+   остаётся invalid.
 
 Report classification, package, intended paths, affected tasks, checks and
 final state before staging. The delivery sequence is exactly:

@@ -19,11 +19,15 @@ do not replace the read-only harness auditor.
 
 Before writes, load the selected adapter, platform implement addendum, task and
 exact implement profile plus immutable meta scope rules. Reject catalog/union
-mismatch. The task is the primary self-contained input. Change
-only declared task Paths inside adapter production roots; protected/excluded
+mismatch. The task is the primary self-contained input. Change only declared
+task `Paths` inside adapter production roots; `Read-only context` is immutable
+and never grants write authority; protected/excluded
 roots remain immutable except selected task/meta state and exact canonical
 `evidence/task-NNN.md`. The coordinator baseline and its out-of-band SHA token
 are never writer-owned or rewritten.
+Для current v1 до writes перечитать полный `Implementation deliverables` и
+реализовать каждый его пункт в пределах task `Paths`; список не заменяет
+обязательные `Steps`, focused verification и `Expected result`.
 Authored prose exact task report писать по-русски; команды, IDs и raw output
 сохранять в точной форме.
 In FAIL/UNKNOWN recovery mode only, a baseline captured before writes may also
@@ -55,6 +59,9 @@ execute the adapter-native appearance, accessibility/motion and fallback checks.
 Run only under the reconciliation guard after semantic classification. Never
 write production. Coordinate exact package state, reopened affected/dependent
 tasks and new uniquely named reconciliation evidence after focused checks.
+При repair current v1 task сохранить либо согласованно уточнить её
+`Implementation deliverables`; `aligned` не меняет этот список, а drift repair
+не может удалить его или заменить prose/generic пунктами.
 Authored reconciliation report по canonical timestamp/slug contract писать
 по-русски по common language rule.
 Preserve historical evidence and FAIL/UNKNOWN recovery state. A previously

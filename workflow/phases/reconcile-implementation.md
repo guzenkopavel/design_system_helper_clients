@@ -24,6 +24,14 @@ intended production paths explicitly from the user/coordinator; never expand
 them to all dirty files. Different feature/change IDs on the same platform use
 separate calls, guards and reports.
 
+Каждый intended path проходит тот же canonical lexical/canonical ownership
+helper, что Plan и Implement: protected/excluded overlap и symlink file,
+directory либо proposed-child traversal дают route до guard writes.
+Canonical change-entry helper разделяет `identity_paths`, `mutable_paths` и
+`read_only_copy_sources`: rename old/new mutable, у copy mutable только
+destination, а unchanged source остаётся guarded read-only. Обе стороны copy
+обязательны в intended и reconciliation evidence.
+
 First run the canonical script in `inspect` mode. `implementation-discovery`
 then compares the explicit production diff with shared behavior, platform
 contracts/design, task coverage and current evidence. Classify it as `aligned`,
@@ -57,12 +65,17 @@ Any Result-like structural variant makes evidence invalid; ordinary narrative
 without a Result field definition is unaffected. Full task-file add/change/delete,
 including status/evidence, is restricted to baseline/current direct owners and
 their transitive dependent closure. Semantic hashes separately prove actual
-drift repair. Invalidate prior verified state exactly; never
+drift repair. Для current v1 `aligned` сохраняет `Implementation deliverables`
+byte-for-byte; task/platform drift может согласованно уточнить список, но
+финальная task обязана сохранить минимум два конкретных top-level list item
+отдельно от `Steps` и `Expected result`. Invalidate prior verified state exactly; never
 clear FAIL/UNKNOWN recovery. Apply the rule's per-class meta allowlist. Finish with `check <token>`, which includes the
 platform validator in implement mode.
 
-`start` binds the guard to current HEAD commit/ref identity. `check` rejects any
-intervening commit or HEAD move. Runtime reconciliation still never stages;
+`start` binds the guard to a scoped lane projection: selected package/intended
+paths/read dependencies/control plane и exact projected index. `check` rejects
+selected-lane drift, но принимает disjoint package/product/platform changes и
+unrelated commits. Runtime reconciliation still never stages;
 fixture-only end-to-end tests may stage only after a successful `check` to prove
 the canonical pre-commit gate accepts the reconciled production/package set.
 

@@ -43,6 +43,10 @@ REQ/AC. Режим `technical-only` без shared spec допустим толь
 `Product impact assessment: NONE`; behavioral impact возвращает задачу в
 product elaboration. Каноническая граница:
 [`specification-layers.md`](workflow/rules/specification-layers.md).
+После archive долговечный current baseline остаётся в feature-root
+`SPECIFICATION.md` отдельно для product, iOS и Android. Discovery/Elaborate и
+Propose/Plan читают его как immutable input; active package и archive остаются
+отдельными lifecycle/history surfaces.
 
 Без явного product approval с evidence общий пакет остаётся
 `DRAFT / PENDING APPROVAL` независимо от полноты остальных артефактов.
@@ -70,6 +74,9 @@ Technical-only/non-UI packages artifact не требуют.
 - `$reconcile-implementation <platform> <feature> [--change <change-id>]
   --path <repo-relative>...` до staging сверяет явный production set с package;
 - `$archive implementation ...` и `$archive product ...` архивируют разные SSOT;
+- implementation archive публикует verified full platform `SPECIFICATION.md`,
+  product `completed` — approved product baseline; cancelled/superseded не
+  продвигают retired candidate;
 - platform и feature обязательны;
 - iOS и Android поддерживают полный implementation lifecycle через собственные
   adapters и platform addenda;
@@ -84,6 +91,14 @@ Reconciliation никогда не пишет production/shared product/index. S
 behavior `PRESENT`/`UNCERTAIN` возвращается в Discovery/Elaborate; cross-platform
 set и несколько packages одной платформы обрабатываются независимыми запусками
 по каждой platform/feature/change identity.
+
+Implement/Verify/Reconcile работают в independent lane выбранной identity:
+охраняют только selected package, task/realized Paths, Read-only context, shared
+spec, exact rules, adapter и common/platform control plane. Disjoint dirty/index/
+commit другой platform/feature/product identity не блокирует lane. Явный
+`--change` разрешает несколько active packages; omission при нескольких либо
+partial/unclassified sibling блокируется. Пересечение production ownership
+между active packages также блокируется до writes/staging.
 
 Каждый platform package хранит evidence-selected `engineering_scopes` и точный
 derived `applicable_rule_files`. Propose выбирает scopes, Plan может уточнить их
@@ -133,10 +148,10 @@ Versionless v0 допустим только при exact hash match tracked
 - Portable skills хранить в `.agents/skills/`; runtime-копии процесса не создавать.
 - Не смешивать платформенные правила с общими без необходимости.
 - Не коммитить и не публиковать изменения без явной просьбы пользователя.
-- Язык platform lifecycle artifacts определяет common
+- Язык product и current v1 platform lifecycle artifacts определяет common
   [`artifact-language.md`](workflow/rules/artifact-language.md): authored prose
-  и reports — на русском, exact schema, код, пути и идентификаторы — без
-  перевода.
+  и human-authored JSON reports — на русском, exact schema, код, пути и
+  идентификаторы — без перевода.
 
 ## Commit gate и hooks
 
@@ -144,7 +159,13 @@ Versionless v0 допустим только при exact hash match tracked
 `$reconcile-implementation` отдельно для каждой затронутой
 platform/feature/change identity и выдаёт report. Только затем разрешённый set
 stage'ится и запускается portable
-`$pre-commit-check` по staged index. Gate не выполняет staging, commit, push и не расширяет delivery
+`$pre-commit-check` по staged index с exact intended path set. Staged set обязан
+точно совпасть с intended, включая обе стороны rename/copy; foreign staged path
+блокирует commit, unrelated unstaged state допустим. Rename old/new являются
+mutable; copy включает read-only unchanged source и mutable destination, task
+coverage требуется только destination. Exact PASS создаёт private
+short-lived receipt; runtime preview его не потребляет, tracked hook потребляет
+one-shot. Gate не выполняет staging, commit, push и не расширяет delivery
 authorization. Канон: [`pre-commit-integrity.md`](workflow/rules/pre-commit-integrity.md).
 
 Tracked Git hook находится в [`.githooks/pre-commit`](.githooks/pre-commit), а

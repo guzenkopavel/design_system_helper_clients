@@ -15,8 +15,22 @@ production trail получает только actionable hint.
 
 Ownership и `git status` проверяются до staging. Затем machine gate анализирует
 staged index, а не worktree: entries, modes, blob content и binary diff образуют
-один fingerprint. Изменение index инвалидирует результат; gate нужно повторить
-непосредственно перед commit.
+один fingerprint. Exact `PASS` canonical invocation с `--path` создаёт вне
+репозитория короткоживущий receipt: private directory `0700`, regular file
+`0600`, repository/Git-dir identity, staged fingerprint и exact intended paths.
+Receipt не расширяет пользовательскую авторизацию и не является repository
+artifact. JSON читается strict: `NaN`, `Infinity`, `-Infinity`, boolean/non-finite
+timestamps, неверный порядок или TTL блокируются.
+
+Каноническая delivery invocation передаёт exact intended set повторяемыми
+`--path`. Safe repo-relative set должен точно совпасть со всеми staged paths;
+rename identity включает mutable old/new, copy identity — read-only unchanged
+source и mutable destination. Обе стороны обязательны в intended/receipt;
+missing intended или extra
+foreign staged path дают `FAIL`, потому что commit включает весь index.
+Unrelated unstaged state разрешён. Если один production path покрывают tasks из
+нескольких active packages, owner считается ambiguous и gate блокирует delivery;
+несколько последовательных tasks одного package сохраняют DAG semantics.
 
 Gate проверяет staged ownership/scope, whitespace и conflict markers,
 подозрительные generated/local files, debug/investigation markers, secret-like
@@ -32,8 +46,13 @@ Platform build/test/UI/localization/security obligations приходят из a
 `pre_commit`. Отсутствующие tools или runtime evidence дают `N/A` либо
 `UNKNOWN` по риску; `UNKNOWN` никогда не считается PASS. Commands, projects,
 schemes, targets, variants и destinations обнаруживаются, а не выдумываются.
-Каждый production path, включая deletion и обе стороны rename/copy, требует
-completed active task и concrete evidence, staged вместе с изменением. Наличие
+Каждый mutable production path, включая deletion, rename old/new и copy
+destination, требует completed active task и concrete evidence, staged вместе с
+изменением. Copy source не требует task write ownership/evidence, но обязан быть
+explicit, byte-equal, unchanged, safe, no-symlink и принадлежать тому же adapter;
+его regular stage-0 mode/blob в index и worktree обязаны точно совпадать с HEAD,
+без cached/unstaged delta или unmerged entries. Он также называется в
+reconciliation evidence. Наличие
 project config само по себе не даёт PASS: `tool_globs` обнаруживают tooling, а
 task содержит discovered command и staged result evidence.
 
@@ -46,6 +65,11 @@ worktree version не может подменить staged contract.
 [`test-execution.md`](test-execution.md) and
 [`verification-evidence.md`](verification-evidence.md).
 
-Tracked `.githooks/pre-commit` всегда повторяет canonical staged gate. Receipts
-и advisory runtime reminders не являются доказательством. `--no-verify`
-остаётся human Git bypass, и agents не должны его использовать.
+Runtime hook перед `git commit` выполняет non-consuming preview: требует свежий
+receipt и повторяет staged integrity, но не забирает receipt. Tracked
+`.githooks/pre-commit` запускает `--hook`, атомарно потребляет receipt ровно один
+раз как one-shot и снова проверяет staged index. Absent, expired, malformed, symlink,
+wrong-mode, wrong-repository, stale fingerprint, path mismatch и replay дают
+`FAIL`. Generic integrity без receipt не авторизует commit; coordinator exact
+gate остаётся обязательным. `--no-verify` остаётся human Git bypass, и agents не
+должны его использовать.

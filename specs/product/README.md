@@ -6,6 +6,11 @@
 пакет одинаков для iOS и Android. `READY` требует applicable reviews и явного
 human product approval с evidence.
 
+Доставленный current product contract остаётся в
+`specs/product/<feature>/SPECIFICATION.md`. Это read-only baseline для следующей
+Discovery/Elaborate, а не active review artifact; его bytes не входят в
+fingerprint candidate package.
+
 После approval `$elaborate` переснимает fingerprint и запускает ровно шесть
 fresh read-only `product-spec-reviewer` contexts в одном parent session.
 Coordinator хранит runtime invocation evidence; JSON attestation сама по себе
@@ -23,5 +28,7 @@ platform fan-out запрещён.
 Архив product SSOT находится только в
 `specs/product/_archive/<feature>/<archive-id>/`; `_archive` исключён из active
 discovery. Архивация требует отдельный retirement request, переносит весь пакет
-как единицу и оставляет `specs/product/<feature>/spec.md` tombstone. Она не
+как единицу и оставляет `specs/product/<feature>/spec.md` tombstone. Для
+`completed` она публикует approved spec как current `SPECIFICATION.md`; для
+`superseded`/`cancelled` сохраняет прежний baseline и не продвигает candidate. Она не
 переписывает platform packages.

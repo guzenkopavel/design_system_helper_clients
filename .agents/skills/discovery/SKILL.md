@@ -10,3 +10,6 @@ description: Превратить идею или выбранный concept в 
 
 Это ручной no-code вход. Не создавать platform implementation specs и не
 подменять различиями SDK общий product intent. Не коммитить без явной просьбы.
+Существующий `specs/product/<feature>/SPECIFICATION.md` читать как immutable
+доставленный baseline; новый brief должен отделять сохраняемое поведение от
+предлагаемого изменения.

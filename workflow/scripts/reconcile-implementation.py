@@ -17,6 +17,8 @@ import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
+import git_change_paths as change_paths
+
 
 ROUTE_REQUIRED = "ROUTE_REQUIRED"
 DRIFT = "DRIFT"
@@ -109,65 +111,23 @@ def production_owned(adapter: dict[str, object], raw: str) -> bool:
 
 
 def worktree_changes(repo: Path) -> dict[str, dict[str, str]]:
-    result: dict[str, dict[str, str]] = {}
-    raw = git(repo, "diff", "HEAD", "--name-status", "-z", "--find-renames").stdout
-    fields = raw.split(b"\0"); index = 0
-    while index < len(fields) and fields[index]:
-        status_value = fields[index].decode("utf-8", errors="replace"); index += 1
-        status_code = status_value[:1]
-        if status_code in {"R", "C"}:
-            old = fields[index].decode("utf-8", errors="surrogateescape"); index += 1
-            new = fields[index].decode("utf-8", errors="surrogateescape"); index += 1
-            result[old] = {"status": f"{status_code}-old", "peer": new}
-            result[new] = {"status": f"{status_code}-new", "peer": old}
-        else:
-            path = fields[index].decode("utf-8", errors="surrogateescape"); index += 1
-            result[path] = {"status": status_code}
-    untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout
-    for item in untracked.split(b"\0"):
-        if item:
-            result[item.decode("utf-8", errors="surrogateescape")] = {"status": "A-untracked"}
-    deleted = [raw for raw, record in result.items() if record.get("status") == "D"]
-    added = [raw for raw, record in result.items() if record.get("status") == "A-untracked"]
-    added_by_hash: dict[str, list[str]] = {}
-    for raw in added:
-        try:
-            digest = hashlib.sha256((repo / raw).read_bytes()).hexdigest()
-        except OSError:
+    entries, _errors = change_paths.worktree_entries(repo)
+    return change_paths.path_records(entries)
+
+
+def index_projection(repo: Path, roots: list[str]) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    for payload in git(repo, "ls-files", "--stage", "-z").stdout.split(b"\0"):
+        if not payload:
             continue
-        added_by_hash.setdefault(digest, []).append(raw)
-    for old in deleted:
-        baseline = git(repo, "show", f"HEAD:{old}")
-        if baseline.returncode:
+        metadata, separator, raw_path = payload.partition(b"\t")
+        if not separator:
             continue
-        matches = added_by_hash.get(hashlib.sha256(baseline.stdout).hexdigest(), [])
-        if len(matches) == 1:
-            new = matches[0]
-            result[old] = {"status": "R-old", "peer": new}
-            result[new] = {"status": "R-new", "peer": old}
-    return result
-
-
-def index_fingerprint(repo: Path) -> str:
-    names = git(repo, "diff", "--cached", "--name-status", "-z", "--find-renames").stdout
-    index = git(repo, "ls-files", "-s", "-z").stdout
-    diff = git(repo, "diff", "--cached", "--binary", "--no-ext-diff").stdout
-    return hashlib.sha256(names + b"\0INDEX\0" + index + b"\0DIFF\0" + diff).hexdigest()
-
-
-def head_identity(repo: Path) -> dict[str, str]:
-    commit = git(repo, "rev-parse", "--verify", "HEAD")
-    if commit.returncode:
-        raise ReconcileError("repository HEAD commit is unavailable")
-    symbolic = git(repo, "symbolic-ref", "-q", "HEAD")
-    return {
-        "commit": commit.stdout.decode("utf-8", errors="replace").strip(),
-        "symbolic": (
-            symbolic.stdout.decode("utf-8", errors="replace").strip()
-            if symbolic.returncode == 0
-            else "DETACHED"
-        ),
-    }
+        path = raw_path.decode("utf-8", errors="surrogateescape")
+        if not path_under(path, roots):
+            continue
+        result.setdefault(path, []).append(metadata.decode("ascii", errors="replace"))
+    return {raw: sorted(values) for raw, values in sorted(result.items())}
 
 
 def file_record(path: Path) -> dict[str, object]:
@@ -186,13 +146,15 @@ def file_record(path: Path) -> dict[str, object]:
     }
 
 
-def repository_snapshot(repo: Path) -> dict[str, dict[str, object]]:
+def repository_snapshot(repo: Path, roots: list[str] | None = None) -> dict[str, dict[str, object]]:
     snapshot: dict[str, dict[str, object]] = {}
     for base, dirs, files in os.walk(repo):
         dirs[:] = sorted(name for name in dirs if name not in EXCLUDED_DIRS)
         for name in sorted(files):
             path = Path(base) / name
             relative = path.relative_to(repo).as_posix()
+            if roots is not None and not path_under(relative, roots):
+                continue
             try:
                 snapshot[relative] = file_record(path)
             except OSError as error:
@@ -247,9 +209,13 @@ def changed_contracts(package: Path, baseline: dict[str, object], repo: Path) ->
 
 
 def task_coverage(
-    repo: Path, package: Path, intended: list[str], validator, precommit
+    repo: Path, package: Path, intended: list[str], validator, precommit,
+    require_implementation_deliverables: bool = False,
 ) -> tuple[list[dict[str, object]], dict[str, list[str]], set[str], list[str]]:
-    tasks, parse_errors = validator.parse_tasks(repo, package)
+    tasks, parse_errors = validator.parse_tasks(
+        repo, package,
+        require_implementation_deliverables=require_implementation_deliverables,
+    )
     coverage: dict[str, list[str]] = {}
     direct: set[str] = set()
     for raw in intended:
@@ -343,20 +309,51 @@ def resolve_context(
         return {"outcome": ROUTE_REQUIRED, "route": "provide safe explicit intended paths", "errors": [str(error)]}
     if not intended:
         return {"outcome": ROUTE_REQUIRED, "route": "provide at least one explicit --path", "errors": []}
-    changes = worktree_changes(repo)
-    errors: list[str] = []
-    for raw in intended:
-        if not production_owned(adapter, raw):
-            errors.append(f"path is outside selected platform production ownership: {raw}")
-        if raw not in changes:
-            errors.append(f"intended path has no current worktree/index change: {raw}")
-    for raw in intended:
-        record = changes.get(raw, {})
-        peer = record.get("peer")
-        if isinstance(peer, str) and peer not in intended:
-            errors.append(f"rename/copy requires both explicit sides: {raw} -> {peer}")
+    entries, detection_errors = change_paths.worktree_entries(repo)
+    selected_entries, identity_errors = change_paths.select_identity(repo, entries, intended)
+    selected_sets = change_paths.path_sets(selected_entries)
+    changes = change_paths.path_records(selected_entries)
+    mutable = selected_sets["mutable_paths"]
+    read_only_copy_sources = selected_sets["read_only_paths"]
+    relevant_detection_errors = [
+        error for error in detection_errors
+        if any(f" {raw}:" in error for raw in intended)
+    ]
+    errors: list[str] = [*relevant_detection_errors, *identity_errors]
+    if selected_sets["identity_paths"] != intended:
+        errors.append("intended set must exactly equal detected rename/copy identity paths")
+    for raw in mutable:
+        try:
+            validator.path_ownership.validate_platform_writable_path(repo, adapter, raw)
+        except validator.path_ownership.PathOwnershipError as error:
+            errors.append(f"intended path ownership invalid: {error}")
+    for raw in read_only_copy_sources:
+        try:
+            validator.path_ownership.validate_platform_writable_path(
+                repo, adapter, raw, require_existing=True
+            )
+        except validator.path_ownership.PathOwnershipError as error:
+            errors.append(f"copy source identity invalid: {error}")
+        if not change_paths.worktree_source_unchanged(repo, raw):
+            errors.append(f"copy source must remain an unchanged regular tracked file: {raw}")
     if errors:
         return {"outcome": ROUTE_REQUIRED, "route": "correct the explicit intended set", "errors": sorted(set(errors))}
+    active_owners = validator.active_task_path_owners(repo, adapter, mutable)
+    package_identity = package.relative_to(repo).as_posix()
+    ambiguous = {
+        raw: owners for raw, owners in active_owners.items()
+        if len(owners) > 1 or (owners and package_identity not in owners)
+    }
+    if ambiguous:
+        ownership_errors = [
+            f"ambiguous active package ownership: {raw}: {', '.join(owners)}"
+            for raw, owners in sorted(ambiguous.items())
+        ]
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "resolve cross-package production ownership before reconciliation",
+            "errors": ownership_errors,
+        }
     if classification in {"shared-product-impact", "uncertain"}:
         route = "discovery/elaborate; approved shared product behavior and approval remain immutable"
         return {
@@ -364,7 +361,12 @@ def resolve_context(
             "platform": adapter["platform_name"], "feature": feature, "change": change_id,
             "intended_paths": intended,
         }
-    tasks, coverage, closure, parse_errors = task_coverage(repo, package, intended, validator, precommit)
+    tasks, coverage, closure, parse_errors = task_coverage(
+        repo, package, mutable, validator, precommit,
+        require_implementation_deliverables=(
+            contract_version == validator.CURRENT_MODULARITY_CONTRACT_VERSION
+        ),
+    )
     uncovered = sorted(raw for raw, owners in coverage.items() if not owners)
     if classification in {"task-drift", "platform-implementation-drift"} or uncovered or parse_errors:
         outcome = DRIFT
@@ -388,6 +390,9 @@ def resolve_context(
         "modularity_contract_version": contract_version,
         "package": package.relative_to(repo).as_posix(),
         "intended_paths": intended,
+        "identity_paths": intended,
+        "mutable_paths": mutable,
+        "read_only_copy_sources": read_only_copy_sources,
         "path_status": {raw: changes[raw] for raw in intended},
         "task_coverage": coverage,
         "affected_task_closure": sorted(closure),
@@ -459,7 +464,7 @@ def read_state(token: str) -> tuple[dict[str, object], Path]:
         value = json.loads(payload.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as error:
         raise ReconcileError("reconciliation state is malformed") from error
-    if not isinstance(value, dict) or value.get("schema_version") != 1:
+    if not isinstance(value, dict) or value.get("schema_version") != 2:
         raise ReconcileError("reconciliation state schema is invalid")
     return value, path
 
@@ -477,6 +482,22 @@ def contract_hashes(repo: Path, package: Path, meta: dict[str, object], adapter:
     return {path.relative_to(repo).as_posix(): file_hash(path) for path in paths}
 
 
+def reconciliation_projection(
+    repo: Path, package: Path, intended: list[str], meta: dict[str, object], adapter: dict[str, object],
+) -> list[str]:
+    platform_root = str(adapter["platform_root"]).rstrip("/")
+    roots = [
+        package.relative_to(repo).as_posix(), *intended, "AGENTS.md", "workflow",
+        ".agents/skills/reconcile-implementation", f"{platform_root}/AGENTS.md",
+        f"{platform_root}/workflow", str(adapter.get("_path", "")),
+    ]
+    shared = meta.get("shared_product_spec")
+    if isinstance(shared, str):
+        roots.append(shared)
+    roots.extend(raw for raw in meta.get("applicable_rule_files", []) if isinstance(raw, str))
+    return sorted(set(raw for raw in roots if raw))
+
+
 def start_guard(context: dict[str, object], repo: Path) -> dict[str, object]:
     if context.get("outcome") == ROUTE_REQUIRED:
         return public_report(context)
@@ -490,14 +511,17 @@ def start_guard(context: dict[str, object], repo: Path) -> dict[str, object]:
     package = context["_package_path"]
     meta = context["_meta"]
     adapter = context["_adapter"]
-    snapshot = repository_snapshot(repo)
+    projection = reconciliation_projection(
+        repo, package, [str(item) for item in context["intended_paths"]], meta, adapter
+    )
+    snapshot = repository_snapshot(repo, projection)
     evidence_root = package / "evidence"
     existing_evidence = sorted(
         path.relative_to(repo).as_posix()
         for path in evidence_root.rglob("*") if path.is_file()
     ) if evidence_root.is_dir() else []
     state = {
-        "schema_version": 1,
+        "schema_version": 2,
         "repo": str(repo),
         "git_dir": str((repo / ".git").resolve()),
         "platform_input": context["platform_input"],
@@ -507,10 +531,14 @@ def start_guard(context: dict[str, object], repo: Path) -> dict[str, object]:
         "classification": classification,
         "outcome_before": context["outcome"],
         "intended_paths": context["intended_paths"],
+        "identity_paths": context.get("identity_paths", context["intended_paths"]),
+        "mutable_paths": context.get("mutable_paths", context["intended_paths"]),
+        "read_only_copy_sources": context.get("read_only_copy_sources", []),
         "intended_status": context["path_status"],
         "affected_task_closure": context["affected_task_closure"],
-        "head_identity": head_identity(repo),
-        "index_fingerprint": index_fingerprint(repo),
+        "lane_identity": f"platform:{context['platform_input']}:{context['feature']}:{context['change']}:reconcile",
+        "lane_projection": projection,
+        "index_projection": index_projection(repo, projection),
         "snapshot": snapshot,
         "meta": meta,
         "existing_evidence": existing_evidence,
@@ -594,21 +622,30 @@ def check_guard(token: str) -> dict[str, object]:
         errors: list[str] = []
         if str((repo / ".git").resolve()) != state.get("git_dir"):
             errors.append("repository identity changed")
-        if head_identity(repo) != state.get("head_identity"):
-            errors.append("repository HEAD/commit identity changed during reconciliation")
-        if index_fingerprint(repo) != state.get("index_fingerprint"):
-            errors.append("Git index changed during reconciliation")
+        projection = state.get("lane_projection", [])
+        if not isinstance(projection, list) or not projection:
+            errors.append("reconciliation lane projection is missing")
+            projection = [str(state.get("package", ""))]
+        if index_projection(repo, projection) != state.get("index_projection"):
+            errors.append("selected lane Git index changed during reconciliation")
         before_snapshot = state.get("snapshot", {})
-        after_snapshot = repository_snapshot(repo)
+        after_snapshot = repository_snapshot(repo, projection)
         changed = changed_snapshot_paths(before_snapshot, after_snapshot)
         package_raw = str(state["package"])
         intended = [str(item) for item in state.get("intended_paths", [])]
+        mutable = [str(item) for item in state.get("mutable_paths", intended)]
         for raw in sorted(changed):
             if raw in intended:
                 errors.append(f"intended production changed during reconciliation: {raw}")
             elif not allowed_package_mutation(package_raw, raw, raw in before_snapshot):
                 errors.append(f"write outside reconciliation package scope: {raw}")
-        current_changes = worktree_changes(repo)
+        current_entries, current_detection_errors = change_paths.worktree_entries(repo)
+        current_selected, current_identity_errors = change_paths.select_identity(repo, current_entries, intended)
+        for detail in current_detection_errors:
+            if any(f" {raw}:" in detail for raw in intended):
+                errors.append(detail)
+        errors.extend(current_identity_errors)
+        current_changes = change_paths.path_records(current_selected)
         current_status = {raw: current_changes.get(raw) for raw in intended}
         if current_status != state.get("intended_status"):
             errors.append("intended rename/delete/content status changed during reconciliation")
@@ -679,7 +716,7 @@ def check_guard(token: str) -> dict[str, object]:
             if meta.get("status") != "implementing":
                 errors.append("implementing package must remain implementing during reconciliation")
 
-        tasks, coverage, closure, parse_errors = task_coverage(repo, package, intended, validator, precommit)
+        tasks, coverage, closure, parse_errors = task_coverage(repo, package, mutable, validator, precommit)
         errors.extend(f"task parse: {item}" for item in parse_errors)
         for raw, owners in coverage.items():
             if not owners:
@@ -810,6 +847,7 @@ def configure_git(repo: Path) -> None:
     git(repo, "init", "-q")
     git(repo, "config", "user.email", "reconcile@example.invalid")
     git(repo, "config", "user.name", "Reconcile Test")
+    git(repo, "config", "core.filemode", "true")
 
 
 def replace_tree_text(root: Path, old: str, new: str) -> None:
@@ -853,6 +891,9 @@ def write_fixture(repo: Path, platform: str = "iOS") -> tuple[object, dict[str, 
         f"- Paths: existing: {source.relative_to(repo).as_posix()}\n\n"
         "## Goal\nMaintain the typed platform behavior boundary.\n\n"
         "## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its result.\n\n"
+        "## Implementation deliverables\n"
+        "- Typed platform boundary in the selected production file.\n"
+        "- Focused behavior test for the deterministic boundary result.\n\n"
         "## Steps\nKeep the typed boundary aligned with platform contracts.\n\n"
         "## Verification\nRun the focused deterministic boundary test.\n\n"
         "## Expected result\nThe boundary returns the expected typed result.\n\n"
@@ -1059,17 +1100,35 @@ def self_test() -> int:
 
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
+        duplicate = repo / "iOS/specs/other/changes/second"
+        shutil.copytree(package, duplicate)
+        duplicate_meta = json.loads((duplicate / "meta.json").read_text(encoding="utf-8"))
+        duplicate_meta.update(feature="other", change_id="second", status="implementing")
+        (duplicate / "meta.json").write_text(json.dumps(duplicate_meta), encoding="utf-8")
+        ambiguous = resolve_context(
+            repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned"
+        )
+        assert ambiguous["outcome"] == ROUTE_REQUIRED
+        assert any("ambiguous active package ownership" in error for error in ambiguous["errors"])
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
         unrelated = repo / "Android/unrelated.kt"; unrelated.parent.mkdir(); unrelated.write_text("owner state\n", encoding="utf-8")
         staged = repo / "staged-note.md"; staged.write_text("staged owner state\n", encoding="utf-8"); git(repo, "add", "staged-note.md")
-        before_index = index_fingerprint(repo)
         context = resolve_context(repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned")
         started = start_guard(context, repo); token = str(started["token"])
         state_file = state_path(token); assert stat.S_IMODE(state_file.stat().st_mode) == 0o600
+        unrelated.write_text("android lane changed\n", encoding="utf-8")
+        other_product = repo / "specs/product/other/spec.md"
+        other_product.parent.mkdir(parents=True); other_product.write_text("Другой продуктовый контракт.\n", encoding="utf-8")
+        git(repo, "add", "Android/unrelated.kt", "specs/product/other/spec.md")
+        moved = git(repo, "commit", "-qm", "disjoint reconciliation lanes")
+        assert moved.returncode == 0
         write_fresh_evidence(repo, package, source)
         checked = check_guard(token)
         assert checked["outcome"] == RECONCILED, checked
-        assert index_fingerprint(repo) == before_index
-        assert unrelated.read_text(encoding="utf-8") == "owner state\n"
+        assert git(repo, "diff", "--cached", "--name-only").stdout.decode().strip() == ""
+        assert unrelated.read_text(encoding="utf-8") == "android lane changed\n"
         assert (package / "evidence/task-001.md").read_text(encoding="utf-8") == "Historical focused evidence.\n"
 
     result_mutations = (
@@ -1105,8 +1164,17 @@ def self_test() -> int:
         moved = git(repo, "commit", "--allow-empty", "-qm", "move head during reconciliation")
         assert moved.returncode == 0
         head_check = check_guard(token)
-        assert head_check["outcome"] == INVALID
-        assert any("HEAD/commit identity changed" in error for error in head_check["errors"])
+        assert head_check["outcome"] == RECONCILED, head_check
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
+        context = resolve_context(repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned")
+        token = str(start_guard(context, repo)["token"])
+        write_fresh_evidence(repo, package, source, "selected-index")
+        git(repo, "add", source.relative_to(repo).as_posix())
+        selected_index = check_guard(token)
+        assert selected_index["outcome"] == INVALID
+        assert any("selected lane Git index changed" in error for error in selected_index["errors"])
 
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
@@ -1317,15 +1385,110 @@ def self_test() -> int:
         assert ambiguous["outcome"] == ROUTE_REQUIRED
 
     with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
+        repo = Path(tmp).resolve(); validator, adapter, package, source = write_fixture(repo, "iOS")
         git(repo, "reset", "-q", "--hard", "HEAD")
+        same_adapter_peer = repo / "iOS/Sources/Peer.swift"
+        cross_adapter_peer = repo / "Android/App/Peer.swift"
+        same_adapter_peer.write_bytes(source.read_bytes())
+        cross_adapter_peer.parent.mkdir(parents=True); cross_adapter_peer.write_bytes(source.read_bytes())
+        git(repo, "add", same_adapter_peer.relative_to(repo).as_posix(), cross_adapter_peer.relative_to(repo).as_posix())
+        git(repo, "commit", "-qm", "identical explicit copy candidates")
         copied = source.with_name("Copied.swift"); copied.write_bytes(source.read_bytes())
-        copy_context = resolve_context(
+        source_raw = source.relative_to(repo).as_posix(); copied_raw = copied.relative_to(repo).as_posix()
+        source_baseline = source.read_bytes()
+        source.write_text("staged source mutation\n", encoding="utf-8"); git(repo, "add", source_raw)
+        source.write_bytes(source_baseline)
+        staged_source = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw, copied_raw], "task-drift"
+        )
+        assert staged_source["outcome"] == ROUTE_REQUIRED
+        git(repo, "reset", "-q", "HEAD", "--", source_raw)
+        source.chmod(0o755); git(repo, "add", source_raw); source.chmod(0o644)
+        mode_source = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw, copied_raw], "task-drift"
+        )
+        assert mode_source["outcome"] == ROUTE_REQUIRED
+        git(repo, "reset", "-q", "HEAD", "--", source_raw)
+        git(repo, "rm", "--cached", "-q", "--", source_raw)
+        deleted_source = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw, copied_raw], "task-drift"
+        )
+        assert deleted_source["outcome"] == ROUTE_REQUIRED
+        git(repo, "reset", "-q", "HEAD", "--", source_raw)
+        missing_source = resolve_context(
             repo, "ios", "sample", "sample", [copied.relative_to(repo).as_posix()], "task-drift"
         )
+        assert missing_source["outcome"] == ROUTE_REQUIRED
+        missing_destination = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw], "task-drift"
+        )
+        assert missing_destination["outcome"] == ROUTE_REQUIRED
+        multiple_sources = resolve_context(
+            repo, "ios", "sample", "sample",
+            sorted([source_raw, same_adapter_peer.relative_to(repo).as_posix(), copied_raw]),
+            "task-drift",
+        )
+        assert multiple_sources["outcome"] == ROUTE_REQUIRED
+        cross_source = resolve_context(
+            repo, "ios", "sample", "sample",
+            sorted([cross_adapter_peer.relative_to(repo).as_posix(), copied_raw]),
+            "task-drift",
+        )
+        assert cross_source["outcome"] == ROUTE_REQUIRED
+        copy_context = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw, copied_raw], "task-drift"
+        )
         assert copy_context["outcome"] == DRIFT
-        assert copy_context["intended_paths"] == [copied.relative_to(repo).as_posix()]
-        copied.unlink()
+        assert copy_context["identity_paths"] == sorted([source_raw, copied_raw])
+        assert copy_context["mutable_paths"] == [copied_raw]
+        assert copy_context["read_only_copy_sources"] == [source_raw]
+        drift_token = str(start_guard(copy_context, repo)["token"])
+        source.write_text("guarded staged source mutation\n", encoding="utf-8"); git(repo, "add", source_raw)
+        source.write_bytes(source_baseline)
+        assert check_guard(drift_token)["outcome"] == INVALID
+        git(repo, "reset", "-q", "HEAD", "--", source_raw)
+        copy_context = resolve_context(
+            repo, "ios", "sample", "sample", [source_raw, copied_raw], "task-drift"
+        )
+        token = str(start_guard(copy_context, repo)["token"])
+        task = (package / "plan/task-001.md").read_text(encoding="utf-8")
+        task = task.replace("task-001 — Reconcile sample", "task-002 — Cover copied destination")
+        task = task.replace("evidence/task-001.md", "none")
+        task = task.replace(source_raw, copied_raw)
+        (package / "plan/task-002.md").write_text(task, encoding="utf-8")
+        plan_readme = package / "plan/README.md"
+        plan_readme.write_text(
+            plan_readme.read_text(encoding="utf-8").replace(
+                "task-001 is independent.", "task-001 and task-002 are independent."
+            ), encoding="utf-8",
+        )
+        meta_path = package / "meta.json"; meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta.update(tasks_total=2, tasks_done=2); meta_path.write_text(json.dumps(meta), encoding="utf-8")
+        write_fresh_evidence(
+            repo, package, copied, "copy-identity", "task-002", sorted([source_raw, copied_raw])
+        )
+        assert validator.validate_package(repo, adapter, "sample", "sample", "implement") == []
+        copy_checked = check_guard(token)
+        assert copy_checked["outcome"] == RECONCILED, copy_checked
+        staged_paths = [copied_raw] + list(copy_checked["updated_artifacts"])
+        assert git(repo, "add", "--", *staged_paths).returncode == 0
+        precommit = copy_context["_precommit"]
+        delivery_intended = sorted([source_raw, copied_raw, *copy_checked["updated_artifacts"]])
+        assert precommit.canonical_evaluate(
+            repo, [raw for raw in delivery_intended if raw != source_raw]
+        )["status"] == precommit.FAIL
+        assert precommit.canonical_evaluate(
+            repo, [raw for raw in delivery_intended if raw != copied_raw]
+        )["status"] == precommit.FAIL
+        exact_gate = precommit.canonical_evaluate(repo, delivery_intended)
+        assert exact_gate["status"] == precommit.PASS, exact_gate
+        assert precommit.hook_evaluate(repo, consume=False)["status"] == precommit.PASS
+        assert precommit.hook_evaluate(repo, consume=True)["status"] == precommit.PASS
+        assert precommit.hook_evaluate(repo, consume=True)["status"] == precommit.FAIL
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); _validator, _adapter, _package, source = write_fixture(repo, "iOS")
+        git(repo, "reset", "-q", "--hard", "HEAD")
         original = source; renamed = source.with_name("Renamed.swift"); original.rename(renamed)
         one_side = resolve_context(repo, "ios", "sample", "sample", [renamed.relative_to(repo).as_posix()], "task-drift")
         assert one_side["outcome"] == ROUTE_REQUIRED

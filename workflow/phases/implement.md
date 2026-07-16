@@ -24,7 +24,8 @@ traversal and ambiguity block before writes. Android is supported through its
 adapter and finishes non-terminal when Verify capability is absent.
 
 Accept only `planned` or `implementing`. `implementation-discovery` rereads the
-task, dependencies, declared paths, contracts and adapter rules and returns a
+task, dependencies, current v1 `Implementation deliverables`, declared paths,
+contracts and adapter rules and returns a
 compact read-only handoff. Select only pending tasks whose dependencies are
 done; `--all` processes ready tasks in DAG order and stops on the first failure.
 
@@ -34,18 +35,32 @@ to `$reconcile-implementation` before staging; behavioral/shared impact returns
 to product Discovery/Elaborate.
 
 The `implementation-writer` runs in `platform-implementation` mode and treats
-the task as the primary self-contained input. It may change only task-declared
+the task as the primary self-contained input. Для current v1 он реализует
+каждый пункт `Implementation deliverables`; этот список определяет, что должно
+появиться, но не расширяет write authority за task `Paths`. It may change only task-declared
 production paths plus scoped package evidence/state. Use behavior-first/TDD,
 the platform architecture/testing lenses, and no side features. Capture a scope
 baseline before writes, retain the emitted SHA-256 token in coordinator memory
 outside repository state, and pass it as `--expected-sha256` to the post-write
 check. Every declared Path
 must be inside adapter production roots and outside protected/excluded roots;
-one valid Path never masks an invalid sibling. Implement writes are limited to
+canonical ownership helper также запрещает symlink traversal для file,
+directory и proposed-child boundaries; one valid Path never masks an invalid
+sibling. Implement writes are limited to
 task Paths, task/meta state, `evidence/task-NNN.md` and
 `evidence/scope-baseline-task-NNN.json`; the writer must not rewrite that
-coordinator-owned baseline. The guard also preserves staged/unstaged/untracked
-state for paths outside task scope.
+coordinator-owned baseline. Guard использует independent task lane и не
+присваивает себе unrelated staged/unstaged/untracked state другой
+platform/feature/product lane.
+Baseline schema v3 фиксирует algorithm `git-visible-lane-v1`: hash set состоит
+из tracked и non-ignored untracked файлов только selected package, task Paths,
+Read-only context, shared spec, applicable rules, adapter и common/platform
+control plane. Ignored caches, `node_modules`, build output и disjoint dirty/
+HEAD changes не входят в projection. Отдельный
+`git-ls-files-stage-lane-v1` snapshot сохраняет exact selected-lane index entries
+`path + mode + stage + blob_id`; любое index-only изменение блокирует task и
+verify guard даже при одинаковых worktree bytes и porcelain XY. До baseline
+cross-package owner ambiguity каждого task Path обязана дать fail-closed.
 
 For product-backed UI tasks, reread immutable `platform-ux.md` and implement its
 native language, appearance, accessibility/motion and fallback checks. Record

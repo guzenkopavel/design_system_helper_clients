@@ -18,11 +18,15 @@
 - [`iOS/specs/`](iOS/specs/) и [`Android/specs/`](Android/specs/) — отдельные
   implementation packages и evidence каждой платформы.
 
+После archive история change остаётся в `archive/`, а доставленный current
+контракт — в feature-root `SPECIFICATION.md` отдельно для product, iOS и Android.
+Следующий цикл читает этот baseline и не восстанавливает знания из tombstone.
+
 <!-- BEGIN GENERATED: README_CAPABILITIES -->
 | Клиент | Source/build roots | Platform specs | Capabilities | Addenda | Rules |
 |---|---|---|---|---:|---:|
 | iOS | [`iOS/SysDevScen/`](iOS/SysDevScen/) | [`iOS/specs/`](iOS/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 30 |
-| Android | [`Android/app/`](Android/app/) | [`Android/specs/`](Android/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 18 |
+| Android | [`Android/app-shell/`](Android/app-shell/), [`Android/app/`](Android/app/) | [`Android/specs/`](Android/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 18 |
 <!-- END GENERATED: README_CAPABILITIES -->
 
 Матрица выше — производная проекция platform contracts. Канонические

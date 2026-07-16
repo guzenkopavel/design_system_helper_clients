@@ -14,6 +14,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import artifact_language
+
 
 LENSES = (
     "product",
@@ -31,6 +33,7 @@ PLACEHOLDER_RE = re.compile(r"<[^>\n]+>|\b(?:TODO|TBD|FIXME|UNKNOWN)\b", re.IGNO
 STATUS_LINE_RE = re.compile(rb"(?m)^- \*\*Status:\*\* `(DRAFT|READY)`\r?$")
 REQ_RE = re.compile(r"(?m)^-\s+`(REQ-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
 AC_RE = re.compile(r"(?m)^-\s+`(AC-[A-Za-z0-9_-]+)`\s+[—-]\s+(.+)$")
+DIMENSION_RE = re.compile(r"`Verification dimension:\s*([a-z0-9]+(?:-[a-z0-9]+)*)`")
 VERDICT_KEYS = {
     "schema_version", "feature", "lens", "subject_fingerprint",
     "reviewer_role", "runtime", "run_id", "parent_context_id", "context_id",
@@ -101,6 +104,8 @@ def snapshot_product(repo: Path, feature: str) -> dict[str, object]:
                 raise ProductSpecError(f"product package symlink is forbidden: {path.relative_to(repo)}")
             if not stat.S_ISREG(info.st_mode):
                 raise ProductSpecError(f"product package path must be a regular file: {path.relative_to(repo)}")
+            if relative == "SPECIFICATION.md":
+                continue
             payload = normalized_payload(relative, path.read_bytes())
             files[relative] = hashlib.sha256(payload).hexdigest()
     if "spec.md" not in files:
@@ -145,6 +150,12 @@ def validate_finding(value: object, lens: str) -> list[str]:
         errors.append(f"{lens} finding summary is not substantive")
     if not substantive(value.get("evidence"), 8):
         errors.append(f"{lens} finding evidence is not substantive")
+    errors.extend(artifact_language.validate_authored_json_string(
+        value.get("summary"), f"{lens} finding.summary"
+    ))
+    errors.extend(artifact_language.validate_authored_json_string(
+        value.get("evidence"), f"{lens} finding.evidence"
+    ))
     requirement_ids = value.get("requirement_ids")
     if not isinstance(requirement_ids, list) or not all(
         isinstance(item, str) and re.fullmatch(r"(?:REQ|AC)-[A-Za-z0-9_-]+", item)
@@ -225,6 +236,9 @@ def validate_verdict_data(
         errors.append(f"{lens} evidence_refs must name product package subject files")
     if not substantive(verdict.get("rationale"), 16) or not evidence_refs:
         errors.append(f"{lens} every verdict requires substantive rationale and package evidence_refs")
+    errors.extend(artifact_language.validate_authored_json_string(
+        verdict.get("rationale"), f"{lens} verdict.rationale"
+    ))
     if decision == "N/A" and (
         not substantive(verdict.get("rationale"), 16) or not evidence_refs
     ):
@@ -357,6 +371,7 @@ def requirement_coverage(spec: str) -> list[str]:
     if not requirement_rows or not criterion_rows:
         return ["product spec requires at least one REQ and one AC"]
     covered: set[str] = set()
+    dimensions: list[str] = []
     for ac_id, body in criterion_rows:
         covers_match = re.search(r"`?Covers:\s*([^`\n]+)`?", body)
         if not covers_match:
@@ -367,9 +382,78 @@ def requirement_coverage(spec: str) -> list[str]:
         if unknown:
             errors.append(f"{ac_id} covers unknown requirements: {', '.join(sorted(unknown))}")
         covered |= mapped & requirements
+        dimension_matches = DIMENSION_RE.findall(body)
+        if len(dimension_matches) != 1:
+            errors.append(f"{ac_id} must declare exactly one Verification dimension")
+        else:
+            dimensions.append(dimension_matches[0])
+        if len(re.findall(r"`Covers:", body)) != 1:
+            errors.append(f"{ac_id} must declare exactly one Covers mapping")
+    duplicate_dimensions = sorted(
+        identity for identity, count in Counter(dimensions).items() if count > 1
+    )
+    if duplicate_dimensions:
+        errors.append(
+            "verification dimensions must be unique across atomic ACs: "
+            + ", ".join(duplicate_dimensions)
+        )
     for requirement in sorted(requirements - covered):
         errors.append(f"{requirement} is not covered by any AC")
     return sorted(set(errors))
+
+
+def section(text: str, heading: str) -> str:
+    match = re.search(rf"(?m)^##\s+{re.escape(heading)}\s*$", text)
+    if not match:
+        return ""
+    tail = text[match.end():]
+    boundary = re.search(r"(?m)^##\s+", tail)
+    return tail[:boundary.start() if boundary else None].strip()
+
+
+def validate_ready_coherence(spec: str) -> list[str]:
+    errors: list[str] = []
+    readiness = section(spec, "Readiness Decision")
+    decision = re.findall(r"(?mi)^-\s+\*\*Decision:\*\*\s+`(DRAFT|READY)`\s*$", readiness)
+    blockers = re.findall(r"(?mi)^-\s+\*\*Blocking reasons:\*\*\s+`([^`]+)`\s*$", readiness)
+    if decision != ["READY"]:
+        errors.append("Readiness Decision must contain exactly Decision READY")
+    if len(blockers) != 1 or blockers[0].strip().casefold() != "none":
+        errors.append("Readiness Decision READY requires exact Blocking reasons none")
+    open_questions = section(spec, "Open Questions")
+    if open_questions.strip().casefold() not in {"none", "none."}:
+        errors.append("READY Open Questions must be exact None")
+    client = section(spec, "Client Readiness")
+    rows = []
+    for line in client.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[0].casefold() == "check" or set(cells[0]) <= {"-", ":"}:
+            continue
+        rows.append(cells)
+    required_checks = {"Happy path", "Secondary states", "Product intent parity", "Atomic evidence obligations"}
+    if {row[0] for row in rows} != required_checks:
+        errors.append("Client Readiness must contain exact shared-contract completeness checks")
+    for check, ios, android, evidence in rows:
+        if ios != "PASS" or android != "PASS":
+            errors.append(f"Client Readiness {check} must be PASS for iOS and Android")
+        if not substantive(evidence, 5):
+            errors.append(f"Client Readiness {check} requires product-contract evidence")
+    readiness_surface = "\n".join((client, open_questions, readiness))
+    readiness_surface = re.sub(r"(?mi)^\|\s*Check\s*\|.*$", "", readiness_surface)
+    if re.search(r"\b(?:DRAFT|PENDING|GAP|UNKNOWN)\b", readiness_surface, re.I):
+        errors.append("READY readiness surfaces contain contradictory non-ready claims")
+    return errors
+
+
+def validate_product_language(repo: Path, package: Path) -> list[str]:
+    errors: list[str] = []
+    for path in sorted(package.glob("*.md")):
+        if path.name == "SPECIFICATION.md":
+            continue
+        errors.extend(artifact_language.validate_authored_markdown_language(repo, package, path))
+    return errors
 
 
 def validate_receipt_data(
@@ -422,6 +506,10 @@ def check_product(repo: Path, feature: str) -> list[str]:
         errors.append("Approved by must identify the human approver")
     if not substantive(metadata.get("Approval evidence"), 8):
         errors.append("Approval evidence must record the explicit human decision")
+    else:
+        errors.extend(artifact_language.validate_authored_json_string(
+            metadata.get("Approval evidence"), "product Approval evidence"
+        ))
     if metadata.get("Applies to") not in {"iOS, Android", "Android, iOS"}:
         errors.append("product spec must apply to both iOS and Android")
     if metadata.get("Source brief") != "brief.md":
@@ -433,6 +521,8 @@ def check_product(repo: Path, feature: str) -> list[str]:
     if metadata.get("UX readiness") != "review-verdicts.json#ux-accessibility":
         errors.append("product spec must link UX readiness to the receipt lens")
     errors.extend(requirement_coverage(spec))
+    errors.extend(validate_ready_coherence(spec))
+    errors.extend(validate_product_language(repo, package))
     receipt_path = package / "review-verdicts.json"
     if not receipt_path.is_file() or receipt_path.is_symlink():
         errors.append("fresh product review receipt is missing")
@@ -456,8 +546,13 @@ def check_product(repo: Path, feature: str) -> list[str]:
         if ux_verdict.get("applicability") != "REQUIRED" or ux_verdict.get("verdict") != "PASS":
             errors.append("UI/interaction package requires PASS ux-accessibility lens")
     elif ux_artifact.startswith("NOT APPLICABLE:"):
-        if not substantive(ux_artifact.partition(":")[2], 12):
+        ux_rationale = ux_artifact.partition(":")[2]
+        if not substantive(ux_rationale, 12):
             errors.append("UX NOT APPLICABLE requires substantive rationale")
+        else:
+            errors.extend(artifact_language.validate_authored_json_string(
+                ux_rationale, "product UX NOT APPLICABLE rationale"
+            ))
         if ux_verdict.get("applicability") != "NOT_APPLICABLE" or ux_verdict.get("verdict") != "N/A":
             errors.append("non-UI package requires coherent ux-accessibility N/A verdict")
     else:
@@ -470,16 +565,23 @@ def fixture_spec(status: str = "DRAFT", approval: str = "APPROVED") -> str:
         "# Sample — shared product specification\n\n"
         f"- **Status:** `{status}`\n"
         f"- **Product approval:** `{approval}`\n"
-        "- **Approved by:** Product owner\n"
-        "- **Approval evidence:** Explicit approval in decision record PRD-42\n"
+        "- **Approved by:** Владелец продукта\n"
+        "- **Approval evidence:** Явное одобрение зафиксировано в решении PRD-42\n"
         "- **Applies to:** `iOS, Android`\n"
         "- **Source brief:** `brief.md`\n"
-        "- **UX artifact:** `NOT APPLICABLE: no user interface or interaction changes`\n"
+        "- **UX artifact:** `NOT APPLICABLE: пользовательский интерфейс и взаимодействие не меняются`\n"
         "- **Product review receipt:** `review-verdicts.json`\n"
         "- **UX readiness:** `review-verdicts.json#ux-accessibility`\n\n"
-        "## Requirements\n- `REQ-1` — Shared behavior remains observable.\n\n"
-        "## Acceptance Criteria\n- `AC-1` — Shared behavior is observed. `Covers: REQ-1`\n\n"
-        "## Open Questions\nNone.\n"
+        "## Requirements\n- `REQ-1` — Общее поведение остаётся наблюдаемым.\n\n"
+        "## Acceptance Criteria\n- `AC-1` — Общее поведение наблюдается. `Covers: REQ-1` `Verification dimension: primary-outcome`\n\n"
+        "## Client Readiness\n\n"
+        "| Check | iOS | Android | Evidence or gap |\n|---|---|---|---|\n"
+        "| Happy path | PASS | PASS | Полнота общего happy path подтверждена контрактом. |\n"
+        "| Secondary states | PASS | PASS | Применимые вторичные состояния перечислены в контракте. |\n"
+        "| Product intent parity | PASS | PASS | Единый продуктовый замысел задан для обоих клиентов. |\n"
+        "| Atomic evidence obligations | PASS | PASS | Каждый AC имеет отдельную dimension проверки. |\n\n"
+        "## Open Questions\nNone.\n\n"
+        "## Readiness Decision\n- **Decision:** `READY`\n- **Blocking reasons:** `none`\n"
     )
 
 
@@ -503,8 +605,8 @@ def fixture_verdict(subject: dict[str, object], lens: str, index: int) -> dict[s
         "verdict": decision,
         "clients_checked": ["iOS", "Android"],
         "rationale": (
-            "The package contains no applicable behavior for this optional lens."
-            if optional else "The shared product contract is complete for both clients."
+            "В пакете нет применимого поведения для этой необязательной линзы."
+            if optional else "Общий продуктовый контракт полон для обоих клиентов."
         ),
         "evidence_refs": ["spec.md"],
         "findings": [],
@@ -513,7 +615,7 @@ def fixture_verdict(subject: dict[str, object], lens: str, index: int) -> dict[s
 
 def write_fixture(repo: Path) -> tuple[Path, dict[str, object], list[dict[str, object]]]:
     package = repo / "specs/product/sample"; package.mkdir(parents=True)
-    (package / "brief.md").write_text("Substantive shared product brief for both clients.\n", encoding="utf-8")
+    (package / "brief.md").write_text("Содержательный общий продуктовый brief для обоих клиентов.\n", encoding="utf-8")
     (package / "spec.md").write_text(fixture_spec(), encoding="utf-8")
     subject = snapshot_product(repo, "sample")
     verdicts = [fixture_verdict(subject, lens, index) for index, lens in enumerate(LENSES, 1)]
@@ -571,11 +673,11 @@ def self_test() -> int:
             context_id=verdicts[0]["parent_context_id"],
         )
         assert any("same-context fallback" in item for item in validate_verdict_data(fallback, subject))
-        fallback["verdict"] = "UNKNOWN"; fallback["rationale"] = "Independent reviewer context is unavailable in this runtime."
+        fallback["verdict"] = "UNKNOWN"; fallback["rationale"] = "Независимый контекст reviewer недоступен в этом runtime."
         fallback["findings"] = [{
             "id": "finding-runtime-01", "severity": "blocker",
-            "summary": "Independent context could not be established.",
-            "evidence": "The runtime exposed only the author context for this review.",
+            "summary": "Независимый контекст не удалось создать.",
+            "evidence": "Runtime предоставил для этого review только контекст автора.",
             "requirement_ids": [],
         }]
         assert validate_verdict_data(fallback, subject) == []
@@ -591,22 +693,22 @@ def self_test() -> int:
             "independent_context": False,
             "context_id": external["parent_context_id"],
             "verdict": "UNKNOWN",
-            "rationale": "External independent invocation evidence is unavailable for this review.",
+            "rationale": "Для этой проверки недоступно подтверждение независимого внешнего вызова.",
             "findings": [{
                 "id": "finding-external-01", "severity": "blocker",
-                "summary": "External invocation provenance is unavailable.",
-                "evidence": "The coordinator has no explicit external invocation evidence.",
+                "summary": "Происхождение внешнего вызова не подтверждено.",
+                "evidence": "У координатора нет явного подтверждения внешнего вызова.",
                 "requirement_ids": [],
             }],
         })
         assert validate_verdict_data(external, subject) == []
         only_ios = dict(verdicts[0], clients_checked=["iOS"])
         assert any("both clients" in item for item in validate_verdict_data(only_ios, subject))
-        gap = dict(verdicts[0], verdict="GAP", rationale="Platform implementation detail leaked into product behavior.")
+        gap = dict(verdicts[0], verdict="GAP", rationale="Деталь платформенной реализации попала в продуктовое поведение.")
         gap["findings"] = [{
             "id": "finding-platform-01", "severity": "major",
-            "summary": "Product spec contains a platform implementation decision.",
-            "evidence": "spec.md names a client framework instead of observable behavior.",
+            "summary": "Продуктовая спецификация содержит решение платформенной реализации.",
+            "evidence": "В spec.md назван клиентский фреймворк вместо наблюдаемого поведения.",
             "requirement_ids": ["REQ-1"],
         }]
         assert validate_verdict_data(gap, subject) == []
@@ -616,6 +718,12 @@ def self_test() -> int:
         assert any("aggregate_status must be PASS" in item for item in check_product(repo, "sample"))
 
         original = snapshot_product(repo, "sample")["fingerprint"]
+        durable = package / "SPECIFICATION.md"
+        durable.write_text("# Действующий доставленный контракт\n", encoding="utf-8")
+        assert snapshot_product(repo, "sample")["fingerprint"] == original
+        durable.write_text("# Обновлённый доставленный контракт\n", encoding="utf-8")
+        assert snapshot_product(repo, "sample")["fingerprint"] == original
+        durable.unlink()
         unknown = package / "notes.bin"; unknown.write_bytes(b"normative unknown input")
         added = snapshot_product(repo, "sample")["fingerprint"]; assert added != original
         unknown.write_bytes(b"changed normative input")
@@ -624,7 +732,7 @@ def self_test() -> int:
         spec = package / "spec.md"; draft = spec.read_text(encoding="utf-8")
         spec.write_text(draft.replace("`DRAFT`", "`READY`", 1), encoding="utf-8")
         assert snapshot_product(repo, "sample")["fingerprint"] == original
-        spec.write_text(draft.replace("Product owner", "Different approver"), encoding="utf-8")
+        spec.write_text(draft.replace("Владелец продукта", "Другой владелец продукта"), encoding="utf-8")
         assert snapshot_product(repo, "sample")["fingerprint"] != original
         spec.write_text(draft, encoding="utf-8")
 
@@ -641,7 +749,35 @@ def self_test() -> int:
         assert snapshot_product(repo, "sample")["fingerprint"] == original
         assert any("Status must be READY" in item for item in check_product(repo, "sample"))
         spec.write_text(draft.replace("`DRAFT`", "`READY`", 1), encoding="utf-8")
-        assert check_product(repo, "sample") == []
+        ready_errors = check_product(repo, "sample")
+        assert ready_errors == [], ready_errors
+        coherent_ready = spec.read_text(encoding="utf-8")
+        spec.write_text(
+            coherent_ready.replace("- **Decision:** `READY`", "- **Decision:** `DRAFT`"),
+            encoding="utf-8",
+        )
+        contradictory_errors = check_product(repo, "sample")
+        assert any("Readiness Decision" in item for item in contradictory_errors)
+        spec.write_text(coherent_ready, encoding="utf-8")
+        spec.write_text(
+            coherent_ready.replace(
+                "Явное одобрение зафиксировано в решении PRD-42",
+                "This approval evidence is written as an English narrative.",
+            ),
+            encoding="utf-8",
+        )
+        approval_language_errors = check_product(repo, "sample")
+        assert any("Approval evidence" in item and "Russian" in item for item in approval_language_errors)
+        spec.write_text(
+            coherent_ready.replace(
+                "пользовательский интерфейс и взаимодействие не меняются",
+                "the user interface and interaction do not change",
+            ),
+            encoding="utf-8",
+        )
+        ux_language_errors = check_product(repo, "sample")
+        assert any("UX NOT APPLICABLE rationale" in item for item in ux_language_errors)
+        spec.write_text(coherent_ready, encoding="utf-8")
         spec.write_text(spec.read_text(encoding="utf-8") + "\nNormative change.\n", encoding="utf-8")
         assert any("fingerprint is stale" in item for item in check_product(repo, "sample"))
 
@@ -671,9 +807,15 @@ def self_test() -> int:
     )
     assert any("duplicate REQ IDs" in item for item in duplicate_req_errors)
     duplicate_ac_errors = requirement_coverage(
-        fixture_spec() + "\n- `AC-1` — Conflicting duplicate criterion. `Covers: REQ-1`\n"
+        fixture_spec() + "\n- `AC-1` — Противоречащий дубликат. `Covers: REQ-1` `Verification dimension: duplicate`\n"
     )
     assert any("duplicate AC IDs" in item for item in duplicate_ac_errors)
+    duplicate_dimension_errors = requirement_coverage(
+        fixture_spec()
+        + "\n- `AC-2` — Второй outcome ошибочно использует ту же dimension. "
+          "`Covers: REQ-1` `Verification dimension: primary-outcome`\n"
+    )
+    assert any("verification dimensions must be unique" in item for item in duplicate_dimension_errors)
 
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); package, _subject, _verdicts = write_fixture(repo)
