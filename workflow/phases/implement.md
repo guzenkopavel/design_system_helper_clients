@@ -23,11 +23,26 @@ active package exists. Missing `implement` capability, unknown platform,
 traversal and ambiguity block before writes. Android is supported through its
 adapter and finishes non-terminal when Verify capability is absent.
 
-Accept only `planned` or `implementing`. `implementation-discovery` rereads the
-task, dependencies, current v1 `Implementation deliverables`, declared paths,
-contracts and adapter rules and returns a
-compact read-only handoff. Select only pending tasks whose dependencies are
-done; `--all` processes ready tasks in DAG order and stops on the first failure.
+Accept only `planned` or `implementing`. Для каждой задачи выполнять один и тот
+же короткий алгоритм:
+
+1. Выбрать pending task с выполненными dependencies и перечитать только её
+   self-contained contract, exact `Paths`, `Read-only context`, meta scopes,
+   adapter и resolver-selected implement profile.
+2. До writes снять selected-lane scope snapshot и удерживать его SHA-256 вне
+   writer-accessible repository state. `INVALID` останавливает writes и сообщает
+   exact selected-lane errors; не исправлять ради snapshot evidence предыдущей
+   задачи или foreign lane.
+3. При `VALID` передать единственному writer только compact task handoff. Не
+   анализировать общий `git status`: disjoint dirty/index/commit другой identity
+   не относится к выбранной lane.
+4. Реализовать каждый `Implementation deliverables` только внутри task `Paths`,
+   выполнить bounded focused checks и записать текущий task report по
+   [`platform-task-evidence`](../templates/platform-task-evidence.md).
+5. Выполнить scope check с coordinator-held SHA, затем и только затем отметить
+   task `done` и пересчитать `tasks_done`.
+
+`--all` повторяет алгоритм в DAG order и останавливается на первой ошибке.
 
 If an explicit pre-delivery code set no longer matches task coverage or current
 platform contracts, Implement does not silently repair the plan. Route that set
@@ -66,10 +81,12 @@ For product-backed UI tasks, reread immutable `platform-ux.md` and implement its
 native language, appearance, accessibility/motion and fallback checks. Record
 focused native appearance evidence without rewriting the artifact.
 
-Authored prose в exact direct-child `evidence/task-NNN.md` писать по-русски по
-[`artifact-language`](../rules/artifact-language.md). Raw command logs,
-произвольные runtime/verifier evidence, code, IDs, paths и exact machine fields
-сохранять без перевода; они не являются language padding.
+В exact direct-child `evidence/task-NNN.md` обязателен короткий русский `Итог`.
+Без fences в `Технические доказательства` допустимы только safe path/change rows
+и bounded exact repo-tooling command lines. Произвольный raw output сохранять в
+fence или отдельном `.log`; любой иной текст остаётся authored и проверяется по
+[`artifact-language`](../rules/artifact-language.md). Не переносить в report
+общий git status или состояние foreign/disjoint lane.
 
 Before the baseline, resolve `--phase implement` with the exact immutable scopes
 from meta and require the returned lifecycle union to match

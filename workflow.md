@@ -173,6 +173,12 @@ rationale/findings/meta; общий helper блокирует отдельное
 рядом с длинным русским padding. Platform authored-meta gate применяется только
 к current v1. Исторический
 registry-anchored v0 исключён из правила из-за неизменяемых hash anchors.
+Task report использует отдельный typed contract: короткий содержательный итог
+остаётся русским. Без fences специализированный validator принимает только safe
+path/change rows и bounded exact repo-tooling commands в canonical raw-разделе;
+legacy `Changed paths` принимает только path/change rows. Произвольный output
+остаётся fenced/отдельным raw evidence, а любой иной текст проходит authored
+gate. Исключение не действует на spec/design/plan и reconciliation reports.
 
 | Шаг | Вход | Основные записи | Успешный статус |
 |---|---|---|---|
@@ -213,6 +219,11 @@ plane остаются guarded, а ignored caches/build и disjoint platform/fea
 product state не входят в projection. Exact selected-lane index sealed через
 path/mode/stage/blob snapshot, поэтому index-only drift не скрывается одинаковым
 porcelain status; unrelated commit lane не инвалидирует.
+Implement следует короткой последовательности: selected ready task → exact
+context/profile → scope snapshot. `INVALID` останавливает writes с exact lane
+errors; при `VALID` общий `git status` не анализируется и foreign/disjoint lane
+не исправляется. Затем writer выполняет task, focused checks, typed task report
+и scope check с coordinator-held SHA; только после green task становится done.
 
 ### Пример: общая продуктовая фича
 

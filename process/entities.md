@@ -26,6 +26,7 @@
 | modularity v0 compatibility anchor | `workflow/compatibility/modularity-v0.json`; exact identities + immutable meta/design/plan/task hashes | `platform_rule_profiles.py` resolver → all downstream lifecycle callers + lint |
 | modularity decision | active package `design.md#Modularity decision`; `isolated | deviation | not-applicable` + structured boundary-guard verdict | architecture designer → platform boundary guard → `validate-platform-change.py` |
 | platform artifact language | `workflow/rules/artifact-language.md`; Russian authored prose, exact machine/code/path exceptions | all v1 phase profiles → artifact writers → `validate-platform-change.py` + lint |
+| typed task evidence | `workflow/templates/platform-task-evidence.md`; Russian summary + bounded raw technical section | implementation writer → `artifact_language.py` specialized validator |
 | lifecycle capability | ordered adapter `lifecycle_capabilities`; unsupported operations fail before writes | all platform lifecycle scripts |
 | planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | plan path authority | task `Paths` = writable production через canonical no-symlink ownership helper; `Read-only context` = immutable existing refs | `plan` validator → `implement`/reconcile/pre-commit guards |

@@ -19,6 +19,10 @@ Return this concise handoff:
 
 Unknown paths, ambiguous identity or scope outside adapter ownership is a
 blocker, not an invitation to infer structure.
+Для platform implementation не анализировать общий `git status`: readiness и
+риски выводятся только из selected task lane и canonical scope validator.
+`INVALID` возвращает exact selected-lane blockers и не разрешает переписывать
+evidence предыдущей задачи либо disjoint/foreign lane.
 
 For `reconcile-implementation`, inspect the explicit production path set and
 diff read-only against shared behavior, platform contracts/design, task graph

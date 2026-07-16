@@ -119,13 +119,14 @@ plan <platform> <feature> [--change <change-id>]
   → status: planned
 implement <platform> <feature> [--change <change-id>] [--task ...|--all]
   → v1 sealed contract OR exact registry-anchored v0 historical projection
-  → implementation-discovery (read-only)
-  → exact implement profile + immutable scopes
-  → schema v3 scoped lane baseline; disjoint dirty/index/commit допускаются
+  → selected ready task + exact context/profile (read-only)
+  → schema v3 selected-lane snapshot: INVALID stops, VALID continues
+  → ignore global git status; disjoint dirty/index/commit допускаются
   → implementation-writer (platform-implementation)
   → v1: sealed modularity outcome and composition-only app shell
   → v0: historical task/check completion only; no ownership/structure expansion
-  → bounded focused evidence + scope check
+  → bounded focused checks + typed task evidence: Russian summary / raw technical inventory
+  → scope check with coordinator-held SHA
   → status: implementing
 verify <platform> <feature> [--change <change-id>]
   → verify scoped lane baseline over package + realized Paths + read dependencies

@@ -26,7 +26,7 @@
 | Клиент | Source/build roots | Platform specs | Capabilities | Addenda | Rules |
 |---|---|---|---|---:|---:|
 | iOS | [`iOS/SysDevScen/`](iOS/SysDevScen/) | [`iOS/specs/`](iOS/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 30 |
-| Android | [`Android/app-shell/`](Android/app-shell/), [`Android/app/`](Android/app/) | [`Android/specs/`](Android/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 18 |
+| Android | [`Android/app-shell/`](Android/app-shell/), [`Android/app/`](Android/app/), [`Android/auth/`](Android/auth/) | [`Android/specs/`](Android/specs/) | `propose` → `plan` → `implement` → `verify` → `archive-implementation` | 8 | 18 |
 <!-- END GENERATED: README_CAPABILITIES -->
 
 Матрица выше — производная проекция platform contracts. Канонические

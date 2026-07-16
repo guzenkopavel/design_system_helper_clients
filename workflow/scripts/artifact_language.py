@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 import stat
 from pathlib import Path
 
@@ -51,6 +52,50 @@ MACHINE_TABLE_HEADERS = {
     "acceptance criteria", "check", "ios", "android", "verification dimension",
     "obligation id", "observation record",
 }
+TASK_EVIDENCE_SUMMARY_HEADINGS = {
+    "Итог", "Резюме", "Результат", "Результат проверки", "Summary",
+}
+TASK_EVIDENCE_RAW_HEADINGS = {
+    "Технические доказательства",
+    "Changed paths",
+}
+TASK_EVIDENCE_CANONICAL_RAW_HEADING = "Технические доказательства"
+TASK_EVIDENCE_COMMAND_PATTERNS = (
+    re.compile(r"^rtk bash workflow/scripts/[A-Za-z0-9_./-]+\.sh(?=\s|$)"),
+    re.compile(r"^rtk python3 workflow/scripts/[A-Za-z0-9_./-]+\.py(?=\s|$)"),
+    re.compile(r"^rtk git (?:status|diff|show|ls-files|rev-parse|check-ignore)(?=\s|$)"),
+    re.compile(r"^rtk \./Android/gradlew(?=\s|$)"),
+    re.compile(r"^rtk swift (?:test|build|package)(?=\s|$)"),
+    re.compile(r"^rtk xcodebuild(?=\s|$)"),
+    re.compile(r"^rtk xcrun (?:simctl|xcresulttool)(?=\s|$)"),
+)
+TASK_EVIDENCE_COMMAND_ENUMS = {
+    "Android", "Debug", "HEAD", "PASS", "Release", "android", "archive",
+    "check", "describe", "implement", "ios", "plain", "plan", "projects",
+    "propose", "resolve", "snapshot", "tasks", "update", "verify",
+}
+TASK_EVIDENCE_COMMAND_OPTIONS = {
+    "--", "--all", "--apply", "--baseline", "--cached", "--change",
+    "--console", "--derivedDataPath", "--destination", "--diff-filter",
+    "--dry-run", "--expected-sha256", "--feature", "--json",
+    "--max-output-lines", "--max-seconds", "--mode", "--name-only",
+    "--no-daemon", "--output", "--package-path", "--path", "--phase",
+    "--platform", "--porcelain", "--project", "--quiet", "--resultBundlePath",
+    "--root", "--scheme", "--scope", "--sdk", "--self-test",
+    "--stall-seconds", "--task", "--untracked-files", "--workspace",
+    "-C", "-configuration", "-destination", "-p", "-project", "-q",
+    "-scheme", "-sdk", "-workspace",
+}
+TASK_EVIDENCE_TECHNICAL_ANNOTATION_WORDS = {
+    "adapter", "api", "asset", "assets", "availability", "build", "case",
+    "client", "config", "configuration", "contract", "dependency", "dto",
+    "email", "fixture", "implementation", "interface", "manifest",
+    "migration", "mock", "model", "module", "package", "project",
+    "protocol", "provider", "repository", "resource", "route", "routing",
+    "schema", "screen", "service", "source", "storage", "store", "stub",
+    "target", "test", "tests", "use", "view", "wiring", "workspace",
+}
+TASK_EVIDENCE_TECHNICAL_ANNOTATION_MAX_TOKENS = 7
 
 
 def _is_subpath(path: Path, parent: Path) -> bool:
@@ -170,36 +215,43 @@ def validate_authored_json_string(value: object, label: str) -> list[str]:
     return [f"artifact language requires Russian authored JSON prose: {label}"]
 
 
-def validate_authored_markdown_language(repo: Path, package: Path, path: Path) -> list[str]:
+def _read_safe_authored_markdown(
+    repo: Path, package: Path, path: Path,
+) -> tuple[str | None, str, list[str]]:
     try:
         repo_relative = path.relative_to(repo)
         label = repo_relative.as_posix()
         package_relative = package.relative_to(repo)
         authored_relative = path.relative_to(package)
     except ValueError:
-        return ["artifact language requires safe regular authored Markdown file: <outside-repository>"]
+        error = "artifact language requires safe regular authored Markdown file: <outside-repository>"
+        return None, "<outside-repository>", [error]
     boundary_error = f"artifact language requires safe regular authored Markdown file: {label}"
     if ".." in package_relative.parts or ".." in authored_relative.parts or ".." in repo_relative.parts:
-        return [boundary_error]
+        return None, label, [boundary_error]
     try:
         resolved_repo = repo.resolve(); resolved_package = package.resolve(); resolved_path = path.resolve()
     except (OSError, RuntimeError):
-        return [boundary_error]
+        return None, label, [boundary_error]
     if not _is_subpath(resolved_package, resolved_repo) or not _is_subpath(resolved_path, resolved_package):
-        return [boundary_error]
+        return None, label, [boundary_error]
     current = repo
     for component in repo_relative.parts:
         current = current / component
         if current.is_symlink():
-            return [boundary_error]
+            return None, label, [boundary_error]
     try:
         if not stat.S_ISREG(path.lstat().st_mode):
-            return [boundary_error]
+            return None, label, [boundary_error]
         markdown = path.read_text(encoding="utf-8", errors="strict")
     except UnicodeDecodeError:
-        return [f"artifact language requires safe UTF-8 authored Markdown file: {label}"]
+        return None, label, [f"artifact language requires safe UTF-8 authored Markdown file: {label}"]
     except OSError:
-        return [boundary_error]
+        return None, label, [boundary_error]
+    return markdown, label, []
+
+
+def _markdown_language_errors(markdown: str, label: str) -> list[str]:
     failing = [
         index for index, block in enumerate(authored_markdown_blocks(markdown), start=1)
         if not authored_text_is_russian(block)
@@ -211,6 +263,216 @@ def validate_authored_markdown_language(repo: Path, package: Path, path: Path) -
     return [f"artifact language requires Russian authored prose: {label} blocks {shown}{suffix}"]
 
 
+def validate_authored_markdown_language(repo: Path, package: Path, path: Path) -> list[str]:
+    markdown, label, errors = _read_safe_authored_markdown(repo, package, path)
+    if errors or markdown is None:
+        return errors
+    return _markdown_language_errors(markdown, label)
+
+
+def _task_evidence_sections(markdown: str) -> tuple[list[str], list[tuple[str, list[str]]]]:
+    """Split H1/H2 task sections while retaining prose before the first heading."""
+    preamble: list[str] = []
+    sections: list[tuple[str, list[str]]] = []
+    current: list[str] | None = None
+    for raw in markdown.splitlines():
+        match = re.fullmatch(r"#{1,2}[ \t]+(.+?)[ \t]*", raw)
+        if match:
+            heading = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(1)).strip()
+            current = []
+            sections.append((heading, current))
+        elif current is None:
+            preamble.append(raw)
+        else:
+            current.append(raw)
+    return preamble, sections
+
+
+def _substantive_russian_summary(raw: str) -> bool:
+    blocks = authored_markdown_blocks(raw)
+    if not blocks or any(not authored_text_is_russian(block) for block in blocks):
+        return False
+    residual = language_residual(" ".join(blocks))
+    words = re.findall(r"[А-Яа-яЁё]{2,}", residual)
+    return (
+        len(words) >= 3
+        and sum(map(len, words)) >= 12
+    )
+
+
+def _strip_task_evidence_line_prefix(raw: str) -> str:
+    value = raw.rstrip()
+    value = re.sub(r"^\s*[-*+]\s+", "", value)
+    value = re.sub(r"^(?:[ MADRCU?!]{2}|[AMDRCU]\d{1,3})[ \t]+", "", value)
+    return value.strip()
+
+
+def _safe_repo_relative_path(raw: str) -> bool:
+    value = raw.strip().strip("`").rstrip("/")
+    if not value or value.startswith(("/", "~")) or "\\" in value.replace(r"\ ", ""):
+        return False
+    parts = value.split("/")
+    if len(parts) < 2 or any(part in {"", ".", ".."} for part in parts):
+        return False
+    return all(
+        len(part) <= 180
+        and re.fullmatch(r"[A-Za-z0-9_.@+-]+(?:\\ [A-Za-z0-9_.@+-]+)*", part) is not None
+        for part in parts
+    )
+
+
+def _task_evidence_path_row(raw: str) -> bool:
+    value = _strip_task_evidence_line_prefix(raw)
+    if not value:
+        return False
+    split_annotation = re.split(r"\s+(?:—|–|-)\s+", value, maxsplit=1)
+    path_expression = split_annotation[0].strip()
+    if len(split_annotation) == 2:
+        annotation = split_annotation[1].strip()
+        if (
+            not annotation or len(annotation) > 160
+            or re.search(r"[.!?;]", annotation)
+            or re.search(r"https?://", annotation, re.I)
+            or not _task_evidence_technical_annotation(annotation)
+        ):
+            return False
+    rename_paths = re.split(r"\s+(?:->|→)\s+", path_expression)
+    return len(rename_paths) in {1, 2} and all(
+        _safe_repo_relative_path(item) for item in rename_paths
+    )
+
+
+def _task_evidence_code_identifier(raw: str) -> bool:
+    return (
+        re.fullmatch(r"[A-Za-z][A-Za-z0-9_.:-]*", raw) is not None
+        and (
+            raw.isupper()
+            or any(character.isupper() for character in raw[1:])
+            or any(marker in raw for marker in ("_", ".", ":"))
+            or any(character.isdigit() for character in raw)
+        )
+    )
+
+
+def _task_evidence_technical_annotation(raw: str) -> bool:
+    tokens = raw.split()
+    if not 1 <= len(tokens) <= TASK_EVIDENCE_TECHNICAL_ANNOTATION_MAX_TOKENS:
+        return False
+    for token in tokens:
+        folded = token.casefold()
+        if folded in TASK_EVIDENCE_TECHNICAL_ANNOTATION_WORDS:
+            continue
+        hyphen_parts = token.split("-")
+        if len(hyphen_parts) > 1 and all(hyphen_parts) and all(
+            part.casefold() in TASK_EVIDENCE_TECHNICAL_ANNOTATION_WORDS
+            for part in hyphen_parts
+        ):
+            continue
+        if _task_evidence_code_identifier(token):
+            continue
+        return False
+    return True
+
+
+def _task_evidence_command_value(raw: str) -> bool:
+    if raw in TASK_EVIDENCE_COMMAND_ENUMS:
+        return True
+    if re.fullmatch(r"\d+(?:\.\d+)?", raw):
+        return True
+    if re.fullmatch(r"[0-9a-fA-F]{7,64}", raw):
+        return True
+    if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)+", raw):
+        return True
+    if re.fullmatch(r"\.?\.?/(?:[A-Za-z0-9_.@+-]+/)*[A-Za-z0-9_.@+-]+", raw):
+        return True
+    if re.fullmatch(r"(?:[A-Za-z0-9_.@+-]+/)+[A-Za-z0-9_.@+-]+", raw):
+        return True
+    return _task_evidence_code_identifier(raw)
+
+
+def _task_evidence_command_line(raw: str) -> bool:
+    value = raw.strip()
+    value = re.sub(r"^(?:[-*+]\s+)", "", value)
+    value = re.sub(r"^(?:Command|Команда):\s*", "", value)
+    value = re.sub(r"^\$\s+", "", value)
+    for pattern in TASK_EVIDENCE_COMMAND_PATTERNS:
+        match = pattern.match(value)
+        if match is None:
+            continue
+        try:
+            arguments = shlex.split(value[match.end():].strip())
+        except ValueError:
+            return False
+        for argument in arguments:
+            if not re.fullmatch(r"[A-Za-z0-9_./:=@+, -]+", argument):
+                return False
+            if argument.startswith("-"):
+                option_name = argument.split("=", 1)[0]
+                if option_name not in TASK_EVIDENCE_COMMAND_OPTIONS:
+                    return False
+                if "=" in argument:
+                    _flag, value_part = argument.split("=", 1)
+                    if not value_part or not _task_evidence_command_value(value_part):
+                        return False
+                continue
+            if not _task_evidence_command_value(argument):
+                return False
+        return True
+    return False
+
+
+def _authored_task_evidence_raw_lines(heading: str, body: list[str]) -> list[str]:
+    authored: list[str] = []
+    in_fence = False
+    for raw in body:
+        stripped = raw.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            authored.append(raw)
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            authored.append(raw)
+            continue
+        if not stripped:
+            authored.append(raw)
+            continue
+        if _task_evidence_path_row(raw):
+            continue
+        if (
+            heading == TASK_EVIDENCE_CANONICAL_RAW_HEADING
+            and _task_evidence_command_line(raw)
+        ):
+            continue
+        authored.append(raw)
+    return authored
+
+
+def validate_task_evidence_language(repo: Path, package: Path, path: Path) -> list[str]:
+    """Validate typed task evidence with bounded raw technical sections."""
+    markdown, label, errors = _read_safe_authored_markdown(repo, package, path)
+    if errors or markdown is None:
+        return errors
+    preamble, sections = _task_evidence_sections(markdown)
+    summaries = [body for heading, body in sections if heading in TASK_EVIDENCE_SUMMARY_HEADINGS]
+    if len(summaries) != 1:
+        errors.append(
+            f"task evidence requires exactly one Russian summary section: {label}"
+        )
+    elif not _substantive_russian_summary("\n".join(summaries[0])):
+        errors.append(f"task evidence requires substantive Russian summary: {label}")
+
+    authored_lines = list(preamble)
+    for heading, body in sections:
+        if heading in TASK_EVIDENCE_RAW_HEADINGS:
+            authored_lines.append(f"## {heading}")
+            authored_lines.extend(_authored_task_evidence_raw_lines(heading, body))
+            continue
+        authored_lines.append(f"## {heading}")
+        authored_lines.extend(body)
+    errors.extend(_markdown_language_errors("\n".join(authored_lines), label))
+    return errors
+
+
 def self_test() -> int:
     assert authored_text_is_russian("Проверка подтверждает наблюдаемое поведение.")
     assert authored_text_is_russian("Проверяем SwiftUI API и команду xcodebuild.")
@@ -219,7 +481,226 @@ def self_test() -> int:
         "Далее идёт очень длинное русское пояснение, которое не должно компенсировать отдельное английское предложение."
     )
     assert not authored_text_is_russian("This authored rationale describes an unverified outcome.")
-    print("artifact-language self-test: PASS (sentence isolation, technical exemptions, JSON prose)")
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        repo = Path(raw_tmp).resolve()
+        package = repo / "iOS/specs/sample/changes/sample"
+        evidence = package / "evidence"
+        evidence.mkdir(parents=True)
+        report = evidence / "task-001.md"
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Реализация добавляет проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "iOS/Feature/Sources/VeryLong/AuthAPIClient.swift — API client contract\n"
+            " M iOS/Feature/Sources/VeryLong/CheckEmailUseCase.swift\n"
+            "rtk swift test --package-path iOS/Feature\n"
+            "```text\nBuild completed with no compiler errors.\n```\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report) == []
+
+        report.write_text(
+            "# Итог\n\n"
+            "Реализация добавляет проверенный контракт авторизации.\n\n"
+            "# Проверки\n\nФокусированная проверка завершилась успешно.\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report) == []
+
+        report.write_text(
+            "# Итог\n\nThis authored summary remains entirely English.\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# Итог\n\nПервый русский итог описывает результат задачи.\n\n"
+            "## Резюме\n\nВторой русский итог недопустимо дублирует первый.\n",
+            encoding="utf-8",
+        )
+        duplicate_summary_errors = validate_task_evidence_language(
+            repo, package, report,
+        )
+        assert any("exactly one Russian summary section" in item for item in duplicate_summary_errors)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Реализация добавляет проверенный контракт авторизации.\n\n"
+            "## Changed paths\n\n"
+            "iOS/Feature/Sources/VeryLong/AuthAPIClient.swift — API client contract\n"
+            "iOS/Feature/Sources/VeryLong/CheckEmailUseCase.swift — email availability use case\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report) == []
+
+        report.write_text(
+            "# task-001\n\n## Summary\n\n"
+            "This authored summary describes a completed task result.\n\n"
+            "## Changed paths\n\nlong/path/AuthAPIClient.swift — API contract\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Результат\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Unknown notes\n\nThis authored section remains entirely English.\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        for heading in TASK_EVIDENCE_RAW_HEADINGS:
+            report.write_text(
+                "# task-001\n\n## Резюме\n\n"
+                "Задача реализует проверенный контракт авторизации.\n\n"
+                f"## {heading}\n\n"
+                "very/long/path/AuthAPIClient.swift — English technical annotation\n"
+                "Tests were not run. Known limitation remains.\n",
+                encoding="utf-8",
+            )
+            assert validate_task_evidence_language(repo, package, report), heading
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Changed paths\n\n"
+            "very/long/path/AuthAPIClient.swift — API client contract\n"
+            "rtk swift test --package-path iOS/Feature\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "very/long/path/AuthAPIClient.swift — API client contract\n"
+            "rtk swift test --package-path iOS/Feature\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report) == []
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "rtk swift test Tests were not run\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "very/long/path/AuthAPIClient.swift — Known limitation remains.\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "very/long/path/AuthAPIClient.swift — "
+            "Tests were not run because simulator unavailable and known limitations remain unresolved\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "rtk python3 workflow/scripts/tool.py --feature user-profile-auth "
+            "--package-path iOS/Feature --mode implement\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report) == []
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "rtk python3 workflow/scripts/tool.py --reason Tests --state were "
+            "--result not --mode run --cause simulator --detail unavailable\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n"
+            "Задача реализует проверенный контракт авторизации.\n\n"
+            "## Технические доказательства\n\n"
+            "rtk python3 workflow/scripts/tool.py "
+            "--tests-were-not-run-because-simulator-unavailable "
+            "--known-limitations-remain-unresolved\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        authored_headings = (
+            "Focused checks",
+            "Фокусированные проверки",
+            "Выполненные проверки",
+            "Созданные файлы",
+            "Созданные и изменённые файлы",
+            "Изменённые файлы",
+            "Изменённые task paths",
+            "Изменённые production paths",
+            "Изменённые test paths",
+            "Unknown notes",
+            "Ограничения",
+        )
+        for heading in authored_headings:
+            report.write_text(
+                "# task-001\n\n## Итог\n\n"
+                "Задача реализует проверенный контракт авторизации.\n\n"
+                f"## {heading}\n\n"
+                "Tests were not run. Known limitation remains.\n",
+                encoding="utf-8",
+            )
+            assert validate_task_evidence_language(repo, package, report), heading
+
+        report.write_text(
+            "# task-001\n\n## Технические доказательства\n\n"
+            "very/long/path/AuthAPIClient.swift — English technical annotation\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        report.write_text(
+            "# task-001\n\n## Итог\n\n```text\n"
+            "Русский текст находится только внутри code fence.\n```\n",
+            encoding="utf-8",
+        )
+        assert validate_task_evidence_language(repo, package, report)
+
+        reconciliation = evidence / "reconciliation-20260716T120000Z-task-001.md"
+        reconciliation.write_text(
+            "## Итог\n\nРусский итог присутствует.\n\n## Changed paths\n\n"
+            "This reconciliation annotation remains authored English prose.\n",
+            encoding="utf-8",
+        )
+        assert validate_authored_markdown_language(repo, package, reconciliation)
+
+        directory_report = evidence / "task-002.md"
+        directory_report.mkdir()
+        assert validate_task_evidence_language(repo, package, directory_report)
+        invalid_utf8 = evidence / "task-003.md"
+        invalid_utf8.write_bytes(b"\xff\xfeinvalid task evidence")
+        assert validate_task_evidence_language(repo, package, invalid_utf8)
+        linked_report = evidence / "task-004.md"
+        linked_report.symlink_to(report.name)
+        assert validate_task_evidence_language(repo, package, linked_report)
+
+    print(
+        "artifact-language self-test: PASS "
+        "(sentence isolation, line-classified task evidence, bounded commands, JSON prose)"
+    )
     return 0
 
 

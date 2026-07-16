@@ -126,6 +126,8 @@
   [`templates/platform-plan-task.md`](templates/platform-plan-task.md) —
   structured modularity decision, task boundary ownership и current v1
   `Implementation deliverables`;
+- [`templates/platform-task-evidence.md`](templates/platform-task-evidence.md) —
+  русский task summary и bounded raw technical inventory;
 - [`templates/platform-ux.md`](templates/platform-ux.md) — conditional native
   UX artifact для product-backed `ui`;
 - [`templates/platform-rule-selection.json`](templates/platform-rule-selection.json)

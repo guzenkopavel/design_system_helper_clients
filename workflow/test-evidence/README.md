@@ -39,3 +39,6 @@
 - [`cross-platform-modularity.md`](cross-platform-modularity.md) — strong-default
   physical capability boundaries, app-shell allowlist, structured decisions и
   независимые iOS/Android RED→GREEN→REFACTOR pressures.
+- [`simple-model-task-evidence.md`](simple-model-task-evidence.md) — typed task
+  evidence и deterministic selected-lane Implement flow для более простых
+  runtime-моделей.

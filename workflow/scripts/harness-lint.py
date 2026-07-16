@@ -1936,6 +1936,9 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "workflow/templates/platform-verification.md": ("по-русски",),
         "workflow/templates/platform-plan-readme.md": ("по-русски",),
         "workflow/templates/platform-plan-task.md": ("по-русски",),
+        "workflow/templates/platform-task-evidence.md": (
+            "## Итог", "## Технические доказательства", "git status rows",
+        ),
         "workflow/roles/specification-writer.md": ("artifact-language", "по-русски"),
         "workflow/roles/architecture-designer.md": ("artifact-language", "по-русски"),
         "workflow/roles/implementation-planner.md": ("artifact-language", "по-русски"),
@@ -1948,6 +1951,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "workflow/scripts/validate-platform-change.py": (
             "validate_authored_markdown_language", "ARTIFACT_LANGUAGE_RULE",
             "import artifact_language",
+            "validate_task_evidence_language",
             "TASK_AUTHORED_REPORT_RE", "RECONCILIATION_AUTHORED_REPORT_RE",
             "typed_authored_report_paths", "evidence.iterdir()",
         ),
@@ -1956,6 +1960,10 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
             "current.is_symlink()", "resolved_path, resolved_package",
             'encoding="utf-8", errors="strict"',
             "_english_sentence", "validate_authored_json_string",
+            "validate_task_evidence_language", "TASK_EVIDENCE_RAW_HEADINGS",
+            "_task_evidence_path_row", "_task_evidence_command_line",
+            "_authored_task_evidence_raw_lines",
+            "_task_evidence_technical_annotation", "TASK_EVIDENCE_COMMAND_OPTIONS",
         ),
         "workflow/phases/implement.md": ("artifact-language", "evidence/task-NNN.md"),
         "workflow/phases/reconcile-implementation.md": (

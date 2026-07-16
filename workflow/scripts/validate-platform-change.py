@@ -173,6 +173,7 @@ def read(path: Path) -> str:
 _language_residual = artifact_language.language_residual
 _authored_language_blocks = artifact_language.authored_markdown_blocks
 validate_authored_markdown_language = artifact_language.validate_authored_markdown_language
+validate_task_evidence_language = artifact_language.validate_task_evidence_language
 
 
 def typed_authored_report_paths(package: Path) -> list[Path]:
@@ -1449,9 +1450,13 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
             plan_readme = plan_root / "README.md"
             authored_paths.append(plan_readme)
             authored_paths.extend(sorted(plan_root.glob("task-*.md")))
-        authored_paths.extend(typed_authored_report_paths(package))
         for authored_path in authored_paths:
             errors.extend(validate_authored_markdown_language(repo, package, authored_path))
+        for authored_path in typed_authored_report_paths(package):
+            if TASK_AUTHORED_REPORT_RE.fullmatch(authored_path.name):
+                errors.extend(validate_task_evidence_language(repo, package, authored_path))
+            else:
+                errors.extend(validate_authored_markdown_language(repo, package, authored_path))
     if any(not (package / name).is_file() for name in required_files): return errors
 
     proposal = read(package / "proposal.md")
@@ -2544,7 +2549,7 @@ def self_test() -> int:
             evidence.mkdir()
             task_report = evidence / "task-001.md"
             task_report.write_text(
-                "This authored task report remains entirely English.\n",
+                "## Итог\n\nThis authored task report remains entirely English.\n",
                 encoding="utf-8",
             )
             runtime_markdown = evidence / "runtime-output.md"
@@ -2560,31 +2565,31 @@ def self_test() -> int:
             )
             selected_reports = typed_authored_report_paths(language_package)
             assert selected_reports == [task_report]
-            english_task_errors = validate_authored_markdown_language(
+            english_task_errors = validate_task_evidence_language(
                 language_repo, language_package, selected_reports[0],
             )
-            assert len(english_task_errors) == 1
+            assert english_task_errors
             assert "task-001.md" in english_task_errors[0]
             assert "entirely English" not in english_task_errors[0]
             task_report.write_text(
-                "Отчёт задачи написан по-русски и фиксирует проверенный результат.\n",
+                "## Итог\n\nОтчёт задачи написан по-русски и фиксирует проверенный результат.\n",
                 encoding="utf-8",
             )
-            assert validate_authored_markdown_language(
+            assert validate_task_evidence_language(
                 language_repo, language_package, task_report,
             ) == []
             task_report.write_text(
-                "This standalone English sentence must remain invalid. "
+                "## Итог\n\nThis standalone English sentence must remain invalid. "
                 "Длинное русское пояснение подтверждает результат, описывает проверку, "
                 "границы и наблюдаемое поведение, но не компенсирует английское предложение.\n",
                 encoding="utf-8",
             )
-            padding_errors = validate_authored_markdown_language(
+            padding_errors = validate_task_evidence_language(
                 language_repo, language_package, task_report,
             )
-            assert len(padding_errors) == 1 and "task-001.md" in padding_errors[0]
+            assert padding_errors and "task-001.md" in padding_errors[0]
             task_report.write_text(
-                "Отчёт задачи написан по-русски и фиксирует проверенный результат.\n",
+                "## Итог\n\nОтчёт задачи написан по-русски и фиксирует проверенный результат.\n",
                 encoding="utf-8",
             )
 
@@ -2611,12 +2616,12 @@ def self_test() -> int:
             typed_target.write_text("Корректный русский target.\n", encoding="utf-8")
             typed_symlink = evidence / "task-002.md"
             typed_symlink.symlink_to(typed_target.name)
-            assert validate_authored_markdown_language(
+            assert validate_task_evidence_language(
                 language_repo, language_package, typed_symlink,
             )
             invalid_typed = evidence / "task-003.md"
             invalid_typed.write_bytes(b"\xff\xfeinvalid typed report")
-            invalid_typed_errors = validate_authored_markdown_language(
+            invalid_typed_errors = validate_task_evidence_language(
                 language_repo, language_package, invalid_typed,
             )
             assert len(invalid_typed_errors) == 1
@@ -2635,7 +2640,7 @@ def self_test() -> int:
             )
             ancestor_reports = typed_authored_report_paths(ancestor_package)
             assert len(ancestor_reports) == 1
-            assert validate_authored_markdown_language(
+            assert validate_task_evidence_language(
                 language_repo, ancestor_package, ancestor_reports[0],
             )
 

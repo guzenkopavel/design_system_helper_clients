@@ -2,10 +2,13 @@
 
 The single scoped writer has three explicit modes.
 Для platform modes полностью прочитать common
-[`artifact-language.md`](../rules/artifact-language.md). Authored task reports
-`evidence/task-NNN.md` и canonical timestamped reconciliation reports писать
-по-русски; raw runtime/verifier output не переписывать и не использовать как
-language padding.
+[`artifact-language.md`](../rules/artifact-language.md). Task report писать по
+[`platform-task-evidence`](../templates/platform-task-evidence.md): короткий
+русский `Итог`, затем safe path/change rows и bounded repo-tooling commands;
+произвольный verbatim output только в fence или отдельном `.log`. Canonical
+timestamped reconciliation reports целиком писать по-русски;
+raw runtime/verifier output не переписывать и не использовать как language
+padding.
 
 ## Mode: harness
 
@@ -25,11 +28,13 @@ and never grants write authority; protected/excluded
 roots remain immutable except selected task/meta state and exact canonical
 `evidence/task-NNN.md`. The coordinator baseline and its out-of-band SHA token
 are never writer-owned or rewritten.
+После coordinator `VALID` не исследовать общий `git status` и не менять
+предыдущую task evidence либо foreign/disjoint lane ради текущего snapshot.
 Для current v1 до writes перечитать полный `Implementation deliverables` и
 реализовать каждый его пункт в пределах task `Paths`; список не заменяет
 обязательные `Steps`, focused verification и `Expected result`.
-Authored prose exact task report писать по-русски; команды, IDs и raw output
-сохранять в точной форме.
+Authored prose exact task report писать по-русски; команды и IDs сохранять в
+точной форме, произвольный raw output — fenced или отдельным evidence-файлом.
 In FAIL/UNKNOWN recovery mode only, a baseline captured before writes may also
 authorize exact package `verification.md` solely to reset all rows to pending;
 initial implementation never receives this permission.
