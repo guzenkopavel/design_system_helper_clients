@@ -1,23 +1,5 @@
 {
-  "platform": "iOS",
-  "feature": "app-shell",
-  "change_id": "app-shell",
-  "change_type": "product-backed",
-  "tier": "standard",
-  "status": "planned",
-  "shared_product_spec": "specs/product/app-shell/spec.md",
-  "product_status": "READY",
-  "product_approval": "APPROVED",
-  "product_impact": "PRESENT",
-  "impact_evidence": "Утверждённый shared app-shell contract меняет первую видимую iOS-поверхность и требует platform implementation package.",
-  "blocking_questions": [],
-  "problems": [],
-  "design_gate": "PASS",
-  "tasks_total": 3,
-  "tasks_done": 0,
-  "verification_status": "pending",
-  "verified_at": null,
-  "verification_state": null,
+  "schema_version": 2,
   "engineering_scopes": [
     "application",
     "ui"
@@ -53,6 +35,6 @@
     "iOS/workflow/rules/simulator.md",
     "iOS/workflow/rules/architecture/mvvm.md"
   ],
-  "rule_selection_snapshot": "plan/rule-selection.json",
-  "modularity_contract_version": 1
+  "modularity_contract_version": 1,
+  "fingerprint": "50b69bd2f965b26a99997fd58d5a74456dac312c2c278796a52a68a30cadcd65"
 }
