@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "feature": "app-shell",
+  "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+  "coordinator_role": "elaborate-coordinator",
+  "lens_order": [
+    "product",
+    "ux-accessibility",
+    "design-system",
+    "data-analytics-privacy",
+    "security",
+    "cross-client-parity"
+  ],
+  "aggregate_status": "PASS",
+  "verdicts": [
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "product",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "codex-run-product-20260716-019f68c9",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "codex-context-root.product_review-019f68c9",
+      "provenance_ref": "codex:collaboration-invocation/root/product_review",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Пакет чётко определяет проблему технических стартовых экранов, измеримый outcome первого инкремента, scope и исключённые возможности. Наблюдаемое поведение задаёт ровно три направления, стартовые «Кейсы», единственную выбранность, немедленное переключение и нейтральные поверхности без несуществующих функций. REQ-1…REQ-6 имеют полное и непротиворечивое покрытие AC-1…AC-5; контракт явно применяется одинаково к iOS и Android без платформенных SDK, архитектуры или реализации.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "ux-accessibility",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "codex-run-ux-accessibility-20260716-019f68c9",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "codex-context-root.ux_review-019f68c9",
+      "provenance_ref": "codex:collaboration-invocation/root/ux_review",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Пакет задаёт полный общий путь для обоих клиентов: запуск с активными «Кейсами», постоянно доступная навигация в фиксированном порядке и немедленное переключение ровно одного выбранного раздела без лишней истории. Базовые поверхности имеют ясную нейтральную семантику, а неприменимые состояния данных явно исключены. Контракт требует совпадения видимого и доступного русского имени, роли навигационного выбора и выбранности, non-color cues, читаемости при увеличенном тексте, а также работы в светлом, тёмном и повышенном контрасте. Нативная вариативность ограничена формой взаимодействия и не меняет эти UX-результаты на iOS или Android.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "design-system",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "review-run-design-system-20260716-01",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "root-design-system-review-20260716-01",
+      "provenance_ref": "codex:collaboration:/root/design_system_review",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Пакет задаёт общий calm/soft-blue design-system intent через семантические роли quiet neutral surfaces, selection, focus, informational accent и typography/spacing/emphasis; выбранность не зависит только от цвета. Для светлого, тёмного и повышенного контраста определены сохраняемые различимость, контраст и non-color cues. Контракт одинаково применим к iOS и Android, разрешая лишь нативную форму и размещение навигации без изменения product labels, порядка, стартового выбора или наблюдаемой семантики. Конкретные API, компоненты, токены и visual literals намеренно оставлены будущим платформенным пакетам.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "data-analytics-privacy",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "codex-run-data-analytics-privacy-019f68c9",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "codex-context-data-analytics-privacy-019f68c9",
+      "provenance_ref": "codex:collaboration/root/data_privacy_review",
+      "independent_context": true,
+      "applicability": "NOT_APPLICABLE",
+      "verdict": "N/A",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Пакет одинаково для iOS и Android исключает аналитику, сеть, хранение, авторизацию, персональные данные и запросы разрешений. Он явно запрещает сбор событий, идентификаторов и иных данных; при будущей необходимости измерения требует отдельной продуктовой проработки с целью, минимальными полями, retention и privacy-основанием до реализации. Поэтому в текущем инкременте нет жизненного цикла данных, consent, retention или измерительных событий для проверки.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "security",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "codex-run-security-019f68c9-20260716",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "codex-review-security-019f68c9-7f31c4",
+      "provenance_ref": "codex:collaboration-invocation:/root/security_review",
+      "independent_context": true,
+      "applicability": "NOT_APPLICABLE",
+      "verdict": "N/A",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Для iOS и Android пакет ограничен локальным переключением трёх фиксированных разделов. Он прямо исключает сеть, хранение, авторизацию, персональные данные, разрешения, аналитику, внешние переходы и действия с последствиями; поэтому в данном инкременте отсутствуют trust boundary, sensitive data, authorization flow и применимый security abuse case.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "app-shell",
+      "lens": "cross-client-parity",
+      "subject_fingerprint": "sha256:aa11973365cd72a451761c8a4f5462d97b4da4bd2084775ea329b5923e97203e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "codex",
+      "run_id": "codex-run-cross-client-parity-019f68c9-405b-7482-a728-82501c87468f",
+      "parent_context_id": "codex-parent-root-019f68c9",
+      "context_id": "codex-context-root-parity_review-019f68c9-405b-7482-a728-82501c87468f",
+      "provenance_ref": "codex:collaboration:/root/parity_review/019f68c9-405b-7482-a728-82501c87468f",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Пакет задаёт единый наблюдаемый контракт для iOS и Android: ровно три русских направления в фиксированном порядке, стартовые «Кейсы», ровно один выбранный раздел, немедленное переключение базовой поверхности и постоянно доступная навигация. REQ-6 и AC-1/AC-3 делают parity проверяемым, а parity matrix и UX-таблица явно ограничивают различия нативной формой и размещением контрола без изменения поведения, названий, порядка или стартового выбора. Для обоих клиентов одинаково определены отсутствие данных и неприменимость loading/error/offline состояний; скрытых продуктовых forks или platform implementation details в shared contract не обнаружено.",
+      "evidence_refs": [
+        "brief.md",
+        "spec.md",
+        "ux.md"
+      ],
+      "findings": []
+    }
+  ]
+}
