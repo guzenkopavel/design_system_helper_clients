@@ -140,6 +140,7 @@
   },
   "rule_files": [
     "workflow/rules/specification-layers.md",
+    "workflow/rules/artifact-language.md",
     "workflow/rules/system-design.md",
     "workflow/rules/system-design/modularity.md",
     "workflow/rules/coding-standards.md",
@@ -185,6 +186,7 @@
   "phase_rule_profiles": {
     "propose": [
       "workflow/rules/specification-layers.md",
+      "workflow/rules/artifact-language.md",
       "workflow/rules/system-design.md",
       "workflow/rules/system-design/modularity.md",
       "iOS/workflow/rules/architecture.md",
@@ -192,6 +194,7 @@
     ],
     "plan": [
       "workflow/rules/coding-standards.md",
+      "workflow/rules/artifact-language.md",
       "workflow/rules/tdd-first.md",
       "workflow/rules/test-execution.md",
       "workflow/rules/verification-matrix.md",
@@ -201,6 +204,7 @@
     ],
     "implement": [
       "workflow/rules/coding-standards.md",
+      "workflow/rules/artifact-language.md",
       "workflow/rules/code-comments.md",
       "workflow/rules/tdd-first.md",
       "workflow/rules/test-execution.md",
@@ -210,6 +214,7 @@
     ],
     "verify": [
       "workflow/rules/test-execution.md",
+      "workflow/rules/artifact-language.md",
       "workflow/rules/verification-matrix.md",
       "workflow/rules/verification-evidence.md",
       "workflow/rules/system-design/modularity.md",

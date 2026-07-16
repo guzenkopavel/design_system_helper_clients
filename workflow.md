@@ -148,6 +148,14 @@ Canonical registry digest и exact two identities pinned в common resolver;
 registry-only append/edit, extra meta key или изменение `blocking_questions`
 блокируется до отдельного code+registry harness change и audit.
 
+Все четыре v1 lifecycle profile также включают
+[`artifact-language.md`](workflow/rules/artifact-language.md). Пояснения,
+решения, требования, шаги и verification reports в platform Markdown пишутся
+по-русски; code/API names, repo paths, IDs и точная machine schema сохраняются
+без перевода. Валидатор проверяет каждый содержательный block независимо, так
+что один русский padding paragraph не легализует English sections. Исторический
+registry-anchored v0 исключён из правила из-за неизменяемых hash anchors.
+
 | Шаг | Вход | Основные записи | Успешный статус |
 |---|---|---|---|
 | `propose` | approved product spec или technical-only evidence | `proposal.md`, `implementation-spec.md`, `design.md`, `verification.md`, `meta.json` | `specified` |

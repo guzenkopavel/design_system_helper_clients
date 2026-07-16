@@ -48,6 +48,11 @@ Reopen affected tasks and transitive dependents, run focused checks against the
 explicit paths, then create new unique reconciliation evidence and complete only
 the tasks proven by it. Evidence for every dependent names the complete
 triggering intended path set and has exactly one `- Result: PASS` field.
+Authored prose в exact direct-child canonical
+`evidence/reconciliation-<timestamp>-task-NNN[-<safe-slug>].md` писать по-русски
+по [`artifact-language`](../rules/artifact-language.md). Raw runtime/verifier
+output и произвольные evidence files не переводить и не использовать как
+language padding.
 Any Result-like structural variant makes evidence invalid; ordinary narrative
 without a Result field definition is unaffected. Full task-file add/change/delete,
 including status/evidence, is restricted to baseline/current direct owners and

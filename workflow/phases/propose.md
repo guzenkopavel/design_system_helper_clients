@@ -42,6 +42,10 @@ Workflow:
    and incorporates its decisions.
 3. Write the five base artifacts plus conditional `platform-ux.md` under
    `<package_root>/<feature>/changes/<change-id>/`.
+   Authored prose в каждом Markdown artifact писать по-русски по
+   [`artifact-language`](../rules/artifact-language.md); exact machine schema,
+   IDs, paths и code/API names сохранять без перевода. Проверка выполняется по
+   каждому substantive block, поэтому русский padding не скрывает English prose.
 4. Reference shared IDs without copying their observable text. Use adapter
    prefix for platform REQ/AC and trace every ID in verification.
 5. Record sorted unique scopes and the exact derived union of adapter-supported

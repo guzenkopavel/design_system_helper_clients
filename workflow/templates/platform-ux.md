@@ -1,5 +1,8 @@
 # <Feature> — <Platform> native UX
 
+<!-- Все UX-объяснения и решения писать по-русски; точные design-system terms,
+machine metadata, paths и API names сохранять без перевода. -->
+
 - **UX status:** `READY`
 - **Platform:** `<exact adapter platform name>`
 - **Source product UX:** `specs/product/<feature>/ux.md`

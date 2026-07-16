@@ -1,5 +1,8 @@
 # Design — <feature> / <platform> / <change-id>
 
+<!-- Все архитектурные объяснения и решения писать по-русски; exact schema,
+идентификаторы, пути, код и названия API сохранять без перевода. -->
+
 ## Current context
 ## Proposed architecture and boundaries
 ## Data and control flow
@@ -12,11 +15,11 @@
 ## Migration and rollout
 ## Alternatives and trade-offs
 
-The next section must contain only its exact structured rows. The two canonical
-app-shell rows are the sole shell claims; no other field may reference an
-`app`, `application`, `shell`, `target` or `module` token in any order or
-possessive form. Physical unit wording must use an exact
-adapter-approved non-application phrase.
+Следующий раздел должен содержать только точные структурированные строки. Две
+канонические app-shell строки — единственные shell claims; остальные поля не
+могут ссылаться на `app`, `application`, `shell`, `target` или `module` в любом
+порядке либо possessive form. Формулировка physical unit использует точную
+разрешённую адаптером non-application phrase.
 
 ## Modularity decision
 
@@ -38,9 +41,9 @@ adapter-approved non-application phrase.
 
 ## Platform UX trace and decisions
 
-Required for product-backed `ui`: reference `platform-ux.md` and show how its
-native language, appearance, accessibility/motion and fallback decisions shape
-architecture without copying shared UX.
+Для product-backed `ui` сослаться на `platform-ux.md` и по-русски объяснить, как
+его native language, appearance, accessibility/motion и fallback decisions
+влияют на архитектуру без копирования shared UX.
 
 ## System-design checklist
 ## Verification strategy

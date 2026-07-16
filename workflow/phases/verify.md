@@ -34,6 +34,9 @@ contracts, task files, realized code and applicable platform rules. It reruns
 each declared method and writes only scoped evidence under package `evidence/`.
 Every verification row receives exact `PASS`, `FAIL` or `UNKNOWN`; concrete
 evidence paths are mandatory.
+Authored prose в `verification.md` и собственных reports писать по-русски по
+[`artifact-language`](../rules/artifact-language.md); exact statuses, IDs,
+paths, commands и API names сохранять без перевода.
 
 Resolve `--phase verify` with the unchanged meta scopes and reject any mismatch
 with the stored applicable lifecycle union. Independently derive methods from

@@ -90,6 +90,7 @@ propose <platform> <feature> [--change <change-id>]
   → product-backed ui only: adapter UX designer writes platform-ux.md
   → architecture-designer (consumes platform-ux.md only when present)
   → structured isolated | deviation | not-applicable modularity decision
+  → Russian authored prose block gate; exact schema/IDs/paths/code stay unchanged
   → platform boundary guard (read-only PASS/BLOCK; missing/BLOCK stops design gate)
   → validator
   → status: specified

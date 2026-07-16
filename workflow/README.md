@@ -34,6 +34,8 @@
 
 - [`rules/specification-layers.md`](rules/specification-layers.md) — общий
   product SSOT и отдельные platform implementation specs;
+- [`rules/artifact-language.md`](rules/artifact-language.md) — русский authored
+  prose во всех v1 platform artifacts с block-level fail-closed проверкой;
 - [`rules/visual-language.md`](rules/visual-language.md) — shared calm soft-blue
   semantic intent и native adaptation boundary;
 - [`rules/product-spec-review.md`](rules/product-spec-review.md) — isolated

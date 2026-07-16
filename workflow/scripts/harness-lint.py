@@ -18,6 +18,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from platform_rule_profiles import (
+    ARTIFACT_LANGUAGE_RULE,
     COMMON_MODULARITY_RULE,
     LEGACY_REGISTRY_PATH,
     PHASES,
@@ -867,6 +868,7 @@ def android_profile_findings(
         findings.append(finding("critical", "android-engineering-profiles", label, "Android phases must be exact propose/plan/implement/verify"))
     expected_verify = [
         "workflow/rules/test-execution.md",
+        ARTIFACT_LANGUAGE_RULE,
         "workflow/rules/verification-matrix.md",
         COMMON_MODULARITY_RULE,
         "Android/workflow/rules/architecture/modularization.md",
@@ -907,7 +909,7 @@ def modularity_profile_findings(
     findings: list[dict[str, str]] = []
     for phase in PHASES:
         rules = phases.get(phase, [])
-        for rule in (COMMON_MODULARITY_RULE, platform_rule):
+        for rule in (ARTIFACT_LANGUAGE_RULE, COMMON_MODULARITY_RULE, platform_rule):
             if rule not in rules:
                 findings.append(finding(
                     "critical", "cross-platform-modularity", label,
@@ -1094,6 +1096,12 @@ def self_test_android_lint(root: Path) -> int:
         assert any(
             item["check"] == "cross-platform-modularity"
             for item in modularity_profile_findings(root, source_path, missing_phase_rule)
+        )
+        missing_language_rule = copy.deepcopy(source_adapter)
+        missing_language_rule["phase_rule_profiles"]["plan"].remove(ARTIFACT_LANGUAGE_RULE)
+        assert any(
+            ARTIFACT_LANGUAGE_RULE in item["detail"]
+            for item in modularity_profile_findings(root, source_path, missing_language_rule)
         )
         missing_platform_rule = copy.deepcopy(source_adapter)
         platform_rule = missing_platform_rule["modularity"]["platform_rule"]
@@ -1763,6 +1771,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "workflow/rules/verification-matrix.md", "workflow/rules/git-conventions.md",
         "workflow/rules/branching.md", "workflow/rules/developer-experience.md",
         "workflow/rules/system-design/modularity.md",
+        "workflow/rules/artifact-language.md",
         "workflow/scripts/test-watchdog.sh",
         "iOS/workflow/rules/swift-style.md", "iOS/workflow/rules/app-development.md",
         "iOS/workflow/rules/package-development.md", "iOS/workflow/rules/simulator.md",
@@ -1898,6 +1907,45 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         for token in tokens:
             if token not in text:
                 findings.append(finding("critical", "cross-platform-modularity", raw, f"missing wiring token: {token}"))
+    language_wiring = {
+        "workflow/templates/platform-proposal.md": ("по-русски",),
+        "workflow/templates/platform-implementation-spec.md": ("по-русски",),
+        "workflow/templates/platform-design.md": ("по-русски",),
+        "workflow/templates/platform-ux.md": ("по-русски",),
+        "workflow/templates/platform-verification.md": ("по-русски",),
+        "workflow/templates/platform-plan-readme.md": ("по-русски",),
+        "workflow/templates/platform-plan-task.md": ("по-русски",),
+        "workflow/roles/specification-writer.md": ("artifact-language", "по-русски"),
+        "workflow/roles/architecture-designer.md": ("artifact-language", "по-русски"),
+        "workflow/roles/implementation-planner.md": ("artifact-language", "по-русски"),
+        "workflow/roles/implementation-writer.md": (
+            "artifact-language", "evidence/task-NNN.md", "reconciliation reports",
+        ),
+        "workflow/roles/verifier.md": ("artifact-language", "по-русски"),
+        "iOS/workflow/roles/ios-ux-designer.md": ("artifact-language", "по-русски"),
+        "Android/workflow/roles/android-ux-designer.md": ("artifact-language", "по-русски"),
+        "workflow/scripts/validate-platform-change.py": (
+            "validate_authored_markdown_language", "ARTIFACT_LANGUAGE_RULE",
+            "(+{remainder} more)", "authored_relative = path.relative_to(package)",
+            "current.is_symlink()", "resolved_path, resolved_package",
+            'encoding="utf-8", errors="strict"',
+            "TASK_AUTHORED_REPORT_RE", "RECONCILIATION_AUTHORED_REPORT_RE",
+            "typed_authored_report_paths", "evidence.iterdir()",
+        ),
+        "workflow/phases/implement.md": ("artifact-language", "evidence/task-NNN.md"),
+        "workflow/phases/reconcile-implementation.md": (
+            "artifact-language", "evidence/reconciliation-<timestamp>-task-NNN",
+        ),
+    }
+    for raw, tokens in language_wiring.items():
+        path = root / raw
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        for token in tokens:
+            if token not in text:
+                findings.append(finding(
+                    "critical", "russian-platform-artifacts", raw,
+                    f"missing wiring token: {token}",
+                ))
     wiring = {
         "workflow/phases/propose.md": ("engineering_scopes", "applicable_rule_files", "--phase propose"),
         "workflow/phases/plan.md": ("--phase plan", "watchdog", "performance", "rule-selection.json", "scope_task_checks"),

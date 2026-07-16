@@ -22,6 +22,7 @@
 | modularity adapter contract | adapter `modularity` (`isolation_scope`, platform rule, physical units) | all four lifecycle base profiles + validator/lint |
 | modularity v0 compatibility anchor | `workflow/compatibility/modularity-v0.json`; exact identities + immutable meta/design/plan/task hashes | `platform_rule_profiles.py` resolver → all downstream lifecycle callers + lint |
 | modularity decision | active package `design.md#Modularity decision`; `isolated | deviation | not-applicable` + structured boundary-guard verdict | architecture designer → platform boundary guard → `validate-platform-change.py` |
+| platform artifact language | `workflow/rules/artifact-language.md`; Russian authored prose, exact machine/code/path exceptions | all v1 phase profiles → artifact writers → `validate-platform-change.py` + lint |
 | lifecycle capability | ordered adapter `lifecycle_capabilities`; unsupported operations fail before writes | all platform lifecycle scripts |
 | planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |

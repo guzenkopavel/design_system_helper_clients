@@ -1,7 +1,10 @@
-# task-NNN — <name>
+# task-NNN — <название>
+
+<!-- Goal, context, steps, verification, expected result и out-of-scope писать
+по-русски; exact machine fields, IDs, paths, commands и code tokens не переводить. -->
 
 - Layer: domain | data | presentation | infrastructure | tests
-- Boundary owner: <cohesive capability or app-shell composition boundary>
+- Boundary owner: <связная capability или app-shell composition boundary>
 - Engineering scopes: ["<sealed-package-scope>"]
 - Depends on: task-NNN | none
 - Status: pending

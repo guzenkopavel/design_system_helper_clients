@@ -51,6 +51,11 @@ For product-backed UI tasks, reread immutable `platform-ux.md` and implement its
 native language, appearance, accessibility/motion and fallback checks. Record
 focused native appearance evidence without rewriting the artifact.
 
+Authored prose в exact direct-child `evidence/task-NNN.md` писать по-русски по
+[`artifact-language`](../rules/artifact-language.md). Raw command logs,
+произвольные runtime/verifier evidence, code, IDs, paths и exact machine fields
+сохранять без перевода; они не являются language padding.
+
 Before the baseline, resolve `--phase implement` with the exact immutable scopes
 from meta and require the returned lifecycle union to match
 `applicable_rule_files`. Apply behavior-first/TDD, coding/comments and only the

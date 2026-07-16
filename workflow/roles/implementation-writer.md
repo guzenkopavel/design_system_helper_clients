@@ -1,6 +1,11 @@
 # Role: Implementation Writer
 
 The single scoped writer has three explicit modes.
+Для platform modes полностью прочитать common
+[`artifact-language.md`](../rules/artifact-language.md). Authored task reports
+`evidence/task-NNN.md` и canonical timestamped reconciliation reports писать
+по-русски; raw runtime/verifier output не переписывать и не использовать как
+language padding.
 
 ## Mode: harness
 
@@ -19,6 +24,8 @@ only declared task Paths inside adapter production roots; protected/excluded
 roots remain immutable except selected task/meta state and exact canonical
 `evidence/task-NNN.md`. The coordinator baseline and its out-of-band SHA token
 are never writer-owned or rewritten.
+Authored prose exact task report писать по-русски; команды, IDs и raw output
+сохранять в точной форме.
 In FAIL/UNKNOWN recovery mode only, a baseline captured before writes may also
 authorize exact package `verification.md` solely to reset all rows to pending;
 initial implementation never receives this permission.
@@ -48,6 +55,8 @@ execute the adapter-native appearance, accessibility/motion and fallback checks.
 Run only under the reconciliation guard after semantic classification. Never
 write production. Coordinate exact package state, reopened affected/dependent
 tasks and new uniquely named reconciliation evidence after focused checks.
+Authored reconciliation report по canonical timestamp/slug contract писать
+по-русски по common language rule.
 Preserve historical evidence and FAIL/UNKNOWN recovery state. A previously
 verified package must lose terminal state exactly as the canonical rule
 requires; only a later Verify may restore it. Do not broaden the explicit

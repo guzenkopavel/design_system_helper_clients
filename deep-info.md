@@ -44,6 +44,25 @@ Resolver также pin'ит canonical registry digest и ordered exact two iden
 verification fields. Registry-only append, extra key и `blocking_questions`
 drift fail-closed.
 
+Язык v1 platform artifacts — такая же обязательная base-семантика. Common SSOT
+находится в `workflow/rules/artifact-language.md`; оба adapter catalog включают
+его во все `phase_rule_profiles`. `specification-writer`, platform UX designer,
+`architecture-designer`, `implementation-planner` и `verifier` создают русский
+authored prose, а exact schema/IDs/paths/code/API terms не переводят.
+`validate-platform-change.py` удаляет code fences, inline code, URLs, paths,
+contract IDs и machine rows, после чего проверяет каждый остаточный prose block
+на meaningful Cyrillic и Cyrillic dominance. Диагностика ограничена одной
+строкой на файл и не раскрывает content. `plan/` проверяется с Plan, raw command
+logs/evidence не используются как authored padding. Resolver удаляет правило из
+registry-anchored v0 projection, чтобы historical hashes оставались валидны.
+К authored reports относятся только direct children `evidence/task-NNN.md` и
+canonical timestamped `evidence/reconciliation-...-task-NNN[-slug].md`.
+Validator не делает rglob: произвольные runtime/verifier Markdown, logs,
+screenshots, JSON и external output остаются raw, не требуют перевода и не могут
+маскировать English authored report. Typed reports проходят ту же package
+containment/all-component symlink/regular/strict UTF-8 boundary во всех current
+v1 validator modes; v0 остаётся exempt.
+
 Product READY имеет отдельный durable trust boundary. Elaborate fingerprint'ит
 все regular files активного package (кроме coordinator receipt; только exact
 Status metadata нормализуется), затем запускает шесть one-lens fresh
@@ -88,6 +107,7 @@ product-backed intake и completed product archive вызывают тот же
 | Общие роли | [`workflow/roles/`](workflow/roles/) | четыре runtime role bindings |
 | Platform capability/profile | `<platform>/workflow/platform-contract.json` | capability matrices и lifecycle dispatch |
 | Physical modularity | [`workflow/rules/system-design/modularity.md`](workflow/rules/system-design/modularity.md) + adapter `modularity` + platform rule | structured design decision, task checks, lint/validator gates |
+| Язык platform artifacts | [`workflow/rules/artifact-language.md`](workflow/rules/artifact-language.md) + оба adapter phase profiles | русские authored blocks, role/template instructions, fail-closed validator/lint |
 | Modularity v0 compatibility | [`workflow/compatibility/modularity-v0.json`](workflow/compatibility/modularity-v0.json) + common resolver | exact historical identities, immutable hashes, downstream fail-closed gates |
 | Platform-specific behavior | `<platform>/workflow/phases/`, `rules/`, `roles/` | runtime platform roles и evidence |
 | Product contract | [`specs/product/`](specs/product/) | ссылки из platform packages |
@@ -334,6 +354,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 |---|---|
 | [`workflow/rules/agent-roster.md`](workflow/rules/agent-roster.md) | Agent roster |
 | [`workflow/rules/archive-lifecycle.md`](workflow/rules/archive-lifecycle.md) | Archive lifecycle |
+| [`workflow/rules/artifact-language.md`](workflow/rules/artifact-language.md) | Язык платформенных артефактов |
 | [`workflow/rules/branching.md`](workflow/rules/branching.md) | Branching and integration |
 | [`workflow/rules/bug-investigation.md`](workflow/rules/bug-investigation.md) | Bug investigation |
 | [`workflow/rules/code-comments.md`](workflow/rules/code-comments.md) | Code comments |
@@ -591,7 +612,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/templates/platform-implementation-spec.md`](workflow/templates/platform-implementation-spec.md) | Implementation spec — <feature> / <platform> / <change-id> |
 | [`workflow/templates/platform-meta.json`](workflow/templates/platform-meta.json) | Runtime/configuration contract |
 | [`workflow/templates/platform-plan-readme.md`](workflow/templates/platform-plan-readme.md) | Plan — <feature> / <platform> / <change-id> |
-| [`workflow/templates/platform-plan-task.md`](workflow/templates/platform-plan-task.md) | task-NNN — <name> |
+| [`workflow/templates/platform-plan-task.md`](workflow/templates/platform-plan-task.md) | task-NNN — <название> |
 | [`workflow/templates/platform-proposal.md`](workflow/templates/platform-proposal.md) | Proposal — <feature> / <platform> / <change-id> |
 | [`workflow/templates/platform-rule-selection.json`](workflow/templates/platform-rule-selection.json) | Runtime/configuration contract |
 | [`workflow/templates/platform-ux.md`](workflow/templates/platform-ux.md) | <Feature> — <Platform> native UX |
@@ -622,6 +643,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/pre-commit-and-hooks.md`](workflow/test-evidence/pre-commit-and-hooks.md) | Pre-commit and hooks evidence |
 | [`workflow/test-evidence/product-elaboration.md`](workflow/test-evidence/product-elaboration.md) | Product elaboration skills — test evidence |
 | [`workflow/test-evidence/root-documentation.md`](workflow/test-evidence/root-documentation.md) | Root project documentation |
+| [`workflow/test-evidence/russian-platform-artifacts.md`](workflow/test-evidence/russian-platform-artifacts.md) | Russian platform artifacts — RED → GREEN → REFACTOR |
 
 ### iOS harness
 

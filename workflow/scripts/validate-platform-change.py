@@ -9,6 +9,7 @@ import importlib.util
 import json
 import re
 import shutil
+import stat
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -16,6 +17,7 @@ from pathlib import Path
 import platform_rule_profiles as rule_profiles
 
 from platform_rule_profiles import (
+    ARTIFACT_LANGUAGE_RULE,
     CURRENT_MODULARITY_CONTRACT_VERSION,
     LEGACY_REGISTRY_PATH,
     LEGACY_MODULARITY_CONTRACT_VERSION,
@@ -83,6 +85,42 @@ PLATFORM_UX_HEADINGS = (
     "Device and layout adaptation", "Fallback and availability",
     "Verification scenarios", "Open gaps",
 )
+LANGUAGE_MACHINE_ROW_LABELS = {
+    "Change type", "Shared product spec", "Product status / approval",
+    "Product impact assessment", "Product Impact Assessment", "Tier",
+    "Selected scopes", "Applicable rule files", "Considered but not selected",
+    "Selection snapshot", "UX status", "Platform", "Source product UX",
+    "Native design language adapter", "Color direction", "Outcome",
+    "Capability triggers", "Physical boundaries",
+    "Public contracts and dependency direction", "App-shell responsibilities",
+    "App-shell capability ownership", "Repository evidence",
+    "Rationale and trade-offs", "Migration boundary and trigger",
+    "Over-modularization check", "Boundary guard verdict", "Dependency graph",
+    "Public API and visibility", "Module-level tests",
+    "Consumer integration and build", "App-shell allowlist", "Layer",
+    "Boundary owner", "Engineering scopes", "Depends on", "Status", "Evidence",
+    "Estimate (ideal)", "Paths", "Discovered command",
+    "Watchdog max/stall/output budget for nontrivial checks",
+    "Applicable rule/check mapping",
+}
+LANGUAGE_AUTHORED_ROW_LABELS = {
+    "Evidence for each scope", "Considered but not selected", "Selection evidence",
+    "Public contracts and dependency direction", "Rationale and trade-offs",
+    "Migration boundary and trigger", "Over-modularization check",
+}
+LANGUAGE_TECHNICAL_WORDS = {
+    "android", "api", "compose", "core", "data", "dynamic", "expressive",
+    "glass", "gradle", "ios", "kotlin", "liquid", "material", "sdk", "swift",
+    "swiftui", "ui", "ux", "xcode", "materialtheme", "talkback",
+}
+TASK_AUTHORED_REPORT_RE = re.compile(r"^task-[0-9]{3}\.md$")
+RECONCILIATION_AUTHORED_REPORT_RE = re.compile(
+    r"^reconciliation-[0-9]{8}T[0-9]{6}Z-task-[0-9]{3}(?:-[a-z0-9-]+)?\.md$"
+)
+LANGUAGE_MACHINE_TABLE_HEADERS = {
+    "contract id", "layer", "evidence", "evidence path",
+    "status", "path", "id", "file", "command", "enum", "key", "value",
+}
 _PRODUCT_VALIDATOR = None
 
 
@@ -116,6 +154,180 @@ def repository_root() -> Path:
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def _language_residual(raw: str) -> str:
+    text = re.sub(r"`[^`\n]*`", " ", raw)
+    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r" \1 ", text)
+    text = re.sub(r"https?://\S+", " ", text)
+    text = re.sub(r"\b(?:REQ|AC|[A-Z][A-Z0-9]*-(?:REQ|AC))-\d+\b", " ", text)
+    text = re.sub(r"\btask-\d{3}\b", " ", text, flags=re.I)
+    text = re.sub(r"(?<!\w)(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.*/-]+", " ", text)
+    text = re.sub(r"\b[A-Za-z0-9_-]+\.(?:md|json|swift|kt|kts|xml|toml|yaml|yml|py|sh)\b", " ", text, flags=re.I)
+    text = re.sub(r"\b(?:READY|APPROVED|PASS|FAIL|UNKNOWN|BLOCK|PRESENT|NONE|N/A|pending|done|isolated|deviation|not-applicable)\b", " ", text, flags=re.I)
+    words = re.findall(r"[A-Za-z]+|[А-Яа-яЁё]+", text)
+    return " ".join(
+        word for word in words
+        if word.casefold() not in LANGUAGE_TECHNICAL_WORDS
+        and not (word.isascii() and any(char.isupper() for char in word[1:]))
+    )
+
+
+def _authored_language_blocks(markdown: str) -> list[str]:
+    blocks: list[str] = []
+    current: list[str] = []
+    in_fence = False
+    table_headers: list[str] | None = None
+
+    def flush() -> None:
+        if current:
+            value = " ".join(current).strip()
+            if value:
+                blocks.append(value)
+            current.clear()
+
+    lines = markdown.splitlines()
+    for line_index, raw in enumerate(lines):
+        line = raw.strip()
+        if line.startswith("```") or line.startswith("~~~"):
+            flush(); in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if not line:
+            flush(); table_headers = None; continue
+        if line.startswith("#"):
+            flush(); table_headers = None
+            continue
+        if line.startswith("|"):
+            flush()
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+                continue
+            next_line = lines[line_index + 1].strip() if line_index + 1 < len(lines) else ""
+            next_cells = [cell.strip() for cell in next_line.strip("|").split("|")] if next_line.startswith("|") else []
+            if next_cells and all(re.fullmatch(r":?-{3,}:?", cell) for cell in next_cells):
+                table_headers = [cell.casefold() for cell in cells]
+                continue
+            if table_headers and len(table_headers) == len(cells):
+                for header, cell in zip(table_headers, cells):
+                    if header not in LANGUAGE_MACHINE_TABLE_HEADERS and cell:
+                        current.append(cell); flush()
+                continue
+            for cell in cells:
+                if cell:
+                    current.append(cell); flush()
+            continue
+        list_match = re.match(r"^(?:[-*+]\s+|\d+[.)]\s+)(.*)$", line)
+        if list_match:
+            flush(); table_headers = None
+            stripped = list_match.group(1)
+        else:
+            stripped = line
+        label_match = re.match(r"^(?:\*\*)?([^:*]+?)(?:\*\*)?:\s*(.*)$", stripped)
+        if label_match and label_match.group(1).strip() in LANGUAGE_AUTHORED_ROW_LABELS:
+            flush()
+            current.append(label_match.group(2))
+            if list_match is None:
+                flush()
+            continue
+        if label_match and label_match.group(1).strip() in LANGUAGE_MACHINE_ROW_LABELS:
+            flush()
+            # Exact structured rows are machine schema. Their values are validated
+            # separately and deliberately do not act as Russian padding.
+            continue
+        if re.fullmatch(r"(?:None|None\.|N/A|Covers:\s*\S+)", stripped, re.I):
+            flush(); continue
+        current.append(stripped)
+    flush()
+    return blocks
+
+
+def validate_authored_markdown_language(
+    repo: Path, package: Path, path: Path,
+) -> list[str]:
+    try:
+        repo_relative = path.relative_to(repo)
+        label = repo_relative.as_posix()
+    except ValueError:
+        repo_relative = None
+        label = "<outside-repository>"
+
+    boundary_error = f"artifact language requires safe regular authored Markdown file: {label}"
+    try:
+        package_relative = package.relative_to(repo)
+        authored_relative = path.relative_to(package)
+    except ValueError:
+        return [boundary_error]
+    if (
+        repo_relative is None
+        or ".." in package_relative.parts
+        or ".." in authored_relative.parts
+        or ".." in repo_relative.parts
+    ):
+        return [boundary_error]
+
+    try:
+        resolved_repo = repo.resolve()
+        resolved_package = package.resolve()
+        resolved_path = path.resolve()
+    except (OSError, RuntimeError):
+        return [boundary_error]
+    if (
+        not is_subpath(resolved_package, resolved_repo)
+        or not is_subpath(resolved_path, resolved_package)
+    ):
+        return [boundary_error]
+
+    current = repo
+    for component in repo_relative.parts:
+        current = current / component
+        if current.is_symlink():
+            return [boundary_error]
+    try:
+        mode = path.lstat().st_mode
+    except OSError:
+        return [boundary_error]
+    if not stat.S_ISREG(mode):
+        return [boundary_error]
+    try:
+        markdown = path.read_text(encoding="utf-8", errors="strict")
+    except (OSError, UnicodeDecodeError):
+        return [f"artifact language requires safe UTF-8 authored Markdown file: {label}"]
+    failing_blocks: list[int] = []
+    for index, block in enumerate(_authored_language_blocks(markdown), start=1):
+        residual = _language_residual(block)
+        cyrillic = re.findall(r"[А-Яа-яЁё]{2,}", residual)
+        latin = re.findall(r"[A-Za-z]{2,}", residual)
+        if not cyrillic and len(latin) < 2:
+            continue
+        cyrillic_letters = sum(len(word) for word in cyrillic)
+        latin_letters = sum(len(word) for word in latin)
+        if cyrillic_letters < 6 or latin_letters > cyrillic_letters:
+            failing_blocks.append(index)
+    if not failing_blocks:
+        return []
+    shown = ", ".join(str(index) for index in failing_blocks[:3])
+    remainder = len(failing_blocks) - 3
+    suffix = f" (+{remainder} more)" if remainder > 0 else ""
+    return [
+        f"artifact language requires Russian authored prose: {label} blocks {shown}{suffix}"
+    ]
+
+
+def typed_authored_report_paths(package: Path) -> list[Path]:
+    evidence = package / "evidence"
+    if not evidence.is_dir():
+        return []
+    try:
+        children = sorted(evidence.iterdir(), key=lambda item: item.name)
+    except OSError:
+        return []
+    return [
+        child for child in children
+        if TASK_AUTHORED_REPORT_RE.fullmatch(child.name)
+        or RECONCILIATION_AUTHORED_REPORT_RE.fullmatch(child.name)
+    ]
 
 
 def is_subpath(path: Path, parent: Path) -> bool:
@@ -811,6 +1023,14 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     except AdapterError as error:
         errors.append(str(error))
         contract_version = CURRENT_MODULARITY_CONTRACT_VERSION
+    language_required = (
+        contract_version == CURRENT_MODULARITY_CONTRACT_VERSION
+        and any(
+            ARTIFACT_LANGUAGE_RULE in rules
+            for rules in adapter.get("phase_rule_profiles", {}).values()
+            if isinstance(rules, list)
+        )
+    )
     missing_fields = REQUIRED_META - set(meta)
     if contract_version == LEGACY_MODULARITY_CONTRACT_VERSION:
         missing_fields.discard("modularity_contract_version")
@@ -884,6 +1104,20 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
     required_files = ("proposal.md", "implementation-spec.md", "design.md", "verification.md")
     for name in required_files:
         if not (package / name).is_file(): errors.append(f"missing {name}")
+
+    if language_required:
+        authored_paths = [package / name for name in required_files]
+        platform_ux_path = package / "platform-ux.md"
+        if platform_ux_path.is_file() or platform_ux_path.is_symlink():
+            authored_paths.append(platform_ux_path)
+        plan_root = package / "plan"
+        if mode != "propose" and plan_root.is_dir():
+            plan_readme = plan_root / "README.md"
+            authored_paths.append(plan_readme)
+            authored_paths.extend(sorted(plan_root.glob("task-*.md")))
+        authored_paths.extend(typed_authored_report_paths(package))
+        for authored_path in authored_paths:
+            errors.extend(validate_authored_markdown_language(repo, package, authored_path))
     if any(not (package / name).is_file() for name in required_files): return errors
 
     proposal = read(package / "proposal.md")
@@ -1343,6 +1577,283 @@ def self_test() -> int:
         config = real_adapter["modularity"]
         assert config["isolation_scope"] in real_adapter["scope_rule_profiles"]
         assert config["physical_units"], f"{platform} modularity physical units missing"
+        assert ARTIFACT_LANGUAGE_RULE in real_adapter["rule_files"]
+        assert all(
+            ARTIFACT_LANGUAGE_RULE in real_adapter["phase_rule_profiles"][phase]
+            for phase in ("propose", "plan", "implement", "verify")
+        )
+    with tempfile.TemporaryDirectory() as language_tmp:
+        language_repo = Path(language_tmp)
+        scenarios = {
+            "english": "## Goal\n\nDeliver an accessible platform feature with deterministic behavior.\n",
+            "padding": (
+                "## Context\n\nЭтот абзац написан по-русски и описывает исходный контекст.\n\n"
+                "## Goal\n\nDeliver an accessible platform feature with deterministic behavior.\n"
+            ),
+            "embedded": (
+                "## Context\n\nКонтекст и ограничения реализации подробно описаны по-русски.\n\n"
+                "## Risk\n\nThis paragraph remains entirely English inside the Russian document.\n"
+            ),
+            "russian-technical": (
+                "## Goal\n\nSwiftUI и Liquid Glass формируют нативную поверхность, а Gradle и "
+                "Material 3 остаются точными техническими названиями.\n"
+            ),
+            "machine-only": (
+                "# Verification\n\n- Status: pending\n- Evidence: none\n"
+                "- Paths: proposed: Android/features/app-shell/build.gradle.kts\n"
+                "| Contract ID | Status |\n|---|---|\n| AND-REQ-1 | PASS |\n"
+            ),
+            "english-table": (
+                "| Contract ID | Method | Status |\n|---|---|---|\n"
+                "| AND-REQ-1 | Review deterministic platform behavior | pending |\n"
+            ),
+            "russian-table": (
+                "| Contract ID | Method | Status |\n|---|---|---|\n"
+                "| IOS-REQ-1 | Проверить поведение SwiftUI и Liquid Glass | PASS |\n"
+            ),
+            "machine-table": (
+                "| Contract ID | Evidence path | Status |\n|---|---|---|\n"
+                "| IOS-REQ-1 | evidence/req-1.md | PASS |\n"
+            ),
+            "english-link": (
+                "[Detailed implementation guidance](https://example.com/guide)\n"
+            ),
+            "raw-url": "https://developer.example.com/reference/api\n",
+            "russian-link": (
+                "[Подробное руководство по реализации](https://example.com/guide)\n"
+            ),
+            "sibling-bullets": (
+                "- Этот длинный русский пункт подробно описывает архитектурное решение и ограничения.\n"
+                "- This separate bullet remains entirely English.\n"
+            ),
+            "numbered-continuation": (
+                "1. Русский пункт начинается здесь и содержит подробное решение.\n"
+                "   Его continuation line остаётся частью того же русского пункта.\n"
+                "2. This separate numbered item remains English.\n"
+            ),
+            "machine-english-continuation": (
+                "- Evidence: none\n"
+                "  This continuation explains the evidence in English.\n"
+            ),
+            "machine-russian-continuation": (
+                "- Evidence: none\n"
+                "  Это отдельное русское пояснение к machine row.\n"
+            ),
+            "valid-utf8": "Корректный UTF-8 текст остаётся валидным.\n",
+        }
+        for adapter in real_adapters:
+            platform_root = language_repo / str(adapter["platform_name"])
+            platform_root.mkdir()
+            language_package = platform_root / "change-package"
+            language_package.mkdir()
+            results: dict[str, list[str]] = {}
+            for name, content in scenarios.items():
+                path = language_package / f"{name}.md"
+                path.write_text(content, encoding="utf-8")
+                results[name] = validate_authored_markdown_language(
+                    language_repo, language_package, path,
+                )
+            assert results["english"]
+            assert results["padding"]
+            assert results["embedded"]
+            assert results["russian-technical"] == []
+            assert results["machine-only"] == []
+            assert results["english-table"]
+            assert results["russian-table"] == []
+            assert results["machine-table"] == []
+            assert results["english-link"]
+            assert results["raw-url"] == []
+            assert results["russian-link"] == []
+            assert results["sibling-bullets"] and "blocks 2" in results["sibling-bullets"][0]
+            assert results["numbered-continuation"] and "blocks 2" in results["numbered-continuation"][0]
+            assert results["machine-english-continuation"]
+            assert results["machine-russian-continuation"] == []
+            assert results["valid-utf8"] == []
+            invalid_utf8 = language_package / "invalid-utf8.md"
+            invalid_utf8.write_bytes(b"\xff\xfeinvalid authored bytes")
+            invalid_utf8_errors = validate_authored_markdown_language(
+                language_repo, language_package, invalid_utf8,
+            )
+            assert len(invalid_utf8_errors) == 1
+            assert "invalid-utf8.md" in invalid_utf8_errors[0]
+            assert "invalid authored bytes" not in invalid_utf8_errors[0]
+            assert "UnicodeDecodeError" not in invalid_utf8_errors[0]
+            target = language_package / "regular-target.md"
+            target.write_text("Корректный русский текст для regular target.\n", encoding="utf-8")
+            symlink = language_package / "symlink.md"
+            symlink.symlink_to(target.name)
+            symlink_errors = validate_authored_markdown_language(
+                language_repo, language_package, symlink,
+            )
+            assert len(symlink_errors) == 1
+            assert "regular authored Markdown file" in symlink_errors[0]
+            assert "Корректный русский текст" not in symlink_errors[0]
+            non_regular = language_package / "directory.md"
+            non_regular.mkdir()
+            non_regular_errors = validate_authored_markdown_language(
+                language_repo, language_package, non_regular,
+            )
+            assert len(non_regular_errors) == 1
+            assert "regular authored Markdown file" in non_regular_errors[0]
+            external_plan = platform_root / "external-plan"
+            external_plan.mkdir()
+            (external_plan / "README.md").write_text(
+                "Внешний русский текст не должен обходить package boundary.\n",
+                encoding="utf-8",
+            )
+            plan = language_package / "plan"
+            plan.symlink_to(external_plan, target_is_directory=True)
+            external_ancestor_errors = validate_authored_markdown_language(
+                language_repo, language_package, plan / "README.md",
+            )
+            assert len(external_ancestor_errors) == 1
+            assert "safe regular authored Markdown file" in external_ancestor_errors[0]
+            plan.unlink()
+
+            real_plan = language_package / "real-plan"
+            real_plan.mkdir()
+            (real_plan / "README.md").write_text(
+                "Обычный вложенный план содержит корректный русский текст.\n",
+                encoding="utf-8",
+            )
+            plan.symlink_to(real_plan.name, target_is_directory=True)
+            internal_ancestor_errors = validate_authored_markdown_language(
+                language_repo, language_package, plan / "README.md",
+            )
+            assert len(internal_ancestor_errors) == 1
+            assert "safe regular authored Markdown file" in internal_ancestor_errors[0]
+            plan.unlink()
+            plan.mkdir()
+            normal_nested = plan / "README.md"
+            normal_nested.write_text(
+                "Обычный вложенный plan artifact написан по-русски.\n",
+                encoding="utf-8",
+            )
+            assert validate_authored_markdown_language(
+                language_repo, language_package, normal_nested,
+            ) == []
+
+            outside = platform_root / "outside.md"
+            outside.write_text("Внешний файл написан по-русски.\n", encoding="utf-8")
+            traversal = language_package / ".." / "outside.md"
+            assert validate_authored_markdown_language(
+                language_repo, language_package, traversal,
+            )
+            assert validate_authored_markdown_language(
+                language_repo, language_package, outside,
+            )
+
+            real_package = platform_root / "real-change-package"
+            real_package.mkdir()
+            (real_package / "proposal.md").write_text(
+                "Русский authored text находится в реальном package.\n",
+                encoding="utf-8",
+            )
+            linked_package = platform_root / "linked-change-package"
+            linked_package.symlink_to(real_package.name, target_is_directory=True)
+            linked_package_errors = validate_authored_markdown_language(
+                language_repo, linked_package, linked_package / "proposal.md",
+            )
+            assert len(linked_package_errors) == 1
+            assert "safe regular authored Markdown file" in linked_package_errors[0]
+
+            evidence = language_package / "evidence"
+            evidence.mkdir()
+            task_report = evidence / "task-001.md"
+            task_report.write_text(
+                "This authored task report remains entirely English.\n",
+                encoding="utf-8",
+            )
+            runtime_markdown = evidence / "runtime-output.md"
+            runtime_markdown.write_text(
+                "Русский raw runtime output не является authored padding.\n",
+                encoding="utf-8",
+            )
+            (evidence / "runtime-output.log").write_text(
+                "raw runtime log\n", encoding="utf-8",
+            )
+            (evidence / "runtime-output.json").write_text(
+                '{"raw": "runtime output"}\n', encoding="utf-8",
+            )
+            selected_reports = typed_authored_report_paths(language_package)
+            assert selected_reports == [task_report]
+            english_task_errors = validate_authored_markdown_language(
+                language_repo, language_package, selected_reports[0],
+            )
+            assert len(english_task_errors) == 1
+            assert "task-001.md" in english_task_errors[0]
+            assert "entirely English" not in english_task_errors[0]
+            task_report.write_text(
+                "Отчёт задачи написан по-русски и фиксирует проверенный результат.\n",
+                encoding="utf-8",
+            )
+            assert validate_authored_markdown_language(
+                language_repo, language_package, task_report,
+            ) == []
+
+            reconciliation_report = (
+                evidence / "reconciliation-20260716T120000Z-task-001-platform-drift.md"
+            )
+            reconciliation_report.write_text(
+                "This reconciliation report remains entirely English.\n",
+                encoding="utf-8",
+            )
+            reconciliation_errors = validate_authored_markdown_language(
+                language_repo, language_package, reconciliation_report,
+            )
+            assert len(reconciliation_errors) == 1
+            reconciliation_report.write_text(
+                "Отчёт reconciliation по-русски описывает согласованное исправление.\n",
+                encoding="utf-8",
+            )
+            assert validate_authored_markdown_language(
+                language_repo, language_package, reconciliation_report,
+            ) == []
+
+            typed_target = evidence / "typed-target.md"
+            typed_target.write_text("Корректный русский target.\n", encoding="utf-8")
+            typed_symlink = evidence / "task-002.md"
+            typed_symlink.symlink_to(typed_target.name)
+            assert validate_authored_markdown_language(
+                language_repo, language_package, typed_symlink,
+            )
+            invalid_typed = evidence / "task-003.md"
+            invalid_typed.write_bytes(b"\xff\xfeinvalid typed report")
+            invalid_typed_errors = validate_authored_markdown_language(
+                language_repo, language_package, invalid_typed,
+            )
+            assert len(invalid_typed_errors) == 1
+            assert "invalid typed report" not in invalid_typed_errors[0]
+
+            external_evidence = platform_root / "external-evidence"
+            external_evidence.mkdir()
+            (external_evidence / "task-004.md").write_text(
+                "Внешний typed report не обходит ancestor boundary.\n",
+                encoding="utf-8",
+            )
+            ancestor_package = platform_root / "ancestor-package"
+            ancestor_package.mkdir()
+            (ancestor_package / "evidence").symlink_to(
+                external_evidence, target_is_directory=True,
+            )
+            ancestor_reports = typed_authored_report_paths(ancestor_package)
+            assert len(ancestor_reports) == 1
+            assert validate_authored_markdown_language(
+                language_repo, ancestor_package, ancestor_reports[0],
+            )
+
+            noisy = language_package / "noisy.md"
+            noisy.write_text(
+                "\n\n".join(
+                    f"## Section {index}\n\nEnglish prose block number {index} remains invalid."
+                    for index in range(1, 9)
+                ),
+                encoding="utf-8",
+            )
+            bounded = validate_authored_markdown_language(
+                language_repo, language_package, noisy,
+            )
+            assert len(bounded) == 1 and "(+5 more)" in bounded[0]
     project_evidence = {
         "ios": "iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj",
         "android": "Android/settings.gradle.kts",

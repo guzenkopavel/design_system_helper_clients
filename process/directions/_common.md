@@ -51,6 +51,12 @@ Propose/Plan, registry mismatch или drift design/meta/plan/tasks требую
 registry-only extension не выдаёт trust. Legacy meta допускает только exact
 historical keys, где mutable лишь status/tasks_done/problems/verification state.
 
+Все current v1 phase profiles также включают common
+[`artifact-language.md`](../../workflow/rules/artifact-language.md). Authored
+platform prose проверяется по блокам и пишется по-русски; machine schema, IDs,
+paths, commands и code/API names остаются точными. Registry-anchored v0 не
+локализуется ретроактивно.
+
 Общий pre-commit gate анализирует staged blobs, fingerprint и task trail; общий
 hook runner защищает dangerous Git и edit boundaries. Платформенные suffix/glob
 категории принадлежат adapter `pre_commit`, а runtime bindings остаются thin.

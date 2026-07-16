@@ -133,8 +133,10 @@ Versionless v0 допустим только при exact hash match tracked
 - Portable skills хранить в `.agents/skills/`; runtime-копии процесса не создавать.
 - Не смешивать платформенные правила с общими без необходимости.
 - Не коммитить и не публиковать изменения без явной просьбы пользователя.
-- Человекочитаемые отчёты и документы писать на русском; код, пути и
-  идентификаторы — на английском.
+- Язык platform lifecycle artifacts определяет common
+  [`artifact-language.md`](workflow/rules/artifact-language.md): authored prose
+  и reports — на русском, exact schema, код, пути и идентификаторы — без
+  перевода.
 
 ## Commit gate и hooks
 

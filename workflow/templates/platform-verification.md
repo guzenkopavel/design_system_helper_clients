@@ -1,5 +1,8 @@
 # Verification — <feature> / <platform> / <change-id>
 
+<!-- Описание методов, наблюдений, рисков и результатов писать по-русски;
+точные statuses, contract IDs, paths, commands и schema labels не переводить. -->
+
 ## Modularity verification
 
 - Dependency graph: pending
@@ -15,8 +18,8 @@
 | <PLATFORM_PREFIX>-REQ-1 | design | design review | expected evidence before verify | pending |
 | <PLATFORM_PREFIX>-AC-1 | unit | test name | expected evidence before verify | pending |
 
-`verify` replaces expected descriptions with concrete package-relative
-`evidence/...` paths and exact `PASS`, `FAIL` or `UNKNOWN`.
+`verify` заменяет ожидаемые описания конкретными package-relative путями
+`evidence/...` и точными статусами `PASS`, `FAIL` или `UNKNOWN`.
 
 ## Revalidated engineering scopes and exact verify rules
 ## Derived method matrix
@@ -25,8 +28,8 @@
 ## Accessibility and design-system
 ## Native UX verification
 
-Required for product-backed `ui`: native appearance scenarios from
-`platform-ux.md`, including light/dark/contrast, accessibility/motion, device
-adaptation and availability fallback with concrete evidence.
+Для product-backed `ui` проверить native appearance scenarios из
+`platform-ux.md`, включая light/dark/contrast, accessibility/motion, device
+adaptation и availability fallback с конкретным evidence.
 
 ## Unverified risks

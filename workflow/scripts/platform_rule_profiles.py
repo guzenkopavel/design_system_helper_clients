@@ -18,6 +18,7 @@ PRE_COMMIT_KEYS = {
     "project_globs", "tool_globs",
 }
 COMMON_MODULARITY_RULE = "workflow/rules/system-design/modularity.md"
+ARTIFACT_LANGUAGE_RULE = "workflow/rules/artifact-language.md"
 CURRENT_MODULARITY_CONTRACT_VERSION = 1
 LEGACY_MODULARITY_CONTRACT_VERSION = 0
 LEGACY_REGISTRY_PATH = "workflow/compatibility/modularity-v0.json"
@@ -362,7 +363,11 @@ def phase_profiles_for_version(
     if version == CURRENT_MODULARITY_CONTRACT_VERSION:
         return {phase: list(rules) for phase, rules in phases.items()}
     config = adapter["modularity"]
-    removed = {COMMON_MODULARITY_RULE, str(config["platform_rule"])}
+    removed = {
+        COMMON_MODULARITY_RULE,
+        ARTIFACT_LANGUAGE_RULE,
+        str(config["platform_rule"]),
+    }
     return {
         phase: [rule for rule in rules if rule not in removed]
         for phase, rules in phases.items()

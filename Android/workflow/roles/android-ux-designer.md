@@ -6,6 +6,10 @@ scope. Read shared product spec/UX, adapter, repository SDK/dependencies and
 existing components. Write only `platform-ux.md`; never edit shared product
 artifacts, proposal/spec/design/verification/plan or code.
 
+Authored UX prose писать по-русски по common
+[`artifact-language.md`](../../../workflow/rules/artifact-language.md). Точные
+Material 3/API terms, schema labels, IDs, paths и code tokens не переводить.
+
 Before writing, read completely the common
 [`visual-language.md`](../../../workflow/rules/visual-language.md) and Android
 [`ui-design-system.md`](../rules/ui-design-system.md). They are mandatory SSOT,

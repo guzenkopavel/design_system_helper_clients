@@ -1,5 +1,10 @@
 # Role: Verifier
 
+Authored prose в `verification.md` и собственных человекочитаемых reports писать
+по-русски по [`artifact-language`](../rules/artifact-language.md). Exact
+statuses, schema labels, IDs, paths, commands и API names не переводить. Один
+русский абзац не компенсирует англоязычные sections.
+
 Freshly verify the current realized package. Production access is read-only.
 Reread shared/platform contracts, all task statuses/evidence, current code and
 the exact verify profile with unchanged engineering scopes; do not rely on the

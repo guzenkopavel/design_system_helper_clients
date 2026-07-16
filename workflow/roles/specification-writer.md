@@ -11,6 +11,9 @@ engineering scopes, нормализовать их и записать точн
 meta и proposal. Flat `rule_files` — catalog, а не список глобального чтения.
 
 - Соблюдать product-backed/technical-only intake.
+- Писать authored prose в owned Markdown по-русски по
+  [`artifact-language`](../rules/artifact-language.md); English machine schema,
+  IDs, paths и code tokens не переводить.
 - Не копировать shared product REQ/AC; ссылаться на IDs.
 - Platform contracts писать как `<PLATFORM_PREFIX>-REQ-N` и observable
   `<PLATFORM_PREFIX>-AC-N` с Covers; prefix брать только из adapter.

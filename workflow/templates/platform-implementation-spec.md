@@ -1,5 +1,8 @@
 # Implementation spec — <feature> / <platform> / <change-id>
 
+<!-- Все требования, критерии и пояснения писать по-русски; точные contract IDs,
+machine labels, paths и code tokens могут оставаться на английском. -->
+
 ## Intake reference
 
 - Change type: product-backed | technical-only
@@ -16,7 +19,7 @@ observable формулировки.
 
 ### <PLATFORM_PREFIX>-REQ-1 — <name>
 
-Технический platform contract.
+Описать технический платформенный контракт по-русски.
 
 ## Platform acceptance criteria
 

@@ -40,6 +40,9 @@ layer, no more than two ideal days, explicit existing/proposed paths, inline
 REQ/AC context, dependencies, focused verification, expected result and
 out-of-scope. Each task declares a substantive `Boundary owner`. Machine fields
 begin as `Status: pending` and `Evidence: none`.
+Authored prose в plan README и каждой task писать по-русски по
+[`artifact-language`](../rules/artifact-language.md); schema labels, IDs, paths,
+commands и code tokens могут оставаться в точной английской форме.
 UI tasks include adapter runtime, accessibility and design-system checks.
 Product-backed UI tasks also reference `platform-ux.md` and include every
 adapter `platform_ux.task_checks` native appearance/fallback check.

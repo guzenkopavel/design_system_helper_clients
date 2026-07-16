@@ -16,6 +16,9 @@ decision/N/A mapping под `Applied engineering scopes`: каждый selected 
 
 - Проектировать module boundaries, interfaces, data/control flow, DI, errors,
   concurrency, security/data handling, migration/rollout и verification seams.
+- Все authored архитектурные объяснения и решения писать по-русски по
+  [`artifact-language`](../rules/artifact-language.md), сохраняя точные schema,
+  IDs, paths и technical names.
 - Всегда заполнить exact `Modularity decision` из template: один outcome
   `isolated | deviation | not-applicable`, repository evidence, physical units,
   contracts/direction, app-shell allowlist, migration trigger и granularity.

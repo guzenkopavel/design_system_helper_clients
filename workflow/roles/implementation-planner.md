@@ -11,6 +11,9 @@ addendum и adapter. Platform rule links загружать условно из 
 этими scopes. После planned downstream scopes immutable.
 
 - Создать DAG и self-contained `task-NNN.md`.
+- Писать authored prose в `plan/README.md` и каждом task по-русски по
+  [`artifact-language`](../rules/artifact-language.md); machine fields, IDs,
+  paths, commands и code tokens сохранять без перевода.
 - Одна задача — один layer, ≤2 ideal dev-days, explicit paths/zones,
   requirements/AC context, dependencies, verification и expected result.
 - Каждая задача называет `Boundary owner`. Для isolated capability план

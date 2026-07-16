@@ -1,5 +1,8 @@
 # Proposal — <feature> / <platform> / <change-id>
 
+<!-- Все пояснения, решения и обоснования писать по-русски; machine labels,
+идентификаторы, пути и код сохранять в точной контрактной форме. -->
+
 ## Intake
 
 - Change type: product-backed | technical-only
