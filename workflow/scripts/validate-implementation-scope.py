@@ -334,6 +334,7 @@ def self_test() -> int:
         plan = package / "plan"; plan.mkdir()
         (plan / "README.md").write_text("# Plan\n\n## Planning frame\nOne bounded implementation task follows approved contracts.\n\n## Revalidated engineering scopes and exact rules\n- Engineering scopes: [\"application\"]\n- Applicable rule files: [\"TestClient/workflow/base.md\", \"TestClient/workflow/application.md\"]\n\n## DAG\ntask-001 is ready without dependencies.\n\n## Estimates and multipliers\nGreenfield uncertainty is included in the task range.\n\n## Verification strategy\nRun one focused behavior check and record evidence.\n")
         task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nImplement the typed sample boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the result.\n\n## Steps\nCreate the boundary with a focused behavior test.\n\n## Verification\nRun the deterministic boundary test.\n\n## Expected result\nThe focused behavior test passes.\n\n## Out of scope\nOther features and platform cleanup remain excluded.\n"
+        task = task.replace("- Layer: domain\n", "- Layer: domain\n- Boundary owner: Sample capability boundary\n", 1)
         (plan / "task-001.md").write_text(task)
         meta.update(status="planned", tasks_total=1, rule_selection_snapshot="plan/rule-selection.json")
         (plan / "rule-selection.json").write_text(json.dumps(validator.rule_selection_snapshot(meta)))
@@ -359,7 +360,8 @@ def self_test() -> int:
         (plan / "task-001.md").write_text(task)
         traversal_errors = create_baseline(repo, "test-client", "sample", "sample", "task-001", repo.parent / "escape.json")
         assert any("baseline must be exactly" in error for error in traversal_errors)
-        assert create_baseline(repo, "test-client", "sample", "sample", "task-001", baseline) == []
+        baseline_errors = create_baseline(repo, "test-client", "sample", "sample", "task-001", baseline)
+        assert baseline_errors == [], baseline_errors
         baseline_sha = hash_file(baseline)
         source = repo / "TestClient/Sources/Sample.swift"; source.parent.mkdir(parents=True); source.write_text("struct Sample {}\n")
         assert check_baseline(repo, baseline, baseline_sha) == []
@@ -396,13 +398,23 @@ def self_test() -> int:
         (repo / "unrelated.txt").write_text("preexisting\n")
         for name in ("req", "ac", "preq", "pac"):
             (package / f"evidence/{name}.md").write_text("Concrete verifier evidence.\n")
-        failed_verification = "# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | FAIL |\n"
+        failed_verification = (
+            "# Verification\n\n" + validator.fixture_modularity_verification("PASS")
+            + "\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | FAIL |\n"
+        )
         verification.write_text(failed_verification)
         recovery = dict(meta); recovery.update(status="implementing", tasks_total=1, tasks_done=0, verification_status="FAIL", problems=["TST-AC-1"])
         (package / "meta.json").write_text(json.dumps(recovery))
-        assert create_baseline(repo, "test-client", "sample", "sample", "task-001", baseline) == []
+        recovery_baseline_errors = create_baseline(repo, "test-client", "sample", "sample", "task-001", baseline)
+        assert recovery_baseline_errors == [], recovery_baseline_errors
         baseline_sha = hash_file(baseline)
-        verification.write_text(re.sub(r"\| (?:PASS|FAIL|UNKNOWN) \|", "| pending |", failed_verification))
+        pending_verification = re.sub(r"\| (?:PASS|FAIL|UNKNOWN) \|", "| pending |", failed_verification)
+        pending_verification = re.sub(
+            r"(?m)^(- (?:Dependency graph|Public API and visibility|Module-level tests|Consumer integration and build|App-shell allowlist):) PASS$",
+            r"\1 pending",
+            pending_verification,
+        )
+        verification.write_text(pending_verification)
         assert check_baseline(repo, baseline, baseline_sha) == []
         done_task = task.replace("Status: pending", "Status: done").replace("Evidence: none", "Evidence: evidence/task-001.md").replace("proposed:", "existing:")
         (plan / "task-001.md").write_text(done_task)

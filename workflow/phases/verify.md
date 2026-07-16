@@ -45,6 +45,15 @@ For product-backed UI, reread `platform-ux.md` and collect reproducible native
 appearance evidence for its scenarios, light/dark/contrast, motion/accessibility
 and availability fallback. This harness gate does not claim actual rendering.
 
+For `modularity_contract_version: 1`, apply the common and adapter modularity
+rules from the verify base. Inspect the realized physical dependency graph,
+public API/visibility, module-level tests, consumer integration/build and
+application-shell allowlist. A folder/layer is not isolation; unavailable
+graph/build tooling produces `UNKNOWN`. Registry-anchored v0 instead verifies
+only its resolver-selected historical projection and adapter
+`legacy_task_checks`; it receives no retroactive v1 Modularity decision or
+app-shell checks and cannot expand ownership or immutable package structure.
+
 If any row is non-PASS, persist a recovery state: keep `status: implementing`,
 set `verification_status: FAIL` when at least one row is FAIL and otherwise
 `UNKNOWN`, keep `verified_at`/`verification_state` null, and set `problems` to

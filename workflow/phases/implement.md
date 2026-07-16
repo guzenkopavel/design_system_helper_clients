@@ -58,6 +58,16 @@ resolver-selected platform scope rules. A nontrivial test/build command is
 run through `workflow/scripts/test-watchdog.sh` using the plan budget; any
 override records a reason and remains finite.
 
+For `modularity_contract_version: 1`, the implement base applies common and
+adapter modularity rules. Honor the sealed `Modularity decision`: do not put
+feature/domain/data/network implementation or mutable state in the application
+shell, do not treat folders as modules and do not widen a deviation beyond its
+typed seam/task paths. Registry-anchored v0 instead receives only the
+resolver-selected historical projection and adapter `legacy_task_checks`; it
+may complete historical lifecycle task paths/status/evidence, but receives no
+retroactive v1 decision/composition checks and cannot expand ownership or
+immutable package structure.
+
 Set `status: implementing` when work starts. Mark a task `done` and give it a
 concrete package-relative evidence path only after focused checks pass and the
 scope validator is green. Derive `tasks_done` from task files. Implement never

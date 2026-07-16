@@ -128,6 +128,26 @@ behavior, product requirements и acceptance criteria не меняются. `PR
 adapter profiles, addenda, source/build topology и evidence. Успешная проверка
 iOS не доказывает Android и наоборот.
 
+Для новых v1 packages все четыре lifecycle profile всегда включают common modularity rule и
+platform addendum. Propose фиксирует structured `isolated | deviation |
+not-applicable` и получает `PASS` boundary guard. Новые cohesive feature/data/
+network/storage/reusable UI capabilities по strong default получают physical
+platform unit; application shell оставляет только entry/lifecycle/root routing/
+DI/config/resources и composition. Plan создаёт wiring/API/consumer/app-shell
+tasks с boundary owner, а Verify проверяет realized graph. Folder/layer не
+является module; unavailable graph/tooling даёт `UNKNOWN`.
+
+Legacy v0 не определяется по одному отсутствующему version field. Он допустим
+только для identities и immutable hashes из
+[`workflow/compatibility/modularity-v0.json`](workflow/compatibility/modularity-v0.json).
+Такой package завершает только исторические task paths/checks; значения task
+Status/Evidence и lifecycle meta/evidence могут продвигаться, но design,
+immutable meta, plan/task graph и ownership не расширяются. V1 composition
+правило к нему ретроактивно не применяется.
+Canonical registry digest и exact two identities pinned в common resolver;
+registry-only append/edit, extra meta key или изменение `blocking_questions`
+блокируется до отдельного code+registry harness change и audit.
+
 | Шаг | Вход | Основные записи | Успешный статус |
 |---|---|---|---|
 | `propose` | approved product spec или technical-only evidence | `proposal.md`, `implementation-spec.md`, `design.md`, `verification.md`, `meta.json` | `specified` |

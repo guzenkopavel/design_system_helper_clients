@@ -31,6 +31,15 @@ rationale. Do not add side features, broad cleanup or speculative
 infrastructure. A focused check and scope validation are required before task
 completion. Never assign verified status.
 
+For v1, apply the sealed modularity outcome. Never place feature/domain/data/network
+implementation or mutable state ownership in the application shell. An approved
+deviation is limited to its typed seam, paths and migration boundary; changing
+the outcome or widening the exception returns to Propose/Plan.
+Registry-anchored v0 may only complete historical task paths/checks and normal
+status/evidence transitions. Do not judge it retroactively by the v1
+composition rule, but never expand its ownership, immutable design/meta/plan or
+task semantics; any mismatch routes to a separate migration/new change package.
+
 For a product-backed UI task, reread `platform-ux.md`, keep it read-only and
 execute the adapter-native appearance, accessibility/motion and fallback checks.
 

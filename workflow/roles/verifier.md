@@ -15,6 +15,13 @@ verification. Return blockers for any non-PASS and do not claim verified.
 Independently derive the method matrix from scope risks. Use the watchdog for
 nontrivial tests/build/runtime checks and comparable baselines for performance.
 Missing required environment is UNKNOWN, not a skipped PASS.
+For v1, verify the realized physical dependency graph, public API/visibility,
+module-level tests, consumer integration/build and application-shell allowlist.
+Unavailable graph/build tooling is `UNKNOWN`; folders or narrative layers do
+not count as physical isolation.
+For registry-anchored v0, verify only the matched historical projection and its
+adapter-declared legacy isolation checks. Do not retrofit v1 composition,
+app-shell, design or task fields into history and do not expand ownership.
 For product-backed UI, treat `platform-ux.md` as immutable verification input
 and capture native appearance/light-dark/contrast/motion/fallback evidence.
 

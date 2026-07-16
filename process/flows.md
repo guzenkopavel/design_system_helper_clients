@@ -82,31 +82,38 @@ observable behavior, REQ и AC не меняются. `PRESENT` или `UNCERTAI
 
 ```text
 propose <platform> <feature> [--change <change-id>]
+  → current modularity contract v1 (legacy v0 cannot enter Propose)
   → platform/intake gate
   → repo-navigator (read-only)
   → evidence-selected engineering scopes + exact propose profile
   → specification-writer
   → product-backed ui only: adapter UX designer writes platform-ux.md
   → architecture-designer (consumes platform-ux.md only when present)
-  → platform boundary guard (read-only)
+  → structured isolated | deviation | not-applicable modularity decision
+  → platform boundary guard (read-only PASS/BLOCK; missing/BLOCK stops design gate)
   → validator
   → status: specified
 plan <platform> <feature> [--change <change-id>]
   → revalidate/refine scopes + exact plan profile
   → implementation-planner
+  → physical-unit/project wiring + public API/consumer/app-shell tasks with boundary owners
   → seal plan/rule-selection.json
   → task/DAG validator
   → status: planned
 implement <platform> <feature> [--change <change-id>] [--task ...|--all]
+  → v1 sealed contract OR exact registry-anchored v0 historical projection
   → implementation-discovery (read-only)
   → exact implement profile + immutable scopes
   → scope baseline
   → implementation-writer (platform-implementation)
+  → v1: sealed modularity outcome and composition-only app shell
+  → v0: historical task/check completion only; no ownership/structure expansion
   → bounded focused evidence + scope check
   → status: implementing
 verify <platform> <feature> [--change <change-id>]
   → verify production-scope baseline
   → verifier (production read-only)
+  → v1 realized graph/API/module/consumer/app-shell checks OR anchored v0 legacy checks
   → exact verify profile + independently derived method matrix
   → verify production-scope check
   → exact PASS evidence + state fingerprint

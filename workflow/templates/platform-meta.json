@@ -17,6 +17,7 @@
     "<exact-derived-rule-path>"
   ],
   "rule_selection_snapshot": null,
+  "modularity_contract_version": 1,
   "blocking_questions": [],
   "problems": [],
   "design_gate": "pending",

@@ -10,6 +10,7 @@ layer.
 | holistic sequence и UI principles | [`system-design/hdd-ui-principles.md`](system-design/hdd-ui-principles.md) |
 | mobile challenges | [`system-design/mobile-challenges.md`](system-design/mobile-challenges.md) |
 | hard-to-reverse design gates | [`system-design/design-gates.md`](system-design/design-gates.md) |
+| physical modularity и app-shell boundary | [`system-design/modularity.md`](system-design/modularity.md) |
 | tasks и estimation | [`system-design/estimation-rfc.md`](system-design/estimation-rfc.md) |
 | applicability/review | [`system-design/review.md`](system-design/review.md) |
 

@@ -1,12 +1,15 @@
 # Feature-First
 
-Фича инкапсулирует Data, Domain и Presentation. Направление зависимостей:
+Фича инкапсулирует Data, Domain и Presentation в cohesive physical unit, когда
+это подтверждают ownership/consumer signals. Направление зависимостей:
 Presentation → Domain contracts ← Data implementations. Domain не импортирует UI
 или infrastructure. Между фичами использовать public contracts; shared слой не
 содержит feature business logic.
 
-Не создавать пустые слои ради формы. Placement подтверждать существующим
-project/package layout; greenfield path маркировать `proposed`.
+Не создавать пустые слои или module-per-layer ради формы. Placement подтверждать
+существующим project/package/target graph; greenfield path маркировать
+`proposed`. Новая независимая feature по strong default не реализуется целиком
+в application target: app shell только связывает route, DI и lifecycle.
 
 ## Boundary checklist
 
@@ -18,6 +21,8 @@ project/package layout; greenfield path маркировать `proposed`.
 - Общая primitive выносится только после доказанных двух владельцев и
   одинаковой семантики, а не одинакового синтаксиса.
 - Cross-feature workflow координируется на composition/navigation boundary.
+- Data/repository, networking/transport и storage implementations изолируются
+  от feature public API; sources скрыты за domain-owned contracts.
 
 Plan разделяет задачи по observable vertical slices, если это позволяет ранний
 RED→GREEN. Массовое создание папок до первого поведения запрещено.

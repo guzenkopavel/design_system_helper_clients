@@ -55,4 +55,15 @@ Workflow:
 
 Apply wording clarity, common system-design and only the resolver-selected
 platform corpus. Do not load the flat adapter catalog globally.
+The base profile always applies
+`workflow/rules/system-design/modularity.md` plus the adapter platform
+modularity rule. `design.md` must contain the exact structured `Modularity
+decision`; `isolated` selects the adapter isolation scope, while deviation/N/A
+must satisfy their evidence contracts. Dispatch the platform boundary guard
+after architecture and return its structured verdict to the architecture owner.
+Missing/`BLOCK` verdict prevents `design_gate: PASS`.
+New meta and rule-selection candidates use `modularity_contract_version: 1`.
+Capability triggers, app-shell allowlist/ownership and existing repo-relative
+evidence paths use the exact machine schema from the modularity rule; deviation
+is never allowed in an application target/module.
 Do not create a plan, production code or commit.

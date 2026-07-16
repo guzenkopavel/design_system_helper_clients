@@ -39,6 +39,13 @@
     "required_terms": ["Liquid Glass", "functional controls", "navigation", "content background", "soft blue", "semantic roles", "light", "dark", "increased contrast", "Reduce Transparency", "Reduce Motion", "scrolling legibility", "standard components", "performance", "older-OS/SDK fallback"],
     "task_checks": ["platform-ux.md", "Liquid Glass", "light/dark", "increased contrast", "Reduce Transparency", "Reduce Motion", "older-OS/SDK fallback"]
   },
+  "modularity": {
+    "contract_version": 1,
+    "isolation_scope": "package",
+    "platform_rule": "iOS/workflow/rules/package-development.md",
+    "physical_units": ["Swift package", "Swift package target", "non-application Xcode target"],
+    "legacy_task_checks": ["package consumer", "package build"]
+  },
   "scope_task_checks": {
     "ui": [
       "simulator",
@@ -50,7 +57,11 @@
     ],
     "package": [
       "package consumer",
-      "package build"
+      "consumer integration",
+      "package build",
+      "public contract",
+      "dependency graph",
+      "app-shell wiring"
     ],
     "networking": [
       "cache policy",
@@ -130,6 +141,7 @@
   "rule_files": [
     "workflow/rules/specification-layers.md",
     "workflow/rules/system-design.md",
+    "workflow/rules/system-design/modularity.md",
     "workflow/rules/coding-standards.md",
     "workflow/rules/code-comments.md",
     "workflow/rules/tdd-first.md",
@@ -174,26 +186,34 @@
     "propose": [
       "workflow/rules/specification-layers.md",
       "workflow/rules/system-design.md",
-      "iOS/workflow/rules/architecture.md"
+      "workflow/rules/system-design/modularity.md",
+      "iOS/workflow/rules/architecture.md",
+      "iOS/workflow/rules/package-development.md"
     ],
     "plan": [
       "workflow/rules/coding-standards.md",
       "workflow/rules/tdd-first.md",
       "workflow/rules/test-execution.md",
       "workflow/rules/verification-matrix.md",
-      "iOS/workflow/rules/architecture.md"
+      "workflow/rules/system-design/modularity.md",
+      "iOS/workflow/rules/architecture.md",
+      "iOS/workflow/rules/package-development.md"
     ],
     "implement": [
       "workflow/rules/coding-standards.md",
       "workflow/rules/code-comments.md",
       "workflow/rules/tdd-first.md",
       "workflow/rules/test-execution.md",
-      "iOS/workflow/rules/swift-style.md"
+      "workflow/rules/system-design/modularity.md",
+      "iOS/workflow/rules/swift-style.md",
+      "iOS/workflow/rules/package-development.md"
     ],
     "verify": [
       "workflow/rules/test-execution.md",
       "workflow/rules/verification-matrix.md",
-      "workflow/rules/verification-evidence.md"
+      "workflow/rules/verification-evidence.md",
+      "workflow/rules/system-design/modularity.md",
+      "iOS/workflow/rules/package-development.md"
     ]
   },
   "scope_rule_profiles": {

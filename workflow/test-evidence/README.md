@@ -36,3 +36,6 @@
   freshness gate.
 - [`platform-native-ux.md`](platform-native-ux.md) — conditional native UX
   artifact, iOS Liquid Glass и Android Material 3 cross-platform pressures.
+- [`cross-platform-modularity.md`](cross-platform-modularity.md) — strong-default
+  physical capability boundaries, app-shell allowlist, structured decisions и
+  независимые iOS/Android RED→GREEN→REFACTOR pressures.

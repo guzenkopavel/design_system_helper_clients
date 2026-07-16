@@ -19,15 +19,19 @@ iOS-специфика реализации — в [`iOS/specs/`](../../iOS/spec
 lifecycle transition.
 
 `$deep-code-review review|feedback|bug ios <feature> [--change ...]` подключает
-iOS lens из platform addendum, остаётся read-only и после отдельного будущего
-fix маршрутизирует terminal evidence в `$verify ios ...`.
+iOS lens из platform addendum и остаётся read-only. Отдельный fix проходит
+canonical Implement/reconcile lifecycle, после чего terminal evidence
+маршрутизируется в `$verify ios ...`.
 
 Machine adapter: [`platform-contract.json`](../../iOS/workflow/platform-contract.json)
 задаёт iOS name/root, production/protected roots, archive namespace, `IOS`
-contract prefix, boundary guard и Extended gates;
+contract prefix, boundary guard, modularity contract version и Extended gates;
 phase/scope rule profiles, context file suffixes и полный catalog. Общий resolver/validator не
-hardcode'ит эти значения. Performance topics, UI/simulator, package,
-concurrency, localization, delivery и DX загружаются только выбранными scopes.
+hardcode'ит эти значения. Common modularity и `package-development.md`
+загружаются обязательным phase base; isolation scope `package` добавляет
+task-level obligations только для `isolated|deviation`. Performance topics,
+UI/simulator, concurrency, localization, delivery и DX загружаются только
+выбранными scopes.
 
 `pre_commit` profile этого adapter владеет iOS source, project, signing,
 security, UI и localization globs. Общий gate не содержит Apple-specific

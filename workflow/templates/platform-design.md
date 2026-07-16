@@ -11,6 +11,27 @@
 ## Design-system and accessibility
 ## Migration and rollout
 ## Alternatives and trade-offs
+
+The next section must contain only its exact structured rows. The two canonical
+app-shell rows are the sole shell claims; no other field may reference an
+`app`, `application`, `shell`, `target` or `module` token in any order or
+possessive form. Physical unit wording must use an exact
+adapter-approved non-application phrase.
+
+## Modularity decision
+
+- Outcome: isolated | deviation | not-applicable
+- Capability triggers: independent-feature=yes|no; domain-data=yes|no; network=yes|no; persistence=yes|no; reusable-ui=yes|no; consumers=<integer>; independent-ownership=yes|no
+- Physical boundaries: <existing/discovered/proposed non-application adapter physical unit; N/A local boundary>
+- Public contracts and dependency direction: <minimal API, consumers and acyclic direction>
+- App-shell responsibilities: entry-points, lifecycle, root-routing, dependency-wiring, platform-configuration, target-resources
+- App-shell capability ownership: none
+- Repository evidence: <existing-repo-path>[; <existing-repo-path>]
+- Rationale and trade-offs: <why this outcome fits the evidence>
+- Migration boundary and trigger: <typed seam and objective trigger, or evidence-backed N/A>
+- Over-modularization check: <why granularity is neither per-folder/layer nor monolithic>
+- Boundary guard verdict: PASS | BLOCK
+
 ## Applied engineering scopes
 
 - <scope>: <decision or explicit N/A with rationale>

@@ -38,7 +38,8 @@ the exact plan profile and selected scope rules through
 Create a DAG of contiguous self-contained `task-NNN.md` files. Each task has one
 layer, no more than two ideal days, explicit existing/proposed paths, inline
 REQ/AC context, dependencies, focused verification, expected result and
-out-of-scope. Machine fields begin as `Status: pending` and `Evidence: none`.
+out-of-scope. Each task declares a substantive `Boundary owner`. Machine fields
+begin as `Status: pending` and `Evidence: none`.
 UI tasks include adapter runtime, accessibility and design-system checks.
 Product-backed UI tasks also reference `platform-ux.md` and include every
 adapter `platform_ux.task_checks` native appearance/fallback check.
@@ -50,6 +51,15 @@ package scopes. Together tasks cover every selected scope. Adapter
 `scope_task_checks` supplies conditional keywords/checks; any task tagged `ui`,
 `localization` or a performance topic must carry its checks regardless of layer,
 and every presentation task must include `ui`.
+
+Apply the common and adapter modularity rules from the base profile. For an
+isolated boundary, tasks explicitly cover discovered manifest/project wiring,
+minimal public API/visibility tests, module-level tests, consumer
+integration/build, dependency graph and app-shell composition. A sealed
+deviation keeps its typed seam and objective migration trigger in task context;
+folder/layer creation never substitutes for physical isolation.
+Plan accepts only the current modularity contract. A sealed legacy v0 package
+cannot be expanded or re-planned and must route to a migration/new change.
 
 Candidate meta is `planned`, `tasks_total` equals the derived file count,
 `tasks_done: 0`, verification remains pending. Validate with `--mode plan

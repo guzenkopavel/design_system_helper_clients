@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_normalization": {
+    "ignored_field_values": ["Status", "Evidence"]
+  },
+  "packages": [
+    {
+      "platform": "iOS",
+      "feature": "client-bootstrap",
+      "change_id": "initial-scaffold",
+      "package_path": "iOS/specs/client-bootstrap/changes/initial-scaffold",
+      "hashes": {
+        "design_sha256": "7ed17114479f0b1bfb85e3df1fe01b31713f0475d831426b8721b464cfc557d9",
+        "meta_identity_sha256": "18f352af7f9b3b22a04ae43d2a589bbb5a976153ec718ff883679fd852c76132",
+        "rule_selection_sha256": "2bdbc2d330db6d0d80ec50e086988141e72edb6651691c8e6bf35fd48d70a529",
+        "plan_readme_sha256": "1abd7ed14d098b17ee97f63a6da4f08433f3d075c09ed57f06d9f42c0dd9cb7e",
+        "task_graph_sha256": "cd88d8591a25cf27587f474d3951aca848a4515672509a1773ddf2f944c39995"
+      }
+    },
+    {
+      "platform": "Android",
+      "feature": "client-bootstrap",
+      "change_id": "initial-scaffold",
+      "package_path": "Android/specs/client-bootstrap/changes/initial-scaffold",
+      "hashes": {
+        "design_sha256": "ae9a9819bf4b2200319b4898463220c3b9543defe92394fda316458f56dc818d",
+        "meta_identity_sha256": "8d66afc614440981e87963e66b96dbc5d899f19ab15fc95291a184caf1ced3d4",
+        "rule_selection_sha256": "e2e45212c0b6bffca1664b2d845537dea5e7f7b8d6ee51900891c489df945fa8",
+        "plan_readme_sha256": "9868082e89138a9f9ca3b30a057960b47f61adbdd5c283bbfbe3d0af5fe5b214",
+        "task_graph_sha256": "03ba4726eedea3698511c29701a3a77fabd179f342377742a45099ccbe8f8caa"
+      }
+    }
+  ]
+}

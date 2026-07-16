@@ -23,6 +23,11 @@ exact base для четырёх engineering phases и selective scopes. Resolve
 только base текущей фазы плюс scopes из package meta; flat catalog не является
 глобальным context.
 
+Common modularity и `rules/package-development.md` входят во все четыре base
+profiles. Adapter `modularity` задаёт isolation scope `package` и допустимые
+Swift/Xcode physical units. Optional scope фиксирует конкретную isolation work,
+но отсутствие scope не отключает app-shell/decision gate.
+
 - application/package architecture: [`rules/architecture.md`](rules/architecture.md)
 - Swift/application/package: [`rules/swift-style.md`](rules/swift-style.md),
   [`rules/app-development.md`](rules/app-development.md),

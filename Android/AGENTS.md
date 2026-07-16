@@ -20,6 +20,18 @@ commands/infrastructure и не меняет production; archive требует 
 fingerprint. iOS rules не применять. Product archive остаётся отдельным shared
 lifecycle.
 
+Для v1 common modularity и
+[`architecture/modularization.md`](workflow/rules/architecture/modularization.md)
+входят в base Propose/Plan/Implement/Verify независимо от optional `module`
+scope. Новые cohesive feature/data/network/storage/reusable UI capabilities по
+strong default получают обнаруженный Gradle Android/Kotlin module; application
+module содержит только entry/root navigation/lifecycle/DI/config/resources и
+composition. Folder/package name не является module. Deviation требует точного
+settings/build constraint, typed seam и objective migration trigger.
+Registry-anchored v0 выполняет только historical task paths/checks; v1
+application-module composition rule к нему ретроактивно не применяется,
+ownership не расширяется.
+
 Product-backed `ui` требует READY `platform-ux.md`, owner —
 `android-ux-designer`. Material 3 baseline обязателен; M3 Expressive/dynamic
 color допустимы только с repository/product evidence и accessible fallback.

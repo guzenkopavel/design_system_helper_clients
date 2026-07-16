@@ -17,5 +17,11 @@ the planned finite limits. UI work includes simulator behavior,
 accessibility identifiers/semantics and design-system tokens. Localization work
 is required only for a selected `localization` scope.
 Never broaden the task to unrelated iOS cleanup.
+For v1, never place feature/data/network/storage implementation or mutable state
+in the app target. Implement only the sealed physical unit/deviation and
+app-shell composition wiring declared by the task. Registry-anchored v0 may
+only complete its historical task paths/checks and status/evidence transitions;
+do not judge it retroactively by v1 composition, but never expand ownership or
+immutable package structure.
 Product-backed UI rereads `platform-ux.md` and records Liquid Glass appearance,
 contrast, Reduce Transparency/Motion and older-OS fallback evidence.

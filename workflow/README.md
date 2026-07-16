@@ -47,6 +47,12 @@
   dual archive;
 - [`rules/system-design.md`](rules/system-design.md) — общая mobile system-design
   база для будущих platform adapters;
+- [`rules/system-design/modularity.md`](rules/system-design/modularity.md) —
+  v1 strong-default physical capability boundaries, composition-only app shell
+  и `isolated | deviation | not-applicable` contract;
+- [`compatibility/modularity-v0.json`](compatibility/modularity-v0.json) — exact
+  allowlist и immutable hash anchor двух historical v0 identities; меняется
+  только отдельным harness change + audit;
 - [`rules/coding-standards.md`](rules/coding-standards.md),
   [`rules/tdd-first.md`](rules/tdd-first.md),
   [`rules/test-execution.md`](rules/test-execution.md) и
@@ -112,6 +118,9 @@
   — exact output schema одного independent lens review;
 - [`templates/platform-implementation-spec.md`](templates/platform-implementation-spec.md)
   — downstream спека одного направления;
+- [`templates/platform-design.md`](templates/platform-design.md) и
+  [`templates/platform-plan-task.md`](templates/platform-plan-task.md) —
+  structured modularity decision и task boundary ownership;
 - [`templates/platform-ux.md`](templates/platform-ux.md) — conditional native
   UX artifact для product-backed `ui`;
 - [`templates/platform-rule-selection.json`](templates/platform-rule-selection.json)

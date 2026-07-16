@@ -81,6 +81,12 @@ def self_test() -> int:
             platform_adapter = json.loads(json.dumps(adapter))
             platform_adapter["platform_name"] = platform
             platform_adapter["platform_root"] = platform
+            platform_rule = f"{platform}/workflow/modularity.md"
+            (repo / platform_rule).write_text(f"Current {platform} modularity rule.\n", encoding="utf-8")
+            platform_adapter["modularity"]["platform_rule"] = platform_rule
+            platform_adapter["rule_files"].append(platform_rule)
+            for rules in platform_adapter["phase_rule_profiles"].values():
+                rules.append(platform_rule)
             platform_before = validator.compute_state(repo, platform_adapter, package, meta)
             platform_phase.write_text(original + "Platform contract changed.\n", encoding="utf-8")
             platform_changed = validator.compute_state(repo, platform_adapter, package, meta)

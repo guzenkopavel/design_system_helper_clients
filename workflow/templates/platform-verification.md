@@ -1,5 +1,13 @@
 # Verification — <feature> / <platform> / <change-id>
 
+## Modularity verification
+
+- Dependency graph: pending
+- Public API and visibility: pending
+- Module-level tests: pending
+- Consumer integration and build: pending
+- App-shell allowlist: pending
+
 | Contract ID | Layer | Method | Evidence path | Status |
 |---|---|---|---|---|
 | REQ-1 | contract | requirement review | expected evidence before verify | pending |

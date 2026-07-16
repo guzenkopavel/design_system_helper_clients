@@ -1,6 +1,7 @@
 # task-NNN — <name>
 
 - Layer: domain | data | presentation | infrastructure | tests
+- Boundary owner: <cohesive capability or app-shell composition boundary>
 - Engineering scopes: ["<sealed-package-scope>"]
 - Depends on: task-NNN | none
 - Status: pending

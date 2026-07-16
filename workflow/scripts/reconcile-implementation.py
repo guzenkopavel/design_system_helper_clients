@@ -306,6 +306,20 @@ def resolve_context(
     if meta.get("status") == "archived" or (package / "ARCHIVED.md").is_file():
         return {"outcome": ROUTE_REQUIRED, "route": "start a new change; archived packages are immutable", "errors": []}
     status = meta.get("status")
+    try:
+        contract_version = validator.package_contract_version(repo, adapter, meta, package)
+    except ValueError as error:
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "repair or explicitly migrate the package modularity contract",
+            "errors": [str(error)],
+        }
+    if contract_version == 0 and classification in {"task-drift", "platform-implementation-drift"}:
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "legacy v0 design/plan/scopes are sealed; create an explicit migration/new change package",
+            "errors": [],
+        }
     if status in {"draft", "specified"}:
         route = "complete Propose before reconciliation" if status == "draft" else "complete Plan before reconciliation"
         return {"outcome": ROUTE_REQUIRED, "route": route, "errors": [], "current_state": {"status": status}}
@@ -356,6 +370,13 @@ def resolve_context(
         outcome = DRIFT
     else:
         outcome = ALIGNED
+    if contract_version == 0 and outcome == DRIFT:
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "legacy v0 design/plan/scopes are sealed; create an explicit migration/new change package",
+            "errors": sorted(set(parse_errors + [f"uncovered path: {raw}" for raw in uncovered])),
+            "platform": adapter["platform_name"], "feature": feature, "change": change_id,
+        }
     return {
         "outcome": outcome,
         "semantic_judgment_required": classification == "auto",
@@ -364,6 +385,7 @@ def resolve_context(
         "platform_input": adapter["platform_input"],
         "feature": feature,
         "change": change_id,
+        "modularity_contract_version": contract_version,
         "package": package.relative_to(repo).as_posix(),
         "intended_paths": intended,
         "path_status": {raw: changes[raw] for raw in intended},
@@ -826,7 +848,7 @@ def write_fixture(repo: Path, platform: str = "iOS") -> tuple[object, dict[str, 
     source.parent.mkdir(parents=True); source.write_text("baseline\n", encoding="utf-8")
     task = (
         "# task-001 — Reconcile sample\n\n"
-        "- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n"
+        "- Layer: domain\n- Boundary owner: Sample capability boundary\n- Engineering scopes: [\"application\"]\n- Depends on: none\n"
         "- Status: done\n- Evidence: evidence/task-001.md\n- Estimate (ideal): 0.5–1 days\n"
         f"- Paths: existing: {source.relative_to(repo).as_posix()}\n\n"
         "## Goal\nMaintain the typed platform behavior boundary.\n\n"
@@ -921,6 +943,57 @@ def self_test() -> int:
         assert precommit_report["status"] == "PASS", precommit_report
         route = resolve_context(repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "shared-product-impact")
         assert route["outcome"] == ROUTE_REQUIRED and not (package / "evidence/reconciliation-route.md").exists()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); validator, adapter, package, source = write_fixture(repo, "iOS")
+        meta_path = package / "meta.json"
+        legacy_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        legacy_meta.pop("modularity_contract_version")
+        meta_path.write_text(json.dumps(legacy_meta), encoding="utf-8")
+        (package / "plan/rule-selection.json").write_text(
+            json.dumps(validator.rule_selection_snapshot(legacy_meta)), encoding="utf-8"
+        )
+        validator.write_fixture_legacy_registry(repo, package, legacy_meta)
+        legacy_validation = validator.validate_package(repo, adapter, "sample", "sample", "implement")
+        assert legacy_validation == [], legacy_validation
+        legacy_aligned = resolve_context(
+            repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned"
+        )
+        assert legacy_aligned["outcome"] == ALIGNED, legacy_aligned
+        assert legacy_aligned["modularity_contract_version"] == 0
+        lifecycle_evidence = package / "evidence/legacy-aligned.md"
+        lifecycle_evidence.write_text("Fresh legacy aligned evidence.\n", encoding="utf-8")
+        legacy_task_path = package / "plan/task-001.md"
+        legacy_task_path.write_text(
+            re.sub(
+                r"(?m)^- Evidence: .+$", "- Evidence: evidence/legacy-aligned.md",
+                legacy_task_path.read_text(encoding="utf-8"),
+            ),
+            encoding="utf-8",
+        )
+        lifecycle_aligned = resolve_context(
+            repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned"
+        )
+        assert lifecycle_aligned["outcome"] == ALIGNED, lifecycle_aligned
+        for mutation in ("blocking", "extra"):
+            drifted_meta = dict(legacy_meta)
+            if mutation == "blocking":
+                drifted_meta["blocking_questions"] = ["Forged historical question"]
+            else:
+                drifted_meta["forged_extension"] = "untrusted"
+            meta_path.write_text(json.dumps(drifted_meta), encoding="utf-8")
+            rejected = resolve_context(
+                repo, "ios", "sample", "sample",
+                [source.relative_to(repo).as_posix()], "aligned",
+            )
+            assert rejected["outcome"] == ROUTE_REQUIRED, (mutation, rejected)
+            assert "modularity contract" in str(rejected["route"])
+        meta_path.write_text(json.dumps(legacy_meta), encoding="utf-8")
+        legacy_drift = resolve_context(
+            repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "task-drift"
+        )
+        assert legacy_drift["outcome"] == ROUTE_REQUIRED, legacy_drift
+        assert "legacy v0" in str(legacy_drift["route"])
 
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); validator, adapter, package, source = write_fixture(repo, "iOS")

@@ -10,6 +10,10 @@ Product-backed `ui` использует
 
 Phase addenda:
 
+- [`phases/propose.md`](phases/propose.md) — discovered module decision и
+  structured boundary guard;
+- [`phases/plan.md`](phases/plan.md) — module/API/consumer/app-shell task wiring;
+- [`phases/implement.md`](phases/implement.md) — sealed module/deviation writes;
 - [`phases/verify.md`](phases/verify.md) — production read-only terminal evidence;
 - [`phases/archive.md`](phases/archive.md) — Android namespace/fingerprint поверх
   общего collision-safe archive.
@@ -20,3 +24,9 @@ Read-only deep review расширяется
 заявляя fixed/verified внутри review.
 
 Architecture baseline пересказывает [Android architecture guide](https://developer.android.com/topic/architecture) и [recommendations](https://developer.android.com/topic/architecture/recommendations).
+Modularity addendum следует official
+[guide](https://developer.android.com/topic/modularization) и
+[patterns](https://developer.android.com/topic/modularization/patterns).
+Common modularity и `rules/architecture/modularization.md` входят во все четыре
+base profiles; adapter `modularity` связывает их с isolation scope `module` и
+обнаруженными Gradle Android/Kotlin physical units.

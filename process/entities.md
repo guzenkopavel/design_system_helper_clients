@@ -19,6 +19,9 @@
 | platform UX artifact | `<platform>/specs/<feature>/changes/<change-id>/platform-ux.md` (product-backed `ui` only) | adapter UX designer → architecture/plan/implement/verify |
 | platform lifecycle metadata | `<platform>/specs/<feature>/changes/<change-id>/meta.json` | `validate-platform-change.py` |
 | engineering rule profile | adapter `phase_rule_profiles` + `scope_rule_profiles`; package `engineering_scopes` + exact `applicable_rule_files` | `platform_rule_profiles.py` |
+| modularity adapter contract | adapter `modularity` (`isolation_scope`, platform rule, physical units) | all four lifecycle base profiles + validator/lint |
+| modularity v0 compatibility anchor | `workflow/compatibility/modularity-v0.json`; exact identities + immutable meta/design/plan/task hashes | `platform_rule_profiles.py` resolver → all downstream lifecycle callers + lint |
+| modularity decision | active package `design.md#Modularity decision`; `isolated | deviation | not-applicable` + structured boundary-guard verdict | architecture designer → platform boundary guard → `validate-platform-change.py` |
 | lifecycle capability | ordered adapter `lifecycle_capabilities`; unsupported operations fail before writes | all platform lifecycle scripts |
 | planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
@@ -26,6 +29,7 @@
 | verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |
 | implementation reconciliation guard | private `0600` baseline outside repo + selected active package | `reconcile-implementation` inspect/start/check before staging |
 | iOS engineering rule | `iOS/workflow/rules/` | iOS addenda, adapter profiles и platform roles |
+| Android engineering rule | `Android/workflow/rules/` | Android addenda, adapter profiles и platform roles |
 | pre-commit gate | `workflow/phases/pre-commit-check.md` + `workflow/scripts/pre-commit-check.py` | portable skill + `.githooks/pre-commit` |
 | runtime hook policy | `workflow/rules/hook-contract.md` + `workflow/hooks/hook-runner.py` | thin Codex/Claude/Cursor/OpenCode bindings |
 | platform pre-commit profile | `<platform>/workflow/platform-contract.json#pre_commit` | platform addendum + common staged gate |

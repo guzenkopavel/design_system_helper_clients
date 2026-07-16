@@ -488,6 +488,11 @@ def terminal_fixture(repo: Path):
     adapter_path.write_text(json.dumps(adapter_data), encoding="utf-8")
     adapter = validator.load_adapter(repo, "ios")
     package = repo / "iOS/specs/sample/changes/sample"
+    for markdown in package.rglob("*.md"):
+        markdown.write_text(
+            markdown.read_text(encoding="utf-8").replace("TestClient/", "iOS/"),
+            encoding="utf-8",
+        )
     meta = json.loads(json.dumps(meta).replace("TestClient/", "iOS/")); meta["platform"] = "iOS"
     product = repo / "specs/product/sample/spec.md"
     product.write_text(product.read_text().replace("`TestClient`", "`iOS, Android`"))
@@ -495,10 +500,14 @@ def terminal_fixture(repo: Path):
     (plan / "README.md").write_text("# Plan\n\n## Planning frame\nOne bounded task follows approved contracts.\n\n## Revalidated engineering scopes and exact rules\n- Engineering scopes: [\"application\"]\n- Applicable rule files: [\"iOS/workflow/base.md\", \"iOS/workflow/application.md\"]\n\n## DAG\ntask-001 is ready without dependencies.\n\n## Estimates and multipliers\nGreenfield uncertainty is included in the range.\n\n## Verification strategy\nRun a focused check and record evidence.\n")
     source = repo / "iOS/Sources/Sample.swift"; source.parent.mkdir(parents=True); source.write_text("struct Sample {}\n")
     task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: done\n- Evidence: evidence/task-001.md\n- Estimate (ideal): 0.5–1 days\n- Paths: existing: iOS/Sources/Sample.swift\n\n## Goal\nImplement the typed platform boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the result.\n\n## Steps\nCreate the typed boundary with focused verification.\n\n## Verification\nRun the deterministic boundary test.\n\n## Expected result\nThe boundary test records a passing result.\n\n## Out of scope\nOther features and cleanup remain excluded.\n"
+    task = task.replace("- Layer: domain\n", "- Layer: domain\n- Boundary owner: Sample capability boundary\n", 1)
     (plan / "task-001.md").write_text(task)
     evidence = package / "evidence"; evidence.mkdir(); (evidence / "task-001.md").write_text("Focused test PASS.\n")
     for name in ("req","ac","preq","pac"): (evidence/f"{name}.md").write_text("Fresh PASS evidence.\n")
-    (package/"verification.md").write_text("# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run current shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | PASS |\n")
+    (package/"verification.md").write_text(
+        "# Verification\n\n" + validator.fixture_modularity_verification("PASS")
+        + "\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run current shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | PASS |\n"
+    )
     meta.update(status="verified", tasks_total=1, tasks_done=1, verification_status="PASS", verified_at="2026-07-15T12:00:00Z", verification_state="evidence/verification-state.json", rule_selection_snapshot="plan/rule-selection.json")
     (plan / "rule-selection.json").write_text(json.dumps(validator.rule_selection_snapshot(meta)))
     state=validator.compute_state(repo, adapter, package, meta); state["captured_at"]="2026-07-15T12:00:00Z"
@@ -523,6 +532,13 @@ def terminal_android_fixture(repo: Path) -> Path:
             "role": "android-ux-designer", "artifact": "platform-ux.md",
             "design_language": "Material 3", "required_terms": ["Material 3"],
             "task_checks": ["platform-ux.md", "Material 3"],
+        },
+        "modularity": {
+            "contract_version": 1,
+            "isolation_scope": "application",
+            "platform_rule": "Android/workflow/application.md",
+            "physical_units": ["Fixture Android library module"],
+            "legacy_task_checks": ["application boundary"],
         },
         "rule_files": ["Android/workflow/base.md", "Android/workflow/application.md", "Android/workflow/ui.md"],
         "phase_rule_profiles": {
@@ -596,7 +612,8 @@ def self_test() -> int:
         status, errors = archive_product(repo, "sample", request, False)
         assert status == "BLOCKED" and any("Nonstandard/platform-packages" in error for error in errors)
         shutil.rmtree(alt_active.parent)
-        status, _ = archive_implementation(repo, "ios", "sample", "sample", False); assert status == "DRY-RUN"
+        status, errors = archive_implementation(repo, "ios", "sample", "sample", False)
+        assert status == "DRY-RUN", errors
         before_implementation = tree_signature(repo)
         status, _ = archive_implementation(repo, "ios", "sample", "sample", True, _fault="pre-move")
         assert status == "BLOCKED" and tree_signature(repo) == before_implementation

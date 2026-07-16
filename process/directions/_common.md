@@ -40,6 +40,17 @@ Package фиксирует evidence-selected scopes и полный lifecycle un
 resolver используется retrieval, validator и fingerprint logic. Условные
 delivery/DX rules не дают права коммитить или менять ветки.
 
+Новые implementation packages используют versioned modularity contract v1.
+Packages без version field остаются legacy v0 только при exact identity/hash
+match с [`modularity-v0.json`](../../workflow/compatibility/modularity-v0.json).
+Они могут завершить Implement/Verify/Archive с исторической projection, но
+Propose/Plan, registry mismatch или drift design/meta/plan/tasks требуют
+отдельного migration/new change package. Нормализация anchor разрешает менять
+только task Status/Evidence values и lifecycle meta/evidence.
+Сам registry защищён code-pinned canonical digest и exact ordered identities;
+registry-only extension не выдаёт trust. Legacy meta допускает только exact
+historical keys, где mutable лишь status/tasks_done/problems/verification state.
+
 Общий pre-commit gate анализирует staged blobs, fingerprint и task trail; общий
 hook runner защищает dangerous Git и edit boundaries. Платформенные suffix/glob
 категории принадлежат adapter `pre_commit`, а runtime bindings остаются thin.

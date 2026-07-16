@@ -8,18 +8,27 @@ import hashlib
 import importlib.util
 import json
 import re
+import shutil
 import tempfile
 from collections import defaultdict
 from pathlib import Path
 
+import platform_rule_profiles as rule_profiles
+
 from platform_rule_profiles import (
+    CURRENT_MODULARITY_CONTRACT_VERSION,
+    LEGACY_REGISTRY_PATH,
+    LEGACY_MODULARITY_CONTRACT_VERSION,
     RuleProfileError,
     applicable_rules,
+    legacy_package_hashes,
     semantic_projection,
     require_capability,
+    resolve_package_contract_version,
     validate_capabilities,
     validate_pre_commit_profile,
     validate_profiles,
+    scope_task_checks_for_version,
 )
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -36,7 +45,30 @@ REQUIRED_META = {
     "design_gate", "tasks_total", "tasks_done", "verification_status",
     "verified_at", "verification_state",
     "engineering_scopes", "applicable_rule_files", "rule_selection_snapshot",
+    "modularity_contract_version",
 }
+MODULARITY_FIELDS = (
+    "Outcome", "Capability triggers", "Physical boundaries",
+    "Public contracts and dependency direction", "App-shell responsibilities",
+    "App-shell capability ownership",
+    "Repository evidence", "Rationale and trade-offs",
+    "Migration boundary and trigger", "Over-modularization check",
+    "Boundary guard verdict",
+)
+MODULARITY_OUTCOMES = {"isolated", "deviation", "not-applicable"}
+CAPABILITY_TRIGGERS_RE = re.compile(
+    r"^independent-feature=(yes|no); domain-data=(yes|no); network=(yes|no); "
+    r"persistence=(yes|no); reusable-ui=(yes|no); consumers=([0-9]+); "
+    r"independent-ownership=(yes|no)$"
+)
+APP_SHELL_RESPONSIBILITIES = (
+    "entry-points, lifecycle, root-routing, dependency-wiring, "
+    "platform-configuration, target-resources"
+)
+MODULARITY_VERIFICATION_FIELDS = (
+    "Dependency graph", "Public API and visibility", "Module-level tests",
+    "Consumer integration and build", "App-shell allowlist",
+)
 COMMON_DESIGN = (
     "Current context", "Proposed architecture and boundaries",
     "Data and control flow", "Error and recovery model", "Verification strategy",
@@ -132,6 +164,7 @@ def load_adapter(repo: Path, platform: str) -> dict[str, object]:
         "lifecycle_capabilities",
         "pre_commit",
         "platform_ux",
+        "modularity",
     }
     missing = sorted(required - set(adapter))
     if missing:
@@ -280,13 +313,168 @@ def field_value(text: str, label: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def package_contract_version(
+    repo: Path, adapter: dict[str, object], meta: dict[str, object], package: Path,
+    mode: str | None = None,
+) -> int:
+    try:
+        return resolve_package_contract_version(repo, adapter, meta, package, mode)
+    except RuleProfileError as error:
+        raise AdapterError(str(error)) from error
+
+
+def validate_modularity_decision(
+    repo: Path, adapter: dict[str, object], design: str, package_scopes: set[str]
+) -> list[str]:
+    errors: list[str] = []
+    body = section(design, "Modularity decision")
+    if body is None:
+        return ["design.md missing Modularity decision"]
+    values: dict[str, str] = {}
+    for label in MODULARITY_FIELDS:
+        matches = re.findall(
+            rf"(?mi)^-\s*\**{re.escape(label)}\s*:\**\s*`?([^`\n]+)`?\s*$", body
+        )
+        if len(matches) != 1:
+            errors.append(f"Modularity decision field must appear exactly once: {label}")
+            continue
+        values[label] = matches[0].strip()
+    for line in (item.strip() for item in body.splitlines() if item.strip()):
+        if not any(
+            re.match(rf"^-\s*\**{re.escape(label)}\s*:", line, re.IGNORECASE)
+            for label in MODULARITY_FIELDS
+        ):
+            errors.append("Modularity decision allows only the exact structured field rows")
+            break
+    outcome = values.get("Outcome", "").casefold()
+    if outcome not in MODULARITY_OUTCOMES:
+        errors.append("Modularity decision Outcome must be isolated, deviation or not-applicable")
+    for label in (
+        "Physical boundaries", "Public contracts and dependency direction",
+        "Repository evidence", "Rationale and trade-offs",
+        "Migration boundary and trigger", "Over-modularization check",
+    ):
+        if label in values and not substantive(values[label], 24):
+            errors.append(f"Modularity decision field is not substantive: {label}")
+    if values.get("Boundary guard verdict") != "PASS":
+        errors.append("Modularity decision requires exact Boundary guard verdict: PASS")
+
+    trigger_match = CAPABILITY_TRIGGERS_RE.fullmatch(values.get("Capability triggers", ""))
+    if trigger_match is None:
+        errors.append("Modularity decision Capability triggers must use the exact machine schema")
+        triggers: tuple[str, ...] = ()
+        consumers = -1
+        independent_ownership = "yes"
+    else:
+        triggers = trigger_match.groups()[:5]
+        consumers = int(trigger_match.group(6))
+        independent_ownership = trigger_match.group(7)
+    if values.get("App-shell responsibilities") != APP_SHELL_RESPONSIBILITIES:
+        errors.append("Modularity decision App-shell responsibilities must equal the exact allowlist")
+    if values.get("App-shell capability ownership") != "none":
+        errors.append("Modularity decision App-shell capability ownership must be exactly none")
+    forbidden_shell_reference = re.compile(
+        r"\b(?:app(?:['’]s)?|application(?:['’]s)?|shell|target|module)\b",
+        re.IGNORECASE,
+    )
+    for label in (
+        "Public contracts and dependency direction", "Repository evidence",
+        "Rationale and trade-offs", "Migration boundary and trigger",
+        "Over-modularization check",
+    ):
+        if forbidden_shell_reference.search(values.get(label, "")):
+            errors.append(
+                f"Modularity decision free-form field cannot reference app or application shell/target/module: {label}"
+            )
+
+    evidence = values.get("Repository evidence", "")
+    evidence_tokens = [token.strip().strip("`") for token in evidence.split(";") if token.strip()]
+    if not evidence_tokens:
+        errors.append("Modularity decision requires existing repository evidence paths")
+    for raw in evidence_tokens:
+        value = Path(raw)
+        candidate = repo / value
+        if (
+            value.is_absolute() or ".." in value.parts
+            or not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", raw)
+            or candidate.is_symlink()
+            or not (candidate.is_file() or candidate.is_dir())
+            or not is_subpath(candidate.resolve(), repo)
+        ):
+            errors.append(f"Modularity decision repository evidence path is missing or unsafe: {raw}")
+
+    physical = values.get("Physical boundaries", "")
+    config = adapter.get("modularity", {})
+    isolation_scope = str(config.get("isolation_scope", "")) if isinstance(config, dict) else ""
+    physical_units = config.get("physical_units", []) if isinstance(config, dict) else []
+    physical_remainder = physical
+    for unit in sorted((str(item) for item in physical_units), key=len, reverse=True):
+        physical_remainder = re.sub(re.escape(unit), "", physical_remainder, flags=re.IGNORECASE)
+    if forbidden_shell_reference.search(physical_remainder):
+        errors.append("Modularity decision Physical boundaries cannot reference an application unit")
+    if re.search(r"\b(?:target|module|package)\b", physical_remainder, re.IGNORECASE):
+        errors.append("Modularity decision Physical boundaries may name only adapter-approved unit phrases")
+    if re.search(r"\b(?:folder|directory|layer|package[- ]?name|папк\w*|каталог\w*|сло[йяе]\w*)\b", physical, re.IGNORECASE):
+        errors.append("Modularity decision cannot use folder/directory/layer/package-name as a physical unit")
+    if outcome in {"isolated", "deviation"}:
+        if isolation_scope not in package_scopes:
+            errors.append(f"{outcome} Modularity decision requires engineering scope: {isolation_scope}")
+        if not any(str(unit).casefold() in physical.casefold() for unit in physical_units):
+            errors.append(f"{outcome} Modularity decision must name an adapter non-application physical unit")
+        if re.search(r"(?<!non-)\b(?:app|application)\b.{0,24}\b(?:target|module)\b", physical, re.IGNORECASE):
+            errors.append("Modularity decision physical unit must not be an application target/module")
+        discovery_terms = r"\b(?:existing|discovered|proposed|существующ\w*|обнаружен\w*|предлагаем\w*)\b"
+        if not re.search(discovery_terms, physical, re.IGNORECASE):
+            errors.append(f"{outcome} Modularity decision must mark the physical unit existing/discovered/proposed")
+    if outcome == "deviation":
+        contract = values.get("Public contracts and dependency direction", "")
+        migration = values.get("Migration boundary and trigger", "")
+        if not re.search(r"\b(?:existing|discovered|существующ\w*|обнаружен\w*)\b", physical, re.IGNORECASE):
+            errors.append("deviation requires an existing discovered non-application physical unit")
+        if not re.search(r"\b(?:contract|interface|protocol|api|контракт|интерфейс|протокол)\w*\b", contract, re.IGNORECASE):
+            errors.append("deviation requires a typed contract seam now")
+        if not re.search(r"\b(?:when|once|after|threshold|trigger|когда|после|достижен\w*|триггер\w*)\b", migration, re.IGNORECASE):
+            errors.append("deviation requires an objective migration trigger")
+    elif outcome == "not-applicable":
+        if trigger_match is not None and (
+            any(value == "yes" for value in triggers)
+            or consumers > 1
+            or independent_ownership != "no"
+        ):
+            errors.append("not-applicable requires all capability triggers false, at most one consumer and no independent ownership")
+        if not substantive(values.get("Over-modularization check"), 32):
+            errors.append("not-applicable requires substantive over-modularization rationale")
+    return errors
+
+
+def validate_modularity_verification(verification: str, mode: str) -> list[str]:
+    body = section(verification, "Modularity verification")
+    if body is None:
+        return ["verification.md missing Modularity verification"]
+    errors: list[str] = []
+    allowed = {"pending"} if mode in {"propose", "plan"} else {"pending", "PASS", "FAIL", "UNKNOWN"}
+    if mode in TERMINAL_MODES:
+        allowed = {"PASS"}
+    for label in MODULARITY_VERIFICATION_FIELDS:
+        matches = re.findall(rf"(?mi)^-\s*{re.escape(label)}:\s*(\S+)\s*$", body)
+        if len(matches) != 1:
+            errors.append(f"Modularity verification field must appear exactly once: {label}")
+        elif matches[0] not in allowed:
+            errors.append(f"Modularity verification {label} has invalid status for {mode}: {matches[0]}")
+    return errors
+
+
 def rule_selection_snapshot(meta: dict[str, object]) -> dict[str, object]:
     selection = {
         "engineering_scopes": meta.get("engineering_scopes"),
         "applicable_rule_files": meta.get("applicable_rule_files"),
     }
+    version = meta.get("modularity_contract_version")
+    if version == CURRENT_MODULARITY_CONTRACT_VERSION:
+        selection["modularity_contract_version"] = version
     encoded = json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
-    return {"schema_version": 1, **selection, "fingerprint": hashlib.sha256(encoded).hexdigest()}
+    schema_version = 2 if version == CURRENT_MODULARITY_CONTRACT_VERSION else 1
+    return {"schema_version": schema_version, **selection, "fingerprint": hashlib.sha256(encoded).hexdigest()}
 
 
 def validate_rule_selection_snapshot(package: Path, meta: dict[str, object]) -> list[str]:
@@ -404,7 +592,9 @@ def parse_paths(raw: str) -> tuple[list[tuple[str, str]], list[str]]:
     return result, errors
 
 
-def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], list[str]]:
+def parse_tasks(
+    repo: Path, package: Path, require_boundary_owner: bool = True
+) -> tuple[list[dict[str, object]], list[str]]:
     errors: list[str] = []
     plan = package / "plan"
     files = sorted(plan.glob("task-*.md")) if plan.is_dir() else []
@@ -418,7 +608,10 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
         if PLACEHOLDER_RE.search(body):
             errors.append(f"{path.name} contains unresolved placeholder")
         fields: dict[str, str] = {}
-        for name in ("Layer", "Engineering scopes", "Depends on", "Status", "Evidence", "Estimate (ideal)", "Paths"):
+        field_names = ["Layer", "Engineering scopes", "Depends on", "Status", "Evidence", "Estimate (ideal)", "Paths"]
+        if require_boundary_owner:
+            field_names.insert(1, "Boundary owner")
+        for name in field_names:
             match = re.search(rf"(?mi)^-\s*{re.escape(name)}:\s*(.+)$", body)
             if match:
                 fields[name] = match.group(1).strip()
@@ -430,6 +623,8 @@ def parse_tasks(repo: Path, package: Path) -> tuple[list[dict[str, object]], lis
         layer = fields.get("Layer", "").casefold()
         if layer not in {"domain", "data", "presentation", "infrastructure", "tests"}:
             errors.append(f"{path.name} must declare one allowed Layer")
+        if require_boundary_owner and not substantive(fields.get("Boundary owner"), 12):
+            errors.append(f"{path.name} Boundary owner must be substantive")
         try:
             task_scopes = json.loads(fields.get("Engineering scopes", ""))
         except json.JSONDecodeError:
@@ -560,7 +755,10 @@ def state_files(repo: Path, adapter: dict[str, object], package: Path, meta: dic
 
 def compute_state(repo: Path, adapter: dict[str, object], package: Path, meta: dict[str, object]) -> dict[str, object]:
     files: dict[str, str] = {}
-    projection = semantic_projection(repo, adapter, meta.get("engineering_scopes", []))
+    version = package_contract_version(repo, adapter, meta, package)
+    projection = semantic_projection(
+        repo, adapter, meta.get("engineering_scopes", []), contract_version=version
+    )
     projection_bytes = json.dumps(projection, sort_keys=True, separators=(",", ":")).encode()
     files["adapter/semantic-projection"] = hashlib.sha256(projection_bytes).hexdigest()
     for path in state_files(repo, adapter, package, meta):
@@ -608,7 +806,15 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         meta = json.loads(read(meta_path))
     except (OSError, json.JSONDecodeError) as error:
         return [f"invalid meta.json: {error}"]
-    missing = sorted(REQUIRED_META - set(meta))
+    try:
+        contract_version = package_contract_version(repo, adapter, meta, package, mode)
+    except AdapterError as error:
+        errors.append(str(error))
+        contract_version = CURRENT_MODULARITY_CONTRACT_VERSION
+    missing_fields = REQUIRED_META - set(meta)
+    if contract_version == LEGACY_MODULARITY_CONTRACT_VERSION:
+        missing_fields.discard("modularity_contract_version")
+    missing = sorted(missing_fields)
     if missing: errors.append(f"meta.json missing fields: {', '.join(missing)}")
     if meta.get("platform") != adapter["platform_name"]: errors.append("meta.platform does not match adapter")
     if meta.get("feature") != feature: errors.append("meta.feature does not match CLI feature")
@@ -623,7 +829,9 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         errors.append("applicable_rule_files must be an array")
     if isinstance(raw_scopes, list) and isinstance(raw_rules, list):
         try:
-            normalized_scopes, expected_rules = applicable_rules(repo, adapter, raw_scopes)
+            normalized_scopes, expected_rules = applicable_rules(
+                repo, adapter, raw_scopes, contract_version=contract_version
+            )
         except RuleProfileError as error:
             errors.append(str(error))
         else:
@@ -716,6 +924,8 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         if meta.get("tier") == "extended":
             for heading in adapter["extended_design_sections"]:
                 if not substantive(section(design, str(heading)), 28): errors.append(f"extended design missing: {heading}")
+    if contract_version == CURRENT_MODULARITY_CONTRACT_VERSION:
+        errors.extend(validate_modularity_decision(repo, adapter, design, package_scopes))
     scope_section = section(design, "Applied engineering scopes") or ""
     scope_entries: dict[str, str] = {}
     duplicate_scopes: set[str] = set()
@@ -737,6 +947,8 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
             errors.append("design.md must incorporate Platform UX trace and decisions")
 
     verification = read(package / "verification.md")
+    if contract_version == CURRENT_MODULARITY_CONTRACT_VERSION:
+        errors.extend(validate_modularity_verification(verification, mode))
     if meta.get("change_type") == "product-backed" and "ui" in package_scopes:
         if not substantive(section(verification, "Native UX verification"), 20):
             errors.append("verification.md requires Native UX verification")
@@ -780,7 +992,10 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
         if meta.get("verification_status") != "pending" or meta.get("verified_at") is not None or meta.get("verification_state") is not None: errors.append("specified verification fields must be pending/null")
         return errors
 
-    tasks, task_errors = parse_tasks(repo, package); errors.extend(task_errors)
+    tasks, task_errors = parse_tasks(
+        repo, package,
+        require_boundary_owner=contract_version == CURRENT_MODULARITY_CONTRACT_VERSION,
+    ); errors.extend(task_errors)
     readme = package / "plan" / "README.md"
     if not readme.is_file(): errors.append("plan/README.md missing")
     else:
@@ -819,7 +1034,7 @@ def validate_package(repo: Path, adapter: dict[str, object], feature: str, chang
             for heading in ("Steps", "Verification", "Expected result")
         ).casefold()
         for scope in sorted(task_scopes):
-            for check in adapter["scope_task_checks"].get(scope, []):
+            for check in scope_task_checks_for_version(adapter, scope, contract_version):
                 if str(check).casefold() not in task_check_text:
                     errors.append(f"{task['id']} missing {scope} scope check: {check}")
         if meta.get("change_type") == "product-backed" and "ui" in task_scopes:
@@ -902,6 +1117,105 @@ def fixture_platform_ux(adapter: dict[str, object], feature: str = "sample") -> 
     )
 
 
+def fixture_modularity_decision(outcome: str = "not-applicable") -> str:
+    if outcome == "isolated":
+        triggers = "independent-feature=yes; domain-data=yes; network=no; persistence=no; reusable-ui=no; consumers=2; independent-ownership=yes"
+        physical = "A proposed Test library package owns the cohesive capability behind a minimal public contract."
+        evidence = "TestClient/workflow/package.md; TestClient/workflow/platform-contract.json"
+        rationale = "Independent ownership and focused testability justify a physical package boundary with minimal API overhead."
+        migration = "The boundary exists now; revisit API/implementation split when a second implementation or consumer is approved."
+        overmod = "One cohesive capability stays in one unit; no package is created per folder, class or horizontal layer."
+    elif outcome == "deviation":
+        triggers = "independent-feature=yes; domain-data=yes; network=yes; persistence=yes; reusable-ui=no; consumers=2; independent-ownership=yes"
+        physical = "An existing Test library package combines the related capabilities behind one typed public contract."
+        evidence = "TestClient/workflow/package.md; TestClient/workflow/platform-contract.json"
+        rationale = "The temporary constraint outweighs extraction now while preserving ownership and a reviewable dependency seam."
+        migration = "A typed SampleCapability protocol is the migration boundary; extract after the legacy build constraint is removed."
+        overmod = "The temporary local placement avoids speculative API/implementation units while retaining one cohesive owner."
+    else:
+        triggers = "independent-feature=no; domain-data=no; network=no; persistence=no; reusable-ui=no; consumers=1; independent-ownership=no"
+        physical = "The tiny local behavior remains within its existing cohesive owner; no new physical unit is proposed."
+        evidence = "TestClient/workflow/base.md; TestClient/workflow/platform-contract.json"
+        rationale = "A physical split adds build and API overhead without ownership, visibility, reuse or testability benefit."
+        migration = "The typed local seam is retained; reconsider isolation when a second consumer or independent owner appears."
+        overmod = "A unit-per-layer split would fragment one tiny cohesive behavior and add boundaries without measurable benefit."
+    return (
+        "## Modularity decision\n\n"
+        f"- Outcome: {outcome}\n"
+        f"- Capability triggers: {triggers}\n"
+        f"- Physical boundaries: {physical}\n"
+        "- Public contracts and dependency direction: A typed SampleCapability contract keeps the consumer directed toward the boundary.\n"
+        f"- App-shell responsibilities: {APP_SHELL_RESPONSIBILITIES}\n"
+        "- App-shell capability ownership: none\n"
+        f"- Repository evidence: {evidence}\n"
+        f"- Rationale and trade-offs: {rationale}\n"
+        f"- Migration boundary and trigger: {migration}\n"
+        f"- Over-modularization check: {overmod}\n"
+        "- Boundary guard verdict: PASS\n"
+    )
+
+
+def fixture_modularity_verification(status: str = "pending") -> str:
+    return (
+        "## Modularity verification\n\n"
+        f"- Dependency graph: {status}\n"
+        f"- Public API and visibility: {status}\n"
+        f"- Module-level tests: {status}\n"
+        f"- Consumer integration and build: {status}\n"
+        f"- App-shell allowlist: {status}\n"
+    )
+
+
+def write_fixture_legacy_registry(
+    repo: Path, package: Path, meta: dict[str, object]
+) -> None:
+    path = repo / LEGACY_REGISTRY_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+                "schema_version": 1,
+                "task_normalization": {"ignored_field_values": ["Status", "Evidence"]},
+                "packages": [
+                    {
+                        "platform": meta["platform"],
+                        "feature": meta["feature"],
+                        "change_id": meta["change_id"],
+                        "package_path": package.relative_to(repo).as_posix(),
+                        "hashes": legacy_package_hashes(package, meta),
+                    }
+                ],
+            }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    # Synthetic repositories use an explicit in-process pin; production always
+    # uses the tracked code constants above.
+    rule_profiles.LEGACY_REGISTRY_CANONICAL_SHA256 = rule_profiles._canonical_hash(payload)
+    rule_profiles.LEGACY_REGISTRY_IDENTITIES = (
+        (
+            str(meta["platform"]), str(meta["feature"]), str(meta["change_id"]),
+            package.relative_to(repo).as_posix(),
+        ),
+    )
+
+
+def adapter_modularity_decision(
+    adapter: dict[str, object], outcome: str, evidence: str, physical: str,
+    triggers: str,
+) -> str:
+    return (
+        "# Design\n\n## Modularity decision\n\n"
+        f"- Outcome: {outcome}\n"
+        f"- Capability triggers: {triggers}\n"
+        f"- Physical boundaries: {physical}\n"
+        "- Public contracts and dependency direction: A typed Capability contract keeps consumers dependent on the public API and preserves an acyclic graph.\n"
+        f"- App-shell responsibilities: {APP_SHELL_RESPONSIBILITIES}\n"
+        "- App-shell capability ownership: none\n"
+        f"- Repository evidence: {evidence}\n"
+        "- Rationale and trade-offs: The selected boundary balances cohesive ownership, visibility, consumer independence and build overhead.\n"
+        "- Migration boundary and trigger: The typed Capability contract is the seam; reconsider after a second implementation or ownership split is approved.\n"
+        "- Over-modularization check: One cohesive capability uses one physical unit and avoids class-by-class fragmentation.\n"
+        "- Boundary guard verdict: PASS\n"
+    )
+
+
 def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object]]:
     adapter_dir = repo / "TestClient" / "workflow"; adapter_dir.mkdir(parents=True)
     adapter = {
@@ -917,6 +1231,13 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
             "design_language": "Native Test UI",
             "required_terms": ["Native Test UI", "soft blue", "light", "dark", "fallback", "native-term-marker"],
             "task_checks": ["platform-ux.md", "Native Test UI", "light/dark", "fallback"],
+        },
+        "modularity": {
+            "contract_version": 1,
+            "isolation_scope": "package",
+            "platform_rule": "TestClient/workflow/package.md",
+            "physical_units": ["Test library package", "Test non-application target"],
+            "legacy_task_checks": ["package consumer", "package build"],
         },
         "rule_files": [
             "TestClient/workflow/base.md", "TestClient/workflow/application.md",
@@ -992,16 +1313,142 @@ def write_fixture(repo: Path) -> tuple[dict[str, object], Path, dict[str, object
     if fixture_product_errors:
         raise AssertionError(fixture_product_errors)
     package = repo / "TestClient/specs/sample/changes/sample"; package.mkdir(parents=True)
-    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
+    meta = {"platform":"TestClient","feature":"sample","change_id":"sample","change_type":"product-backed","tier":"standard","status":"specified","shared_product_spec":"specs/product/sample/spec.md","product_status":"READY","product_approval":"APPROVED","product_impact":"PRESENT","impact_evidence":"approved shared behavior applies","engineering_scopes":["application"],"applicable_rule_files":["TestClient/workflow/base.md","TestClient/workflow/application.md"],"rule_selection_snapshot":None,"modularity_contract_version":1,"blocking_questions":[],"problems":[],"design_gate":"PASS","tasks_total":0,"tasks_done":0,"verification_status":"pending","verified_at":None,"verification_state":None}
     (package/"meta.json").write_text(json.dumps(meta), encoding="utf-8")
     (package/"proposal.md").write_text("# Proposal\n\n## Intake\nApproved shared product contract is the implementation intake.\n\n## Goal\nDeliver the selected behavior within the platform boundary.\n\n## Scope\nTyped platform implementation and focused verification are included.\n\n## Engineering scope selection\nApplication scope is selected from discovered production ownership.\n\n## Applicable rule files\nExact lifecycle union includes the base and selected application rules.\n\n## Non-goals\nOther platforms and unrelated cleanup remain outside this change.\n\n## Accepted decisions\nUse adapter ownership and preserve the approved shared behavior.\n\n## Open questions\nNone.\n\n## Risks\nGreenfield integration requires focused boundary verification.\n", encoding="utf-8")
     (package/"implementation-spec.md").write_text("# Spec\n\n## Intake reference\nApproved shared contract applies to this platform change.\n\n## Shared contract references\nReferences REQ-1 and AC-1 without copying behavior text.\n\n## Platform requirements\n### TST-REQ-1 — Boundary\nA typed boundary isolates platform integration and supports focused verification.\n\n## Platform acceptance criteria\n### TST-AC-1 — Boundary result\nA focused test observes the typed boundary returning a deterministic result.\nCovers: TST-REQ-1\n\n## Constraints\nPreserve shared behavior and adapter ownership boundaries.\n\n## Integration points\nConnect through the discovered platform composition boundary.\n\n## Open questions\nNone.\n", encoding="utf-8")
-    (package/"design.md").write_text("# Design\n\n## Current context\nThe platform change is greenfield and uses only discovered integration boundaries.\n\n## Proposed architecture and boundaries\nA typed feature boundary separates domain behavior from platform integration details.\n\n## Data and control flow\nInput crosses the domain boundary and a typed result returns to the caller.\n\n## Error and recovery model\nExplicit errors preserve deterministic recovery and prevent hidden retry behavior.\n\n## Applied engineering scopes\n- application: Typed application boundaries and deterministic tests apply to this change.\n\n## Verification strategy\nFocused tests verify the domain boundary and current realized integration path.\n", encoding="utf-8")
-    (package/"verification.md").write_text("# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | approval record | pending |\n| AC-1 | integration | Run shared scenario | scenario report | pending |\n| TST-REQ-1 | design | Review current boundary | review record | pending |\n| TST-AC-1 | unit | Run focused boundary test | test report | pending |\n", encoding="utf-8")
+    (package/"design.md").write_text(
+        "# Design\n\n## Current context\nThe platform change is greenfield and uses only discovered integration boundaries.\n\n"
+        "## Proposed architecture and boundaries\nA typed feature boundary separates domain behavior from platform integration details.\n\n"
+        "## Data and control flow\nInput crosses the domain boundary and a typed result returns to the caller.\n\n"
+        "## Error and recovery model\nExplicit errors preserve deterministic recovery and prevent hidden retry behavior.\n\n"
+        + fixture_modularity_decision()
+        + "\n## Applied engineering scopes\n- application: Typed application boundaries and deterministic tests apply to this change.\n\n"
+        "## Verification strategy\nFocused tests verify the domain boundary and current realized integration path.\n",
+        encoding="utf-8",
+    )
+    (package/"verification.md").write_text(
+        "# Verification\n\n" + fixture_modularity_verification()
+        + "\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | approval record | pending |\n| AC-1 | integration | Run shared scenario | scenario report | pending |\n| TST-REQ-1 | design | Review current boundary | review record | pending |\n| TST-AC-1 | unit | Run focused boundary test | test report | pending |\n",
+        encoding="utf-8",
+    )
     return load_adapter(repo, "test-client"), package, meta
 
 
 def self_test() -> int:
+    real_adapters: list[dict[str, object]] = []
+    for platform in ("ios", "android"):
+        real_adapter = load_adapter(repository_root(), platform)
+        real_adapters.append(real_adapter)
+        config = real_adapter["modularity"]
+        assert config["isolation_scope"] in real_adapter["scope_rule_profiles"]
+        assert config["physical_units"], f"{platform} modularity physical units missing"
+    project_evidence = {
+        "ios": "iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj",
+        "android": "Android/settings.gradle.kts",
+    }
+    broad_triggers = "independent-feature=yes; domain-data=yes; network=yes; persistence=yes; reusable-ui=yes; consumers=3; independent-ownership=yes"
+    tiny_triggers = "independent-feature=no; domain-data=no; network=no; persistence=no; reusable-ui=no; consumers=1; independent-ownership=no"
+    for real_adapter in real_adapters:
+        platform_input = str(real_adapter["platform_input"])
+        config = real_adapter["modularity"]
+        unit = str(config["physical_units"][0])
+        evidence = f"{real_adapter['_path']}; {project_evidence[platform_input]}"
+        scope = {str(config["isolation_scope"])}
+        isolated = adapter_modularity_decision(
+            real_adapter, "isolated", evidence,
+            f"A proposed {unit} provides the cohesive capability boundary based on the discovered project graph.",
+            broad_triggers,
+        )
+        assert validate_modularity_decision(repository_root(), real_adapter, isolated, scope) == []
+        shell_ownership = isolated.replace(
+            "The selected boundary balances cohesive ownership, visibility, consumer independence and build overhead.",
+            "The application shell owns feature domain data network persistence reusable-UI implementation and mutable-state behavior.",
+        )
+        assert any("application shell" in error for error in validate_modularity_decision(repository_root(), real_adapter, shell_ownership, scope))
+        inverse_shell_ownership = isolated.replace(
+            "The selected boundary balances cohesive ownership, visibility, consumer independence and build overhead.",
+            "Feature data and mutable-state implementation are owned by the application shell.",
+        )
+        assert any("application shell" in error for error in validate_modularity_decision(repository_root(), real_adapter, inverse_shell_ownership, scope))
+        for forbidden_claim in (
+            "Feature data network persistence implementation resides in the application shell.",
+            "The application shell is responsible for feature data network persistence implementation and mutable state.",
+            "Feature data network persistence implementation lives in the application shell.",
+            "Feature data network persistence implementation is the responsibility of the application shell.",
+            "Feature data network persistence implementation resides in the target of the app.",
+            "Feature data network persistence and mutable state live in the app's target.",
+            "The executable target of the application is responsible for feature data network persistence implementation and mutable state.",
+            "The application host module owns feature data network persistence implementation and mutable state.",
+            "Feature data network persistence implementation resides in the module belonging to the app.",
+            "The application composition shell is responsible for feature data network persistence implementation and mutable state.",
+            "Feature data network persistence implementation lives in the host shell of the app.",
+        ):
+            claimed = isolated.replace(
+                "The selected boundary balances cohesive ownership, visibility, consumer independence and build overhead.",
+                forbidden_claim,
+            )
+            claim_errors = validate_modularity_decision(
+                repository_root(), real_adapter, claimed, scope
+            )
+            assert any("application shell" in error for error in claim_errors), (
+                platform_input, forbidden_claim, claim_errors
+            )
+        extra_shell_prose = isolated.replace(
+            "## Modularity decision\n\n",
+            "## Modularity decision\n\nApplication shell contains feature implementation.\n",
+        )
+        assert any(
+            "only the exact structured field rows" in error
+            for error in validate_modularity_decision(
+                repository_root(), real_adapter, extra_shell_prose, scope
+            )
+        )
+        application_physical = isolated.replace(
+            f"A proposed {unit} provides the cohesive capability boundary based on the discovered project graph.",
+            "A proposed application target provides the capability boundary.",
+        )
+        assert any(
+            "Physical boundaries cannot reference an application unit" in error
+            for error in validate_modularity_decision(
+                repository_root(), real_adapter, application_physical, scope
+            )
+        )
+        broad_na = adapter_modularity_decision(
+            real_adapter, "not-applicable", evidence,
+            "The broad capability remains local without a new physical unit despite multiple consumers.",
+            broad_triggers,
+        )
+        assert any("not-applicable requires all capability triggers" in error for error in validate_modularity_decision(repository_root(), real_adapter, broad_na, set()))
+        folder_bypass = isolated.replace(
+            f"A proposed {unit} provides the cohesive capability boundary based on the discovered project graph.",
+            f"The feature folder provides the physical module boundary and is labelled as a proposed {unit}.",
+        )
+        assert any("folder/directory/layer/package-name" in error for error in validate_modularity_decision(repository_root(), real_adapter, folder_bypass, scope))
+        fake_evidence = isolated.replace(evidence, "NoSuch/Constraint/file.txt")
+        assert any("missing or unsafe" in error for error in validate_modularity_decision(repository_root(), real_adapter, fake_evidence, scope))
+        bad_adapter = json.loads(json.dumps({key: value for key, value in real_adapter.items() if key != "_path"}))
+        bad_adapter["modularity"]["physical_units"] = ["application target"]
+        try:
+            validate_profiles(repository_root(), bad_adapter)
+            raise AssertionError(f"{platform_input} application physical unit passed adapter schema")
+        except RuleProfileError as error:
+            assert "non-application" in str(error)
+        deviation = adapter_modularity_decision(
+            real_adapter, "deviation", evidence,
+            f"An existing discovered {unit} combines the related capabilities behind one public contract.",
+            broad_triggers,
+        )
+        assert validate_modularity_decision(repository_root(), real_adapter, deviation, scope) == []
+        tiny_na = adapter_modularity_decision(
+            real_adapter, "not-applicable", evidence,
+            "The tiny local behavior stays within its one existing cohesive owner and claims no physical unit.",
+            tiny_triggers,
+        )
+        assert validate_modularity_decision(repository_root(), real_adapter, tiny_na, set()) == []
+        unknown_verification = fixture_modularity_verification("UNKNOWN")
+        assert validate_modularity_verification(unknown_verification, "implement") == []
+        assert any("invalid status for verify: UNKNOWN" in error for error in validate_modularity_verification(unknown_verification, "verify"))
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); adapter, package, meta = write_fixture(repo)
         for capabilities in (
@@ -1028,7 +1475,67 @@ def self_test() -> int:
             phase: adapter["phase_rule_profiles"][phase] for phase in ("propose", "plan", "implement")
         }
         assert any("capability 'verify'" in error for error in validate_package(repo, disabled, "sample", "sample", "verify"))
+        initial_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert initial_errors == [], initial_errors
+        missing_version = dict(meta)
+        missing_version.pop("modularity_contract_version")
+        (package / "meta.json").write_text(json.dumps(missing_version))
+        missing_version_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert any("sealed planned/implementing/verified package" in error for error in missing_version_errors), missing_version_errors
+        future_version = dict(meta)
+        future_version["modularity_contract_version"] = 2
+        (package / "meta.json").write_text(json.dumps(future_version))
+        future_version_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert any("unsupported modularity_contract_version" in error for error in future_version_errors), future_version_errors
+        (package / "meta.json").write_text(json.dumps(meta))
+        original_design = (package / "design.md").read_text()
+        base_decision = fixture_modularity_decision()
+        (package / "design.md").write_text(original_design.replace(base_decision, ""))
+        assert any("missing Modularity decision" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        isolated_design = original_design.replace(base_decision, fixture_modularity_decision("isolated"))
+        (package / "design.md").write_text(isolated_design)
+        assert any("requires engineering scope: package" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        blocked_design = original_design.replace("- Boundary guard verdict: PASS", "- Boundary guard verdict: BLOCK")
+        (package / "design.md").write_text(blocked_design)
+        assert any("exact Boundary guard verdict: PASS" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        deviation = fixture_modularity_decision("deviation")
+        weak_deviation = deviation.replace(
+            "TestClient/workflow/package.md; TestClient/workflow/platform-contract.json",
+            "NoSuch/Constraint/file.txt",
+        )
+        (package / "design.md").write_text(original_design.replace(base_decision, weak_deviation))
+        assert any("missing or unsafe" in error for error in validate_package(repo, adapter, "sample", "sample", "propose"))
+        folder_module = base_decision.replace(
+            "The tiny local behavior remains within its existing cohesive owner; no new physical unit is proposed.",
+            "The feature folder is a physical module and therefore provides the required isolation boundary.",
+        )
+        (package / "design.md").write_text(original_design.replace(base_decision, folder_module))
+        folder_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert any("folder/directory/layer/package-name" in error for error in folder_errors), folder_errors
+        isolated_meta = dict(meta)
+        isolated_meta["engineering_scopes"] = ["application", "package"]
+        isolated_meta["applicable_rule_files"] = [
+            "TestClient/workflow/base.md", "TestClient/workflow/application.md",
+            "TestClient/workflow/package.md",
+        ]
+        isolated_with_scope = isolated_design.replace(
+            "- application: Typed application boundaries and deterministic tests apply to this change.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n"
+            "- package: The Test package provides the selected physical isolation boundary.",
+        )
+        (package / "meta.json").write_text(json.dumps(isolated_meta))
+        (package / "design.md").write_text(isolated_with_scope)
         assert validate_package(repo, adapter, "sample", "sample", "propose") == []
+        deviation_with_scope = original_design.replace(base_decision, deviation).replace(
+            "- application: Typed application boundaries and deterministic tests apply to this change.",
+            "- application: Typed application boundaries and deterministic tests apply to this change.\n"
+            "- package: The existing Test library package preserves the selected physical isolation boundary.",
+        )
+        (package / "design.md").write_text(deviation_with_scope)
+        deviation_errors = validate_package(repo, adapter, "sample", "sample", "propose")
+        assert deviation_errors == [], deviation_errors
+        (package / "meta.json").write_text(json.dumps(meta))
+        (package / "design.md").write_text(original_design)
         adapter_path = repo / str(adapter["_path"])
         adapter_source = adapter_path.read_text()
         malformed_adapter = {key: value for key, value in adapter.items() if key != "_path"}
@@ -1039,6 +1546,15 @@ def self_test() -> int:
             raise AssertionError("malformed platform_ux adapter schema passed")
         except AdapterError as error:
             assert "platform_ux" in str(error)
+        adapter_path.write_text(adapter_source)
+        malformed_adapter = {key: value for key, value in adapter.items() if key != "_path"}
+        malformed_adapter["modularity"] = {"isolation_scope": "missing"}
+        adapter_path.write_text(json.dumps(malformed_adapter))
+        try:
+            load_adapter(repo, "test-client")
+            raise AssertionError("malformed modularity adapter schema passed")
+        except AdapterError as error:
+            assert "modularity" in str(error)
         adapter_path.write_text(adapter_source)
         ux_artifact = package / "platform-ux.md"
         ux_source = fixture_platform_ux(adapter)
@@ -1084,6 +1600,9 @@ def self_test() -> int:
         task = "# task-001\n- Layer: domain\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Sources/Sample.swift\n\n## Goal\nCreate the typed platform behavior boundary.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes its deterministic result.\n\n## Steps\nImplement the typed boundary and its focused behavior test.\n\n## Verification\nRun the focused deterministic boundary test.\n\n## Expected result\nThe boundary returns the expected typed result.\n\n## Out of scope\nOther features and unrelated platform cleanup remain excluded.\n"
         task_2 = "# task-002\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: task-001\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/SampleTests.swift\n\n## Goal\nVerify the dependent shared behavior integration.\n\n## Inline contract context\nREQ-1 defines shared behavior and AC-1 observes the integrated result.\n\n## Steps\nAdd the dependent integration scenario after the boundary task.\n\n## Verification\nRun the focused shared integration test.\n\n## Expected result\nThe dependent integration test records the expected result.\n\n## Out of scope\nPlatform boundary changes remain owned by task-001.\n"
         task_3 = "# task-003\n- Layer: tests\n- Engineering scopes: [\"application\"]\n- Depends on: none\n- Status: pending\n- Evidence: none\n- Estimate (ideal): 0.5–1 days\n- Paths: proposed: TestClient/Tests/IndependentTests.swift\n\n## Goal\nVerify an independent owner of the platform acceptance criterion.\n\n## Inline contract context\nTST-REQ-1 defines the boundary and TST-AC-1 observes the independent result.\n\n## Steps\nAdd the independent focused acceptance scenario.\n\n## Verification\nRun the independent deterministic acceptance test.\n\n## Expected result\nThe independent test records the expected boundary result.\n\n## Out of scope\nDependent integration remains owned by task-002.\n"
+        task = task.replace("- Layer: domain\n", "- Layer: domain\n- Boundary owner: Sample capability boundary\n", 1)
+        task_2 = task_2.replace("- Layer: tests\n", "- Layer: tests\n- Boundary owner: Sample integration test boundary\n", 1)
+        task_3 = task_3.replace("- Layer: tests\n", "- Layer: tests\n- Boundary owner: Sample independent test boundary\n", 1)
         (plan/"task-001.md").write_text(task)
         (plan/"task-002.md").write_text(task_2)
         (plan/"task-003.md").write_text(task_3)
@@ -1091,6 +1610,150 @@ def self_test() -> int:
         (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
         (package/"meta.json").write_text(json.dumps(planned))
         assert validate_package(repo, adapter, "sample", "sample", "plan") == []
+        legacy = dict(planned)
+        legacy.pop("modularity_contract_version")
+        legacy_design = (package / "design.md").read_text().replace(fixture_modularity_decision(), "")
+        legacy_verification = (package / "verification.md").read_text().replace(fixture_modularity_verification(), "")
+        legacy_task = task.replace("- Boundary owner: Sample capability boundary\n", "", 1)
+        legacy_task_2 = task_2.replace("- Boundary owner: Sample integration test boundary\n", "", 1)
+        legacy_task_3 = task_3.replace("- Boundary owner: Sample independent test boundary\n", "", 1)
+        (package / "meta.json").write_text(json.dumps(legacy))
+        (package / "design.md").write_text(legacy_design)
+        (package / "verification.md").write_text(legacy_verification)
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(legacy)))
+        (plan / "task-001.md").write_text(legacy_task)
+        (plan / "task-002.md").write_text(legacy_task_2)
+        (plan / "task-003.md").write_text(legacy_task_3)
+        unregistered_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert any("registry is missing" in error for error in unregistered_errors), unregistered_errors
+        write_fixture_legacy_registry(repo, package, legacy)
+        legacy_implement_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert legacy_implement_errors == [], legacy_implement_errors
+        forged_identity = dict(legacy)
+        forged_identity["feature"] = "forged-sample"
+        try:
+            package_contract_version(repo, adapter, forged_identity, package, "implement")
+            raise AssertionError("fresh sealed-looking legacy identity passed registry anchor")
+        except AdapterError as error:
+            assert "identity is not registered" in str(error)
+
+        immutable_design = (package / "design.md").read_text()
+        (package / "design.md").write_text(immutable_design + "\nForged design expansion.\n")
+        design_drift_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert any("design_sha256" in error for error in design_drift_errors), design_drift_errors
+        (package / "design.md").write_text(immutable_design)
+
+        (plan / "task-004.md").write_text(legacy_task_3.replace("task-003", "task-004", 1))
+        added_task_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert any("task_graph_sha256" in error for error in added_task_errors), added_task_errors
+        (plan / "task-004.md").unlink()
+        (plan / "task-003.md").unlink()
+        removed_task_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert any("task_graph_sha256" in error for error in removed_task_errors), removed_task_errors
+        (plan / "task-003.md").write_text(legacy_task_3)
+        for before, after in (
+            ("proposed: TestClient/Sources/Sample.swift", "proposed: TestClient/Sources/Changed.swift"),
+            ('Engineering scopes: ["application"]', 'Engineering scopes: ["application", "package"]'),
+            ("Depends on: none", "Depends on: task-003"),
+        ):
+            (plan / "task-001.md").write_text(legacy_task.replace(before, after, 1))
+            task_drift_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+            assert any("task_graph_sha256" in error for error in task_drift_errors), (
+                before, after, task_drift_errors
+            )
+        (plan / "task-001.md").write_text(legacy_task)
+        for field, value in (
+            ("engineering_scopes", ["application", "package"]),
+            ("applicable_rule_files", ["TestClient/workflow/base.md"]),
+            ("tasks_total", 4),
+            ("blocking_questions", ["Forged historical question"]),
+        ):
+            drifted_meta = dict(legacy)
+            drifted_meta[field] = value
+            (package / "meta.json").write_text(json.dumps(drifted_meta))
+            meta_drift_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+            assert any("meta_identity_sha256" in error for error in meta_drift_errors), (
+                field, meta_drift_errors
+            )
+            try:
+                package_contract_version(repo, adapter, drifted_meta, package, "implement")
+                raise AssertionError(f"legacy common resolver accepted immutable meta drift: {field}")
+            except AdapterError:
+                pass
+        extra_meta = dict(legacy)
+        extra_meta["forged_extension"] = "untrusted"
+        (package / "meta.json").write_text(json.dumps(extra_meta))
+        extra_meta_errors = validate_package(repo, adapter, "sample", "sample", "implement")
+        assert any("exact historical key set" in error for error in extra_meta_errors), extra_meta_errors
+        try:
+            package_contract_version(repo, adapter, extra_meta, package, "implement")
+            raise AssertionError("legacy common resolver accepted an extra meta key")
+        except AdapterError as error:
+            assert "unexpected: forged_extension" in str(error)
+        (package / "meta.json").write_text(json.dumps(legacy))
+
+        forged_package = repo / "TestClient/specs/forged-v0/changes/forged-v0"
+        shutil.copytree(package, forged_package)
+        forged_meta_path = forged_package / "meta.json"
+        forged_meta = json.loads(forged_meta_path.read_text())
+        forged_meta.update(feature="forged-v0", change_id="forged-v0")
+        forged_meta_path.write_text(json.dumps(forged_meta))
+        registry_path = repo / LEGACY_REGISTRY_PATH
+        extended_registry = json.loads(registry_path.read_text())
+        extended_registry["packages"].append(
+            {
+                "platform": "TestClient",
+                "feature": "forged-v0",
+                "change_id": "forged-v0",
+                "package_path": forged_package.relative_to(repo).as_posix(),
+                "hashes": legacy_package_hashes(forged_package, forged_meta),
+            }
+        )
+        registry_path.write_text(json.dumps(extended_registry))
+        copied_package_errors = validate_package(
+            repo, adapter, "forged-v0", "forged-v0", "implement"
+        )
+        assert any("code-pinned canonical trust anchor" in error for error in copied_package_errors), copied_package_errors
+        shutil.rmtree(forged_package.parents[1])
+        write_fixture_legacy_registry(repo, package, legacy)
+        lifecycle_meta = dict(legacy)
+        lifecycle_meta.update(
+            status="implementing", tasks_done=3, verification_status="pending",
+            problems=[], verified_at=None, verification_state=None,
+        )
+        evidence_dir = package / "evidence"
+        evidence_dir.mkdir(exist_ok=True)
+        for index, source_task in enumerate((legacy_task, legacy_task_2, legacy_task_3), start=1):
+            evidence_ref = f"evidence/legacy-task-{index:03}.md"
+            (plan / f"task-{index:03}.md").write_text(
+                source_task.replace("Status: pending", "Status: done").replace(
+                    "Evidence: none", f"Evidence: {evidence_ref}"
+                )
+            )
+            (package / evidence_ref).write_text("Legacy lifecycle evidence.\n")
+        (package / "meta.json").write_text(json.dumps(lifecycle_meta))
+        assert package_contract_version(repo, adapter, lifecycle_meta, package, "implement") == 0
+        for index, source_task in enumerate((legacy_task, legacy_task_2, legacy_task_3), start=1):
+            (plan / f"task-{index:03}.md").write_text(source_task)
+            (evidence_dir / f"legacy-task-{index:03}.md").unlink()
+        evidence_dir.rmdir()
+        (package / "meta.json").write_text(json.dumps(legacy))
+
+        legacy_plan_errors = validate_package(repo, adapter, "sample", "sample", "plan")
+        assert any("cannot run Propose or Plan" in error for error in legacy_plan_errors), legacy_plan_errors
+        (package / "meta.json").write_text(json.dumps(planned))
+        (package / "design.md").write_text(original_design)
+        (package / "verification.md").write_text(
+            "# Verification\n\n" + fixture_modularity_verification()
+            + "\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | approval record | pending |\n| AC-1 | integration | Run shared scenario | scenario report | pending |\n| TST-REQ-1 | design | Review current boundary | review record | pending |\n| TST-AC-1 | unit | Run focused boundary test | test report | pending |\n"
+        )
+        (plan / "rule-selection.json").write_text(json.dumps(rule_selection_snapshot(planned)))
+        (plan / "task-001.md").write_text(task)
+        (plan / "task-002.md").write_text(task_2)
+        (plan / "task-003.md").write_text(task_3)
+        (plan / "task-001.md").write_text(task.replace("- Boundary owner: Sample capability boundary\n", "", 1))
+        assert any("Boundary owner" in error for error in validate_package(repo, adapter, "sample", "sample", "plan"))
+        (plan / "task-001.md").write_text(task)
         original_design = (package / "design.md").read_text()
         expanded = dict(planned)
         expanded["engineering_scopes"] = ["application", "performance"]
@@ -1332,7 +1995,10 @@ def self_test() -> int:
         assert validate_package(repo, adapter, "sample", "sample", "implement") == []
 
         for name in ("req","ac","preq","pac"):(evidence/f"{name}.md").write_text("Current verification PASS.\n")
-        failed_verification = "# Verification\n\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | FAIL |\n"
+        failed_verification = (
+            "# Verification\n\n" + fixture_modularity_verification("PASS")
+            + "\n| Contract ID | Layer | Method | Expected evidence | Status |\n|---|---|---|---|---|\n| REQ-1 | contract | Review current shared requirement | evidence/req.md | PASS |\n| AC-1 | integration | Run shared scenario | evidence/ac.md | PASS |\n| TST-REQ-1 | design | Review current boundary | evidence/preq.md | PASS |\n| TST-AC-1 | unit | Run focused boundary test | evidence/pac.md | FAIL |\n"
+        )
         (package/"verification.md").write_text(failed_verification)
         reopened_task=done_task.replace("Status: done", "Status: pending").replace("Evidence: evidence/task-001.md", "Evidence: none")
         reopened_task_2=done_task_2.replace("Status: done", "Status: pending").replace("Evidence: evidence/task-002.md", "Evidence: none")
@@ -1348,6 +2014,7 @@ def self_test() -> int:
         assert validate_package(repo, adapter, "sample", "sample", "implement") == []
         (plan/"task-001.md").write_text(done_task)
         pending_verification = re.sub(r"\| (?:PASS|FAIL|UNKNOWN) \|", "| pending |", failed_verification)
+        pending_verification = re.sub(r"(?m)^(- (?:Dependency graph|Public API and visibility|Module-level tests|Consumer integration and build|App-shell allowlist):) PASS$", r"\1 pending", pending_verification)
         (package/"verification.md").write_text(pending_verification)
         repair_progress=dict(recovery); repair_progress.update(tasks_done=1,problems=[],verification_status="pending")
         (package/"meta.json").write_text(json.dumps(repair_progress))

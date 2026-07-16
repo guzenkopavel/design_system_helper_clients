@@ -19,6 +19,8 @@ commands/infrastructure из repository и Plan и пишет только scope
 Archive использует fresh fingerprint и общий collision-safe algorithm. Product
 archive остаётся отдельным shared lifecycle. Compose/KMP и tooling scopes
 выбираются только по repository evidence; iOS rules не наследуются.
+Modularity adapter разрешает только Android/Kotlin library modules как physical
+units; application module остаётся composition-only и не может быть deviation.
 
 `$deep-code-review review|feedback|bug android <feature> [--change ...]`
 использует только Android addendum и обнаруженные repository conventions. Skill

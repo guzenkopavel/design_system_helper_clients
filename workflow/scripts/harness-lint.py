@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,8 +18,13 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from platform_rule_profiles import (
+    COMMON_MODULARITY_RULE,
+    LEGACY_REGISTRY_PATH,
     PHASES,
     RuleProfileError,
+    load_legacy_registry,
+    legacy_package_hashes,
+    resolve_package_contract_version,
     validate_capabilities,
     validate_pre_commit_profile,
     validate_profiles,
@@ -862,9 +868,11 @@ def android_profile_findings(
     expected_verify = [
         "workflow/rules/test-execution.md",
         "workflow/rules/verification-matrix.md",
+        COMMON_MODULARITY_RULE,
+        "Android/workflow/rules/architecture/modularization.md",
     ]
     if phases.get("verify") != expected_verify:
-        findings.append(finding("critical", "android-engineering-profiles", label, "Android verify profile must preserve the exact compatibility pair"))
+        findings.append(finding("critical", "android-engineering-profiles", label, "Android verify profile must preserve the exact compatibility pair plus modularity contracts"))
     if adapter.get("scope_dependencies", {}).get("compose") != ["ui"]:
         findings.append(finding("critical", "android-engineering-dependency", label, "compose scope must require ui"))
     if "Android/workflow/rules/compose.md" in scopes.get("ui", []):
@@ -876,10 +884,95 @@ def android_profile_findings(
         "ui": {"emulator", "accessibility", "design-system"},
         "compose": {"Compose state"}, "multiplatform": {"source set"},
         "concurrency": {"cancellation", "lifecycle"}, "gradle": {"Gradle task"},
+        "module": {"module boundary", "module build", "public contract", "consumer integration", "dependency graph", "app-shell wiring"},
     }
     for scope, expected in required_checks.items():
         if not expected <= set(checks.get(scope, [])):
             findings.append(finding("critical", "android-engineering-dependency", label, f"scope_task_checks.{scope} misses obligations"))
+    return findings
+
+
+def modularity_profile_findings(
+    root: Path, adapter_path: Path, adapter: dict[str, object]
+) -> list[dict[str, str]]:
+    label = relative(adapter_path, root)
+    try:
+        _catalog, phases, scopes = validate_profiles(root, adapter)
+    except RuleProfileError as error:
+        return [finding("critical", "cross-platform-modularity", label, str(error))]
+    config = adapter.get("modularity")
+    if not isinstance(config, dict):
+        return [finding("critical", "cross-platform-modularity", label, "modularity config is missing")]
+    platform_rule = str(config.get("platform_rule", ""))
+    findings: list[dict[str, str]] = []
+    for phase in PHASES:
+        rules = phases.get(phase, [])
+        for rule in (COMMON_MODULARITY_RULE, platform_rule):
+            if rule not in rules:
+                findings.append(finding(
+                    "critical", "cross-platform-modularity", label,
+                    f"phase_rule_profiles.{phase} misses mandatory rule: {rule}",
+                ))
+    isolation_scope = str(config.get("isolation_scope", ""))
+    if isolation_scope not in scopes:
+        findings.append(finding(
+            "critical", "cross-platform-modularity", label,
+            "adapter modularity isolation scope is not a known scope",
+        ))
+    required_checks = {
+        "public contract", "consumer integration", "dependency graph", "app-shell wiring",
+    }
+    checks = adapter.get("scope_task_checks", {})
+    scope_checks = set(checks.get(isolation_scope, [])) if isinstance(checks, dict) else set()
+    if not required_checks <= scope_checks:
+        findings.append(finding(
+            "critical", "cross-platform-modularity", label,
+            f"scope_task_checks.{isolation_scope} misses modularity obligations",
+        ))
+    return findings
+
+
+def legacy_registry_findings(root: Path) -> list[dict[str, str]]:
+    label = LEGACY_REGISTRY_PATH
+    try:
+        entries = load_legacy_registry(root)
+    except RuleProfileError as error:
+        return [finding("critical", "modularity-v0-registry", label, str(error))]
+    findings: list[dict[str, str]] = []
+    adapters: dict[str, dict[str, object]] = {}
+    for adapter_path in sorted(root.glob("*/workflow/platform-contract.json")):
+        try:
+            adapter = json.loads(adapter_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        platform_name = adapter.get("platform_name")
+        if isinstance(platform_name, str):
+            adapters[platform_name] = adapter
+    for entry in entries:
+        package = root / str(entry["package_path"])
+        if not package.exists():
+            continue
+        if (package / "ARCHIVED.md").is_file():
+            continue
+        meta_path = package / "meta.json"
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            findings.append(finding("critical", "modularity-v0-registry", relative(meta_path, root), f"active anchored meta is invalid: {error}"))
+            continue
+        if meta.get("status") == "archived":
+            continue
+        adapter = adapters.get(str(entry["platform"]))
+        if adapter is None:
+            findings.append(finding("critical", "modularity-v0-registry", label, f"active anchor adapter is missing: {entry['platform']}"))
+            continue
+        try:
+            version = resolve_package_contract_version(root, adapter, meta, package, "implement")
+        except RuleProfileError as error:
+            findings.append(finding("critical", "modularity-v0-registry", relative(package, root), str(error)))
+        else:
+            if version != 0:
+                findings.append(finding("critical", "modularity-v0-registry", relative(package, root), "registered active package must resolve legacy v0"))
     return findings
 
 
@@ -918,6 +1011,110 @@ def self_test_android_lint(root: Path) -> int:
     path = root / "Android/workflow/platform-contract.json"
     adapter = json.loads(path.read_text(encoding="utf-8"))
     assert android_profile_findings(root, path, adapter) == []
+    assert modularity_profile_findings(root, path, adapter) == []
+
+    ios_path = root / "iOS/workflow/platform-contract.json"
+    ios_adapter = json.loads(ios_path.read_text(encoding="utf-8"))
+    assert modularity_profile_findings(root, ios_path, ios_adapter) == []
+    assert legacy_registry_findings(root) == []
+
+    registry_source = json.loads((root / LEGACY_REGISTRY_PATH).read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_root = Path(tmp).resolve()
+        registry_path = fixture_root / LEGACY_REGISTRY_PATH
+        registry_path.parent.mkdir(parents=True)
+        for mutation in ("absolute-path", "duplicate", "bad-hash", "normalization"):
+            candidate = copy.deepcopy(registry_source)
+            if mutation == "absolute-path":
+                candidate["packages"][0]["package_path"] = "/tmp/escape"
+            elif mutation == "duplicate":
+                candidate["packages"].append(copy.deepcopy(candidate["packages"][0]))
+            elif mutation == "bad-hash":
+                candidate["packages"][0]["hashes"]["design_sha256"] = "not-a-hash"
+            else:
+                candidate["task_normalization"]["ignored_field_values"].append("Paths")
+            registry_path.write_text(json.dumps(candidate), encoding="utf-8")
+            try:
+                load_legacy_registry(fixture_root)
+                raise AssertionError(f"legacy registry mutation passed: {mutation}")
+            except RuleProfileError:
+                pass
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_root = Path(tmp).resolve()
+        copied_package = fixture_root / "iOS/specs/forged-v0/changes/forged-v0"
+        shutil.copytree(
+            root / "iOS/specs/client-bootstrap/changes/initial-scaffold",
+            copied_package,
+        )
+        copied_meta_path = copied_package / "meta.json"
+        copied_meta = json.loads(copied_meta_path.read_text(encoding="utf-8"))
+        copied_meta.update(feature="forged-v0", change_id="forged-v0")
+        copied_meta_path.write_text(json.dumps(copied_meta), encoding="utf-8")
+        forged_registry = copy.deepcopy(registry_source)
+        forged_registry["packages"].append(
+            {
+                "platform": "iOS",
+                "feature": "forged-v0",
+                "change_id": "forged-v0",
+                "package_path": "iOS/specs/forged-v0/changes/forged-v0",
+                "hashes": legacy_package_hashes(copied_package, copied_meta),
+            }
+        )
+        registry_path = fixture_root / LEGACY_REGISTRY_PATH
+        registry_path.parent.mkdir(parents=True)
+        registry_path.write_text(json.dumps(forged_registry), encoding="utf-8")
+        forged_findings = legacy_registry_findings(fixture_root)
+        assert any(
+            "code-pinned canonical trust anchor" in item["detail"]
+            for item in forged_findings
+        ), forged_findings
+
+    for source_path, source_adapter in ((ios_path, ios_adapter), (path, adapter)):
+        missing_contract_version = copy.deepcopy(source_adapter)
+        missing_contract_version["modularity"].pop("contract_version")
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_contract_version)
+        )
+        application_unit = copy.deepcopy(source_adapter)
+        application_unit["modularity"]["physical_units"] = ["application target"]
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, application_unit)
+        )
+        missing_legacy_checks = copy.deepcopy(source_adapter)
+        missing_legacy_checks["modularity"]["legacy_task_checks"] = []
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_legacy_checks)
+        )
+        missing_phase_rule = copy.deepcopy(source_adapter)
+        missing_phase_rule["phase_rule_profiles"]["propose"].remove(COMMON_MODULARITY_RULE)
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_phase_rule)
+        )
+        missing_platform_rule = copy.deepcopy(source_adapter)
+        platform_rule = missing_platform_rule["modularity"]["platform_rule"]
+        missing_platform_rule["phase_rule_profiles"]["verify"].remove(platform_rule)
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_platform_rule)
+        )
+        missing_scope = copy.deepcopy(source_adapter)
+        missing_scope["modularity"]["isolation_scope"] = "missing-scope"
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_scope)
+        )
+        missing_scope_check = copy.deepcopy(source_adapter)
+        isolation_scope = missing_scope_check["modularity"]["isolation_scope"]
+        missing_scope_check["scope_task_checks"][isolation_scope].remove("public contract")
+        assert any(
+            item["check"] == "cross-platform-modularity"
+            for item in modularity_profile_findings(root, source_path, missing_scope_check)
+        )
 
     missing_catalog = copy.deepcopy(adapter)
     missing_catalog["rule_files"].remove("Android/workflow/rules/compose.md")
@@ -983,8 +1180,6 @@ def self_test_android_lint(root: Path) -> int:
         assert any(item["check"] == "android-fixed-assumption" for item in mutated)
         assert any(item["check"] == "android-platform-leakage" for item in mutated)
 
-    ios_path = root / "iOS/workflow/platform-contract.json"
-    ios_adapter = json.loads(ios_path.read_text(encoding="utf-8"))
     assert pre_commit_adapter_findings(root, "iOS", ios_path, ios_adapter) == []
     assert pre_commit_adapter_findings(root, "Android", path, adapter) == []
     missing_pre_commit = copy.deepcopy(adapter)
@@ -1567,6 +1762,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
         "workflow/rules/tdd-first.md", "workflow/rules/test-execution.md",
         "workflow/rules/verification-matrix.md", "workflow/rules/git-conventions.md",
         "workflow/rules/branching.md", "workflow/rules/developer-experience.md",
+        "workflow/rules/system-design/modularity.md",
         "workflow/scripts/test-watchdog.sh",
         "iOS/workflow/rules/swift-style.md", "iOS/workflow/rules/app-development.md",
         "iOS/workflow/rules/package-development.md", "iOS/workflow/rules/simulator.md",
@@ -1651,7 +1847,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
     if not isinstance(task_checks, dict) or task_checks.get("ui") != adapter.get("ui_task_checks") or task_checks.get("localization") != ["localization"]:
         findings.append(finding("critical", "engineering-profile-dependency", relative(adapter_path, root), "scope_task_checks must preserve exact UI and conditional localization gates"))
     required_task_checks = {
-        "package": {"package consumer", "package build"},
+        "package": {"package consumer", "consumer integration", "package build", "public contract", "dependency graph", "app-shell wiring"},
         "networking": {"cache policy", "retry policy"},
         "concurrency": {"cancellation", "isolation"},
         "performance": {"performance budget"},
@@ -1663,16 +1859,45 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
                 "critical", "engineering-profile-dependency", relative(adapter_path, root),
                 f"scope_task_checks.{scope} misses deterministic task obligations",
             ))
+    findings.extend(modularity_profile_findings(root, adapter_path, adapter))
 
     template = root / "workflow/templates/platform-meta.json"
     if template.is_file():
         text = template.read_text(encoding="utf-8")
-        for token in ('"engineering_scopes"', '"applicable_rule_files"', '"rule_selection_snapshot"'):
+        for token in ('"engineering_scopes"', '"applicable_rule_files"', '"rule_selection_snapshot"', '"modularity_contract_version": 1'):
             if token not in text:
                 findings.append(finding("critical", "engineering-meta", relative(template, root), f"missing field: {token}"))
     selection_template = root / "workflow/templates/platform-rule-selection.json"
     if not selection_template.is_file():
         findings.append(finding("critical", "engineering-meta", "workflow/templates/platform-rule-selection.json", "planned selection snapshot template is missing"))
+    else:
+        selection_text = selection_template.read_text(encoding="utf-8")
+        for token in ('"schema_version": 2', '"modularity_contract_version": 1'):
+            if token not in selection_text:
+                findings.append(finding("critical", "engineering-meta", relative(selection_template, root), f"missing field: {token}"))
+    modularity_wiring = {
+        "workflow/templates/platform-design.md": (
+            "Modularity decision", "Capability triggers", "Physical boundaries",
+            "Public contracts and dependency direction", "App-shell responsibilities",
+            "App-shell capability ownership", "Repository evidence", "Migration boundary and trigger",
+            "Over-modularization check", "Boundary guard verdict",
+        ),
+        "workflow/templates/platform-plan-task.md": ("Boundary owner",),
+        "workflow/templates/platform-verification.md": (
+            "Modularity verification", "Dependency graph", "Public API and visibility",
+            "Module-level tests", "Consumer integration and build", "App-shell allowlist",
+        ),
+        "workflow/roles/architecture-designer.md": ("Modularity decision", "PASS", "BLOCK"),
+        "workflow/roles/implementation-planner.md": ("Boundary owner", "consumer integration", "app-shell"),
+        "workflow/roles/implementation-writer.md": ("application shell", "feature/domain/data/network"),
+        "workflow/roles/verifier.md": ("dependency graph", "public API/visibility", "UNKNOWN"),
+    }
+    for raw, tokens in modularity_wiring.items():
+        path = root / raw
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        for token in tokens:
+            if token not in text:
+                findings.append(finding("critical", "cross-platform-modularity", raw, f"missing wiring token: {token}"))
     wiring = {
         "workflow/phases/propose.md": ("engineering_scopes", "applicable_rule_files", "--phase propose"),
         "workflow/phases/plan.md": ("--phase plan", "watchdog", "performance", "rule-selection.json", "scope_task_checks"),
@@ -1730,6 +1955,7 @@ def check_engineering_rule_profiles(root: Path) -> list[dict[str, str]]:
             findings.append(finding("critical", "android-engineering-profiles", relative(android_adapter_path, root), str(error)))
         else:
             findings.extend(android_profile_findings(root, android_adapter_path, android_adapter))
+            findings.extend(modularity_profile_findings(root, android_adapter_path, android_adapter))
     findings.extend(android_terminal_addendum_findings(root))
     findings.extend(android_assumption_findings(root))
     for runtime in (".claude", ".opencode"):
@@ -1821,6 +2047,7 @@ def main() -> int:
     findings.extend(check_deep_code_review(root))
     findings.extend(check_security_audit(root))
     findings.extend(check_engineering_rule_profiles(root))
+    findings.extend(legacy_registry_findings(root))
     findings.extend(check_naming(root))
     findings.sort(key=lambda item: (item["severity"], item["check"], item["file"]))
 

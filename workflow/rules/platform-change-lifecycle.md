@@ -41,26 +41,45 @@ Adapter `rule_files` is a catalog. Exact `phase_rule_profiles` and
 evidence-selected scopes; Plan may refine/add before `planned`; downstream
 phases cannot invent scopes.
 
+Adapter `modularity` declares `contract_version: 1`, names the isolation scope,
+platform-owned non-application physical-unit rule/unit kinds and v0 legacy task
+checks. Common+platform modularity rules are mandatory in every
+Propose/Plan/Implement/Verify base profile; they do not depend on selecting the
+isolation scope. The scope becomes mandatory when design outcome is `isolated`.
+
 Required `meta.json` fields are `platform`, `feature`, `change_id`,
 `change_type`, `tier`, `status`, `shared_product_spec`, `product_status`,
 `product_approval`, `product_impact`, `impact_evidence`, `blocking_questions`,
 `engineering_scopes`, `applicable_rule_files`, `problems`, `design_gate`,
 `tasks_total`, `tasks_done`, `verification_status`, `verified_at` and
-`verification_state`. The rule list is the exact deterministic union of all
+`verification_state` and `modularity_contract_version`. The rule list is the exact deterministic union of all
 lifecycle phase bases and selected scope profiles; unknown, missing, extra or
 unsafe paths are invalid.
 At `planned`, Plan seals both arrays in fingerprinted
 `plan/rule-selection.json`, so Implement/Verify cannot change selection without
 returning to Plan. Design must cover every selected scope exactly once with a
-decision or explicit N/A rationale. Tasks declare scope subsets; their union
-covers the sealed package scopes and activates adapter conditional checks.
+decision or explicit N/A rationale and also contain exact structured
+`Modularity decision` plus `Boundary guard verdict: PASS`. Tasks declare scope
+subsets and a substantive boundary owner; their union covers the sealed package
+scopes and activates adapter conditional checks.
 
-The snapshot is a deterministic consistency lock, not an external provenance
-authority: it detects partial/stale rewrites, but cannot prove history if an
-actor rewrites meta, snapshot, design and tasks together before a later command.
-Preventing that cross-invocation rewrite requires a separately authorized trust
-anchor (for example an explicit token handoff, trusted store or commit), which
-is not implied by this repository-only lifecycle.
+Missing `modularity_contract_version` is interpreted as legacy v0 only for a
+`planned|implementing|verified` package whose exact identity and immutable
+structure match [`modularity-v0.json`](../compatibility/modularity-v0.json).
+Its historical phase projection and adapter-declared legacy isolation checks
+stay valid for Implement/Verify/Archive. Propose/Plan, registry mismatch and any
+reconcile that expands v0 design/plan/scopes/tasks are blocked and route to an
+explicit new migration/change package. Only task `Status`/`Evidence` values,
+corresponding lifecycle meta fields and new evidence may advance normally. New
+packages always use v1; unsupported versions fail.
+Common resolver также требует exact legacy meta keys и code-pinned digest всего
+registry/exact two identities. `blocking_questions`, `tasks_total`, extra keys
+и registry-only extension являются immutable drift.
+
+The v1 snapshot is a deterministic consistency lock for current packages. The
+tracked v0 registry is a separate compatibility trust anchor for the two named
+historical identities; changing it requires an explicit harness change and
+fresh audit.
 
 The only pre-delivery exception to downstream package immutability is explicit
 [`reconcile-implementation`](implementation-reconciliation.md). Its guard may
