@@ -6,7 +6,7 @@
 - Status: done
 - Evidence: evidence/task-001.md
 - Estimate (ideal): 0.5–1 days
-- Paths: existing: Android/app/src/main/java/ru/home/sysdevsc/SysDevScApp.kt; existing: Android/app/src/main/java/ru/home/sysdevsc/ui/theme/Theme.kt; existing: Android/app/src/main/java/ru/home/sysdevsc/ui/theme/Color.kt; existing: Android/app/src/main/java/ru/home/sysdevsc/ui/theme/Type.kt; existing: Android/app-shell/src/main/AndroidManifest.xml
+- Paths: existing: Android/
 
 ## Goal
 
