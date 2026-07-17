@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "UNKNOWN",
+  "observation": "Реальный порядок VoiceOver, фокус, признаки и объявления не наблюдались.",
+  "evidence_refs": []
+}

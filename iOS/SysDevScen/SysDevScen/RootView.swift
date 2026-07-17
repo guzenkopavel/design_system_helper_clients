@@ -10,6 +10,7 @@ import SwiftUI
 
 struct RootView: View {
     @ObservedObject var sessionModel: AuthSessionModel
+    let profileContent: AnyView
 
     var body: some View {
         Group {
@@ -20,7 +21,7 @@ struct RootView: View {
             case .signedOut:
                 AuthFlowView(sessionModel: sessionModel)
             case .active:
-                ContentView()
+                ContentView(profileContent: profileContent)
             }
         }
         .task {
@@ -30,5 +31,9 @@ struct RootView: View {
 }
 
 #Preview {
-    RootView(sessionModel: AuthFeatureFactory().makeStubSessionModel(scenario: .active))
+    let sessionModel = AuthFeatureFactory().makeStubSessionModel(scenario: .active)
+    RootView(
+        sessionModel: sessionModel,
+        profileContent: AnyView(Text("Профиль"))
+    )
 }

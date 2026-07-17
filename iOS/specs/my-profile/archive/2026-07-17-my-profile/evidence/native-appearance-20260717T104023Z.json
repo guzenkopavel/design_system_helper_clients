@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "UNKNOWN",
+  "observation": "Свежий UI-run подтвердил content и empty/error outcomes, но не дал отдельного визуального наблюдения профильного символа и состояния выполнения выхода.",
+  "evidence_refs": []
+}

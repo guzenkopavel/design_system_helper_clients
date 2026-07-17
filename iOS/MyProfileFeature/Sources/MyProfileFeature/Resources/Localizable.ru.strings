@@ -1,0 +1,13 @@
+"my_profile_my_interviews" = "Мои интервью";
+"my_profile_logout" = "Выход";
+"my_profile_loading" = "Загрузка профиля";
+"my_profile_email_label" = "Email текущего профиля";
+"my_profile_symbol_label" = "Профиль";
+"my_profile_my_interviews_disabled_hint" = "Недоступно, пока нет интервью или счётчик неизвестен";
+"my_profile_my_interviews_enabled_hint" = "Показывает количество интервью без перехода на другой экран";
+"my_profile_logout_in_progress" = "Выполняется выход";
+"my_profile_retry" = "Повторить";
+"my_profile_history_unavailable" = "Не удалось загрузить историю";
+"my_profile_offline" = "Нет соединения";
+"my_profile_logout_failed" = "Не удалось выйти";
+"my_profile_interview_count_format" = "Интервью: %d";

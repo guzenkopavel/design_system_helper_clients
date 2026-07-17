@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "status": "UNKNOWN",
+  "observation": "Профильная поверхность не запускалась с increased contrast и не проверялась на читаемость и нецветовые признаки.",
+  "evidence_refs": []
+}

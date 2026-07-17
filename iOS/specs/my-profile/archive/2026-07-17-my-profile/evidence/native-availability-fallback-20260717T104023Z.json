@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "status": "UNKNOWN",
+  "observation": "Fallback для older-OS/SDK и Reduce Transparency не наблюдался в runtime; ветка исходного кода сама по себе не доказывает rendering.",
+  "evidence_refs": []
+}

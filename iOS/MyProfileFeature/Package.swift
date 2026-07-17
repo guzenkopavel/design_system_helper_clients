@@ -21,6 +21,9 @@ let package = Package(
         .target(
             name: "MyProfileFeature",
             dependencies: ["AuthFeature"],
+            resources: [
+                .process("Resources")
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]

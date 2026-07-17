@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "status": "PASS",
+  "observation": "Тесты представления и инспекция исходников подтверждают Reduce Transparency и ветки резервного символа, поэтому профильная поверхность имеет детерминированный fallback для доступности и условий availability.",
+  "evidence_refs": [
+    "evidence/verify-20260717T112843Z-native-runtime.md",
+    "evidence/verify-20260717T112843Z-tests.md"
+  ]
+}

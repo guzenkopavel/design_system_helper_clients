@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-TEXT-SCALING",
+  "status": "UNKNOWN",
+  "observation": "Максимальный поддержанный Dynamic Type и отсутствие clipping с длинным email не наблюдались.",
+  "evidence_refs": []
+}

@@ -1,4 +1,4 @@
-public protocol MyProfileRepository: Sendable {
+protocol MyProfileRepository: Sendable {
 
     func fetchProfile() async throws -> MyProfileAccount
     func fetchInterviewCount() async throws -> Int

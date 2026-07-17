@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "PASS",
+  "observation": "UI-автоматизация взаимодействует с профильной вкладкой и действиями через русские подписи и identifier символа; инспекция исходников подтверждает accessibility labels, values и причины недоступности.",
+  "evidence_refs": [
+    "evidence/verify-20260717T112843Z-native-runtime.md",
+    "evidence/verify-20260717T112843Z-tests.md"
+  ]
+}

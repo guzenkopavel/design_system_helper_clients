@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "status": "UNKNOWN",
+  "observation": "Поведение на старой версии ОС и резервное оформление Reduce Transparency не наблюдались в среде выполнения.",
+  "evidence_refs": []
+}

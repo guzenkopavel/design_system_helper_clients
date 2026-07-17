@@ -1,7 +1,7 @@
 @MainActor
-public final class MyProfileStateStore {
+final class MyProfileStateStore {
 
-    public private(set) var state: MyProfileState
+    private(set) var state: MyProfileState
 
     private let repository: any MyProfileRepository
     private let recoverInvalidSession: @MainActor @Sendable () async -> Void
@@ -9,7 +9,7 @@ public final class MyProfileStateStore {
     private var activeLoadGeneration: Int?
     private var isSigningOut = false
 
-    public init(
+    init(
         repository: any MyProfileRepository,
         initialState: MyProfileState = .idle,
         recoverInvalidSession: @escaping @MainActor @Sendable () async -> Void = {}
@@ -19,7 +19,7 @@ public final class MyProfileStateStore {
         self.recoverInvalidSession = recoverInvalidSession
     }
 
-    public func reload() async {
+    func reload() async {
         guard activeLoadGeneration == nil else { return }
 
         generation += 1
@@ -58,14 +58,14 @@ public final class MyProfileStateStore {
         }
     }
 
-    public func cancelLoading() {
+    func cancelLoading() {
         guard activeLoadGeneration != nil else { return }
         generation += 1
         activeLoadGeneration = nil
         state = .idle
     }
 
-    public func logout() async {
+    func logout() async {
         guard !isSigningOut else { return }
 
         isSigningOut = true

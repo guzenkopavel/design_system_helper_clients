@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-TEXT-SCALING",
+  "status": "UNKNOWN",
+  "observation": "Максимальный поддержанный размер Dynamic Type и отсутствие обрезки не наблюдались.",
+  "evidence_refs": []
+}

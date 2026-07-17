@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "status": "UNKNOWN",
+  "observation": "Повышенный контраст и нецветовые признаки не наблюдались в среде выполнения.",
+  "evidence_refs": []
+}

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "status": "PASS",
+  "observation": "Отдельный simulator run с enabled increased contrast подтвердил различимые профильные states и сохранение нецветовых признаков для actions и feedback.",
+  "evidence_refs": [
+    "evidence/verify-20260717T112843Z-native-runtime.md"
+  ]
+}

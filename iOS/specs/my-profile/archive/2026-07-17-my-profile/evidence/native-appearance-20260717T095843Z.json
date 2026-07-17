@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "UNKNOWN",
+  "observation": "UI-тесты наблюдали содержимое и пустое состояние, но не зафиксировали оформление загрузки и выполнения выхода вместе с профильным символом.",
+  "evidence_refs": []
+}

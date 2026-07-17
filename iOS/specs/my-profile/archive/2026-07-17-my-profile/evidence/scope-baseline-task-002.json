@@ -39,6 +39,11 @@
       "boundary": "file",
       "path": "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json",
       "protected_exception": "true"
+    },
+    {
+      "boundary": "file",
+      "path": "iOS/specs/my-profile/changes/my-profile/verification.md",
+      "protected_exception": "true"
     }
   ],
   "change_id": "my-profile",
@@ -55,11 +60,71 @@
     ".agents/skills/verify/agents/openai.yaml": "b7e5abde067d71679121621bda8576f8e68507a87189150c1c6faf9fb5d715e2",
     "AGENTS.md": "6911b65bd8a0e4ebc90b6cfbad9d395fe534fc1371062f98f90b6756413bbe78",
     "iOS/AGENTS.md": "1876e9a105e2c3205e42378a0a8aa5f13cf83d6622fa1c9efd0f5efecbaeabe9",
+    "iOS/MyProfileFeature/Package.swift": "e7b7973418d7195a3e995bc94527d7a147e9c04c79396864f130e745b6503185",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Data/MyProfileAPIClient.swift": "57a74f0ddc7521161021c4dc5c12a114822ba1ecef18f2e83eae83d13f57b777",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Data/MyProfilePreviewSessionClient.swift": "93b6e8e433abd939002be383f22d5243f1b9dadf7b824d675965be99e6ff5b3a",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileModels.swift": "c51cd6c1ecbd28474fd89342b881ed5d1c024de4df8f39d60089e7857a396298",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileRepository.swift": "ecba4574fb96322252c588088ef93c0ce29da80ff792d669fe0310541b946842",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileStateStore.swift": "781defd838291d67671a9620483a8405c202a63a30e5989b98b0e7e0843097d4",
+    "iOS/MyProfileFeature/Tests/MyProfileFeatureTests/Data/MyProfileAPIClientTests.swift": "aa7efd155391708c09c1b7b8499459785c78ce040a0cb80f38a7945370a55c59",
+    "iOS/MyProfileFeature/Tests/MyProfileFeatureTests/Domain/MyProfileStateStoreTests.swift": "3797bda148da5d9794dc2ae7d221cc6e25777ba3542894402fcf98237fa36de3",
     "iOS/specs/my-profile/changes/my-profile/design.md": "f2e448fa263439efde47e67dd567f9e8177036ec8f8ddcf68c25194ea85074c2",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T094148Z.json": "59c914634f7512c37d9d06590b19b4cb273033b2eaf5f0a76d2cc7f8fbec9d27",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T095843Z.json": "c9f93335a9ed76f706dca1c9d9f85d2f84f95fdbd62af88c05e20fc2d333e5e4",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T104023Z.json": "1178eab89b6ba8d432540d62523dfbfe5f8fa4ebbac35c5ef20d130b5bd70adf",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T094148Z.json": "6917d0a18bb4b8f2bd72654ed3801b0d8810c21bba380b235cd93e838277f831",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T095843Z.json": "6917d0a18bb4b8f2bd72654ed3801b0d8810c21bba380b235cd93e838277f831",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T104023Z.json": "370c1cfc8444d4bc5e66a69bb09bd1f6510115f05ccf258b3e29c8afd555a893",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T094148Z.json": "da17786bf71966b47e551fadfd7acbe9453a368308fd82856a7739f24a7973c9",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T095843Z.json": "da17786bf71966b47e551fadfd7acbe9453a368308fd82856a7739f24a7973c9",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T104023Z.json": "9a8fd89311087e0e999182fb4c648a8609786dca23b9a3c1235c66425b65e37d",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T094148Z.json": "3c85323c586b5efa4a9f461271f92ca02efcb408f47eb2f4ec1baffbebbd0592",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T095843Z.json": "275f2d0c2b6a2a8a84623b60c87547df08b671b5257a8f8f4bc3e60d2538fe3c",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T104023Z.json": "5ba9023662564e727c6337f185c0beff78cc3805a3c98483a3c0099260472626",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T094148Z.json": "10d9b2a929a1cf927ac0a19fe9b5f6c02ddbb373eeb8ff1ffd5774f027a178e0",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T095843Z.json": "3802d7839ef707e9e688616b509e0600f8f4007aaf41e58ee42d40d783e7c3b0",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T104023Z.json": "3f3862e1f7eb0d34970773264c8fe6687b2b29ae372f3ca629cbdbfaf709bbdd",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T094148Z.json": "d3d7375233af4db9ed7bfd9975ecac33b0ea761c5a71fe5b2b0d2205a657778e",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T095843Z.json": "d3d7375233af4db9ed7bfd9975ecac33b0ea761c5a71fe5b2b0d2205a657778e",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T104023Z.json": "35b5cc1fda6bc8f727225c62b955cd4cb93c56f6c631f9896af79a0e47e32b90",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T094148Z.json": "a46c18693e8e3960a6586cc3fae8ab59ebf1b4019ebabf5ce4541ccd868990f4",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T095843Z.json": "8b5462528b5d8c632455027328cab3d1d6da24c69bed38960fa8b0b76467b23f",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T104023Z.json": "7e8615fc63ae8d80e2eae9e88b3048f861c06dbc3661072cbac19b6215a2c01e",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T094148Z.json": "82958b44de68ed761127de4f2467d87e8f4b17436ec33ce29b53c74081904bc6",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T095843Z.json": "82958b44de68ed761127de4f2467d87e8f4b17436ec33ce29b53c74081904bc6",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T104023Z.json": "d9a44a4f2c7500d0e3be0fb6b8fdd921812ff8dfda59fe9ace0914e98420d86d",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T094148Z.json": "f577a59f161d646bdcfc562684f08a83855fbaa64faef516dcf0a0625676197d",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T095843Z.json": "d5155da1788a89d05c070c32d1ea48095de37460d191a029766545acc6f1b447",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T104023Z.json": "c74b26dff5e9d7d27f52f4ec702f39f9a6ea64f3faa6a2ccff5cdfc457943199",
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-003-profile-presentation.md": "51ade8a23b6130ac2665bd745c04e4cfeb2cd96b5664148d143ebc48ed5d6012",
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-004-app-shell-wiring.md": "9b09fbdd38aba42ae7c58f9b3c328fa889f753f8fa55e4d205dfb3f8544b40c2",
     "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json": "4a5253bd5ee025026c325dcfbb5ca563a0cf3b6e6d4c83251ccfe238bebfd277",
-    "iOS/specs/my-profile/changes/my-profile/evidence/task-001.md": "e1f6b503b7af6d8e562012f18dde7b997ae0afc5b053ee44dc8f135d0fbdc7f8",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json": "b06041301c0af6c1a5743bd024f861a8ffbd57ba2b0625e2b31df6a6815e8605",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-003.json": "bee611a780d3d6f80a32489df875048d829d8857619ceecce7e6361800286ff5",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-004.json": "efbaf17480bc9d75b8d6fc0a58e98d75a3c9946c23009bf48ec2e0494aa785f3",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-001.md": "752ee8709b8206e5ceedafa0b10f21bd06232b4d2368c9e8c38934c639edf9ca",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-002.md": "c8fbe28a0c26e2760dc6bb4967e037ddc2e07fed7b0dfc4bdd46f9681192fb83",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-003.md": "bb87b6dcb6e164dc1b8dc1ec3198f4d7a59dc1bf3ba6fea113fdcdc95ef3e2d1",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-004.md": "d8eddd4f6401c6aeca9eb8455900361451788291d93ef09fb2d0afa382dc457d",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-auth-tests.md": "e3415de9ce000e5723ff7699b89ad0d87f108df945636fd69459ea26d82f50c8",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-build-and-boundaries.md": "ecc18e2a5f97e3e9a3dfd1616877c5c47e317777e54a86c3912259eebc22be25",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-native-runtime-gaps.md": "358139cf58608e1b90e30c8037ed2616128728616b56ba181ced63fdeab9e187",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-profile-package-tests.md": "254422955222206b96d62bd275a4ccb7f94de75e1b08ca31a5ddb726e6a89f66",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-source-observations.md": "265a846964b61685bd4d458e3b2504d4ea9a50eaeb7ebc4d02527cc3c5334ad5",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-xcode-tests.md": "969e9303c9d08678da79399b2711e2a94188efcd0bcce236f3e0816516ca45af",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-auth-tests.md": "882c2daf4cc0c6eb04383477515f0b02b136caf3816d9096ab8eba512f39d184",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-build-and-boundaries.md": "1f09e7c099d3428d28a6c074427a13d91f7195614c4c7619885d578616850775",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-profile-package-tests.md": "a4e7dcc49a657c637e2df5f3b381f7d38ca8af5add8fb5bda12cf8828d352e54",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-source-and-native-gaps.md": "7ea6c58ea28202aff989910f3ba09b5a01989c3cce48bf2ecfd196a6afed320a",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-xcode-tests.md": "9d8ff5767b6088ce51724086ce1a09bddbfc035852aa385469ac9a496bf97ef9",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-auth-tests.md": "27cdd266783bb77ed01779ff3d73b16890187a2bf5908aa86fb6df9f0764321d",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-build-and-boundaries.md": "d81688d865f42d7a339fa9c701436ecaa8c84ce7d1d68697f99217ec36dafaf8",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-profile-package-tests.md": "c4f7edaea188202a9b704ef31006b0b978321e37e64dde4b3867a4d8304dd009",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-source-and-runtime-gaps.md": "af7227991c7ddf84dfee0a6f6db52b9a08582e43e46fc253377352fd1c2adc59",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-xcode-tests.md": "edaa753b260ca425f8f3d94e0ab7f26e0bac4cbc202d065e0c8969bc53b71ac8",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-scope-baseline.json": "a6b4e1001d9465ac651b89deff330b5965d611c1045be58ae20ebca85a00bb9d",
     "iOS/specs/my-profile/changes/my-profile/implementation-spec.md": "f3a72139e69248ccd370edac0bff39ceb48e3ff4d7b26930be499279c8f6c615",
-    "iOS/specs/my-profile/changes/my-profile/meta.json": "248918ef9ddc9772684f42fe1f6402945f6a1b1b2aca46436824174e63468da7",
+    "iOS/specs/my-profile/changes/my-profile/meta.json": "8f8985a726c8e2bf72bf88ed90054adab0787e9e8ddcc290f8b24826e3f06ebe",
     "iOS/specs/my-profile/changes/my-profile/plan/README.md": "a7075f35b96617dcc1e530accf638405f5d107560166de39dfa7cc2113c84c63",
     "iOS/specs/my-profile/changes/my-profile/plan/rule-selection.json": "b496e71d3786fdb2bf764d3e803fb4a8e85b958f90bd2a26ded350dc9cfd6d03",
     "iOS/specs/my-profile/changes/my-profile/plan/task-001.md": "502deec817bb92187dbfb28f38bd1a7b9ecea03fe5ea8231856d777836c8e9a0",
@@ -68,7 +133,7 @@
     "iOS/specs/my-profile/changes/my-profile/plan/task-004.md": "05a771a3ac8c78093128986032c3a40367e1db6999ebb18132c43b98a598e3e8",
     "iOS/specs/my-profile/changes/my-profile/platform-ux.md": "72e65393deaab9fb6ca18726b39532bc602395ca020adaf13271a8da9f147bd3",
     "iOS/specs/my-profile/changes/my-profile/proposal.md": "79181d60346c3c4248ebcc5f0741de02d6faa5e15eaa9531c6a9028aa902bda8",
-    "iOS/specs/my-profile/changes/my-profile/verification.md": "f692ff2e046fca7b537af8cc223485790d440976d891d1c44ef3135ee45b7eaf",
+    "iOS/specs/my-profile/changes/my-profile/verification.md": "807df41b0ca483198d0c98db4af28052241cbd2b2da055c8528949d0771d57ac",
     "iOS/workflow/README.md": "c895f45df50c6c5fe60f767a874d1a1f25978ed00240eec52caad7bad2f5b90d",
     "iOS/workflow/phases/archive.md": "10031153103bf99ad9db40821445a31ab9274b5a21bc8e639b4a324d86669664",
     "iOS/workflow/phases/deep-code-review.md": "456d3ba1c07038d8e7278c74177adaaa8b220e3abaffc5ab5a808f301d2ea5e6",
@@ -289,9 +354,128 @@
         "stage": "0"
       }
     ],
+    "iOS/MyProfileFeature/Package.swift": [
+      {
+        "blob_id": "c4b26583b1bd036c68474f86ecd5079bd915f826",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Data/MyProfileAPIClient.swift": [
+      {
+        "blob_id": "d16e30bd2f5a651a942b0e4a4343b6fbd9d647b4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileModels.swift": [
+      {
+        "blob_id": "1ed3efc8a14cbf2114df0d1d1bcc80fdd0f28bce",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileRepository.swift": [
+      {
+        "blob_id": "0cca014ef516317d1a5e88adcf82768ba3ca916c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileStateStore.swift": [
+      {
+        "blob_id": "829fa1cb5bc884928010595335494ab714ce62be",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Tests/MyProfileFeatureTests/Data/MyProfileAPIClientTests.swift": [
+      {
+        "blob_id": "1cb0c14f75c7187f3809529734fa590dd2d93b5f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/MyProfileFeature/Tests/MyProfileFeatureTests/Domain/MyProfileStateStoreTests.swift": [
+      {
+        "blob_id": "3b627c71af5fef64c83c3abd4b1794f2d4f2ab30",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
     "iOS/specs/my-profile/changes/my-profile/design.md": [
       {
         "blob_id": "10ba2c8d20f71a0744eb86252e85ab7f2d0755e2",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-003-profile-presentation.md": [
+      {
+        "blob_id": "e306823e51248af49d9dc3b748dc079a286e2b35",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-004-app-shell-wiring.md": [
+      {
+        "blob_id": "69bd051949c6ca58e103399288016c9f2a0e91e3",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json": [
+      {
+        "blob_id": "42da9fa2e11d3e490f82962449262cfc63c6a0aa",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json": [
+      {
+        "blob_id": "7528424f39d282505710cc127481bfae81187cad",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-003.json": [
+      {
+        "blob_id": "7084b71b6d17f189dccb53d9f5ace96a75f68dda",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-004.json": [
+      {
+        "blob_id": "ce5de151480ed8dc66a1b65103b5f89dd50ce732",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-001.md": [
+      {
+        "blob_id": "15a4644212eb24fbfceb2e4bd2637affb6423c89",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-002.md": [
+      {
+        "blob_id": "046d29d4d2a28c029c17f11e9a18ec0300e951b0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-003.md": [
+      {
+        "blob_id": "aa853d2fc4224985b5990dacd770260337b47043",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-004.md": [
+      {
+        "blob_id": "92c79d41f6ecc771aa22b0d4bf110001fe88c0ce",
         "mode": "100644",
         "stage": "0"
       }
@@ -305,7 +489,49 @@
     ],
     "iOS/specs/my-profile/changes/my-profile/meta.json": [
       {
-        "blob_id": "ab41df456f9b8402e8f45e5ecf6142380cb2a1f9",
+        "blob_id": "db2e2316f7ec3bf61803e377626ae3c294cf268b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/README.md": [
+      {
+        "blob_id": "e14832d896366b1796e467567e7c6d8a3780ddb6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/rule-selection.json": [
+      {
+        "blob_id": "1cdfa8d6e1f2c60b9af5efc3ccb8606ac4a4aba6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/task-001.md": [
+      {
+        "blob_id": "428d4196c6977ff59435a26133ebad61623d5856",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/task-002.md": [
+      {
+        "blob_id": "09189b03ffa272665a9fd79aca9c9a7addaedda8",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/task-003.md": [
+      {
+        "blob_id": "e06c15c0fc34283c48c30a9a437f16d2b67e39d0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "iOS/specs/my-profile/changes/my-profile/plan/task-004.md": [
+      {
+        "blob_id": "e2c6cefa8ed4233e29d94397f281a13838215b90",
         "mode": "100644",
         "stage": "0"
       }
@@ -1612,7 +1838,8 @@
       "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json",
       "iOS/specs/my-profile/changes/my-profile/evidence/task-002.md",
       "iOS/specs/my-profile/changes/my-profile/meta.json",
-      "iOS/specs/my-profile/changes/my-profile/plan/task-002.md"
+      "iOS/specs/my-profile/changes/my-profile/plan/task-002.md",
+      "iOS/specs/my-profile/changes/my-profile/verification.md"
     ],
     "watched": [
       ".agents/skills/implement",
@@ -1629,6 +1856,7 @@
       "iOS/specs/my-profile/changes/my-profile/evidence/task-002.md",
       "iOS/specs/my-profile/changes/my-profile/meta.json",
       "iOS/specs/my-profile/changes/my-profile/plan/task-002.md",
+      "iOS/specs/my-profile/changes/my-profile/verification.md",
       "iOS/workflow",
       "iOS/workflow/platform-contract.json",
       "iOS/workflow/rules/accessibility.md",
@@ -1670,15 +1898,69 @@
   },
   "platform": "ios",
   "preexisting_status": {
-    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json": "??",
-    "iOS/specs/my-profile/changes/my-profile/evidence/task-001.md": "??",
-    "iOS/specs/my-profile/changes/my-profile/meta.json": " M",
-    "iOS/specs/my-profile/changes/my-profile/plan/README.md": "??",
-    "iOS/specs/my-profile/changes/my-profile/plan/rule-selection.json": "??",
-    "iOS/specs/my-profile/changes/my-profile/plan/task-001.md": "??",
-    "iOS/specs/my-profile/changes/my-profile/plan/task-002.md": "??",
-    "iOS/specs/my-profile/changes/my-profile/plan/task-003.md": "??",
-    "iOS/specs/my-profile/changes/my-profile/plan/task-004.md": "??"
+    "iOS/MyProfileFeature/Package.swift": " M",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Data/MyProfileAPIClient.swift": " M",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Data/MyProfilePreviewSessionClient.swift": "??",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileModels.swift": " M",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileRepository.swift": " M",
+    "iOS/MyProfileFeature/Sources/MyProfileFeature/Domain/MyProfileStateStore.swift": " M",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-appearance-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-assistive-semantics-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-availability-fallback-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-dark-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-device-adaptation-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-increased-contrast-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-light-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-motion-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T094148Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T095843Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/native-text-scaling-20260717T104023Z.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-003-profile-presentation.md": "A ",
+    "iOS/specs/my-profile/changes/my-profile/evidence/reconciliation-20260717T074300Z-task-004-app-shell-wiring.md": "A ",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json": " M",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-003.json": "AM",
+    "iOS/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-004.json": "AM",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-002.md": " M",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-003.md": "AM",
+    "iOS/specs/my-profile/changes/my-profile/evidence/task-004.md": "AM",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-auth-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-build-and-boundaries.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-native-runtime-gaps.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-profile-package-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-source-observations.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T094148Z-xcode-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-auth-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-build-and-boundaries.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-profile-package-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-source-and-native-gaps.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T095843Z-xcode-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-auth-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-build-and-boundaries.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-profile-package-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-source-and-runtime-gaps.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-20260717T104023Z-xcode-tests.md": "??",
+    "iOS/specs/my-profile/changes/my-profile/evidence/verify-scope-baseline.json": "??",
+    "iOS/specs/my-profile/changes/my-profile/meta.json": "MM",
+    "iOS/specs/my-profile/changes/my-profile/plan/task-002.md": " M",
+    "iOS/specs/my-profile/changes/my-profile/plan/task-003.md": "MM",
+    "iOS/specs/my-profile/changes/my-profile/plan/task-004.md": "MM",
+    "iOS/specs/my-profile/changes/my-profile/verification.md": " M"
   },
   "schema_version": 3,
   "snapshot_algorithm": "git-visible-lane-v1",

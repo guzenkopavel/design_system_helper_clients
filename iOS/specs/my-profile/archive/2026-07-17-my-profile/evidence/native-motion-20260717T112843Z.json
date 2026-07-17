@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "PASS",
+  "observation": "Тесты представления подтверждают ветку Reduce Motion и отсутствие обязательной анимационной зависимости для обратной связи счётчика, выхода и переходов состояния.",
+  "evidence_refs": [
+    "evidence/verify-20260717T112843Z-native-runtime.md",
+    "evidence/verify-20260717T112843Z-tests.md"
+  ]
+}

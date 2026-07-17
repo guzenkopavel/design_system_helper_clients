@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "UNKNOWN",
+  "observation": "Source branch для Reduce Motion существует, но runtime с включённой настройкой не выполнялся.",
+  "evidence_refs": []
+}

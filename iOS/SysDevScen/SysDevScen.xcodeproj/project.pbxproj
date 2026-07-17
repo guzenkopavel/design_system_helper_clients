@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C0DEFACE0000000000000001 /* AuthFeature in Frameworks */ = {isa = PBXBuildFile; productRef = C0DEFACE0000000000000002 /* AuthFeature */; };
+		C0DEFACE0000000000000101 /* MyProfileFeature in Frameworks */ = {isa = PBXBuildFile; productRef = C0DEFACE0000000000000102 /* MyProfileFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0DEFACE0000000000000001 /* AuthFeature in Frameworks */,
+				C0DEFACE0000000000000101 /* MyProfileFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = SysDevScen;
 			packageProductDependencies = (
 				C0DEFACE0000000000000002 /* AuthFeature */,
+				C0DEFACE0000000000000102 /* MyProfileFeature */,
 			);
 			productName = SysDevScen;
 			productReference = E95AED863007A96A000B839E /* SysDevScen.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C0DEFACE0000000000000003 /* XCLocalSwiftPackageReference "../AuthFeature" */,
+				C0DEFACE0000000000000103 /* XCLocalSwiftPackageReference "../MyProfileFeature" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E95AED873007A96A000B839E /* Products */;
@@ -620,6 +624,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../AuthFeature;
 		};
+		C0DEFACE0000000000000103 /* XCLocalSwiftPackageReference "../MyProfileFeature" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MyProfileFeature;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -627,6 +635,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C0DEFACE0000000000000003 /* XCLocalSwiftPackageReference "../AuthFeature" */;
 			productName = AuthFeature;
+		};
+		C0DEFACE0000000000000102 /* MyProfileFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0DEFACE0000000000000103 /* XCLocalSwiftPackageReference "../MyProfileFeature" */;
+			productName = MyProfileFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

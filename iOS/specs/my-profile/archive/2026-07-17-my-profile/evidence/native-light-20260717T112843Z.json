@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-LIGHT",
+  "status": "PASS",
+  "observation": "Отдельный simulator run в light appearance подтвердил читаемую профильную поверхность с email, символом, действиями и count feedback без изменения поведения.",
+  "evidence_refs": [
+    "evidence/verify-20260717T112843Z-native-runtime.md"
+  ]
+}

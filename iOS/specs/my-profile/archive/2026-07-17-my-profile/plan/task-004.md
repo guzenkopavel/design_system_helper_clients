@@ -4,8 +4,8 @@
 - Boundary owner: SysDevScen app-shell composition boundary
 - Engineering scopes: ["application", "package", "ui"]
 - Depends on: task-003
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-004.md
 - Estimate (ideal): 1-2 days
 - Read-only context: ["iOS/AuthFeature/Package.swift", "iOS/SysDevScen/SysDevScen.xcodeproj/project.xcworkspace/contents.xcworkspacedata", "iOS/specs/my-profile/changes/my-profile/implementation-spec.md", "iOS/specs/my-profile/changes/my-profile/platform-ux.md", "specs/product/my-profile/spec.md"]
 - Paths: existing: iOS/SysDevScen/SysDevScen.xcodeproj/project.pbxproj; existing: iOS/SysDevScen/SysDevScen/ContentView.swift; existing: iOS/SysDevScen/SysDevScen/RootView.swift; existing: iOS/SysDevScen/SysDevScen/SysDevScenApp.swift; existing: iOS/SysDevScen/SysDevScenTests; existing: iOS/SysDevScen/SysDevScenUITests

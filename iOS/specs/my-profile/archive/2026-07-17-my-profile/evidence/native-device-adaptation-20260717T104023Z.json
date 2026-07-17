@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "status": "UNKNOWN",
+  "observation": "Свежий runtime выполнен только на iPhone 17; iPad layout и фактическая геометрия hit targets не наблюдались.",
+  "evidence_refs": []
+}

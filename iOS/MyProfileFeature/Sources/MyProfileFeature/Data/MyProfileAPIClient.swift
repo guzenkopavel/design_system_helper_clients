@@ -6,7 +6,7 @@ public struct MyProfileFeatureFactory: Sendable {
     public init() {}
 
     @MainActor
-    public func makeStateStore(
+    func makeStateStore(
         sessionClient: any AuthSessionRequesting,
         recoverInvalidSession: @escaping @MainActor @Sendable () async -> Void
     ) -> MyProfileStateStore {

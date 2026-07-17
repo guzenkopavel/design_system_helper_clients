@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DARK",
+  "status": "UNKNOWN",
+  "observation": "Dark launch tests не открывали профильную поверхность, поэтому её читаемость в dark appearance не наблюдалась.",
+  "evidence_refs": []
+}

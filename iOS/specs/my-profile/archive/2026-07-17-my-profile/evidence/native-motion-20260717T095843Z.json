@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "UNKNOWN",
+  "observation": "Reduce Motion проверен только тестом состояния; переход и сообщение в среде выполнения не наблюдались.",
+  "evidence_refs": []
+}

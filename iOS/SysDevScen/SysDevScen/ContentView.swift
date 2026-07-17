@@ -8,24 +8,37 @@
 import SwiftUI
 
 struct ContentView: View {
+    let profileContent: AnyView
+
     var body: some View {
-        RootShellView()
+        RootShellView(profileContent: profileContent)
     }
 }
 
 private struct RootShellView: View {
+    let profileContent: AnyView
+
     @State private var selectedSection: RootSection = .cases
 
     var body: some View {
         TabView(selection: $selectedSection) {
             ForEach(RootSection.allCases) { section in
-                ContentUnavailableView(section.title, systemImage: section.systemImage)
-                    .accessibilityIdentifier(section.contentIdentifier)
+                sectionContent(section)
                     .tag(section)
-                    .tabItem {
-                        Label(section.title, systemImage: section.systemImage)
-                    }
+                    .tabItem { Label(section.title, systemImage: section.systemImage) }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionContent(_ section: RootSection) -> some View {
+        switch section {
+        case .cases, .knowledge:
+            ContentUnavailableView(section.title, systemImage: section.systemImage)
+                .accessibilityIdentifier(section.contentIdentifier)
+        case .profile:
+            profileContent
+                .accessibilityIdentifier(section.contentIdentifier)
         }
     }
 }
@@ -72,5 +85,7 @@ private enum RootSection: String, CaseIterable, Identifiable {
 }
 
 #Preview {
-    ContentView()
+    ContentView(
+        profileContent: AnyView(Text("Профиль"))
+    )
 }

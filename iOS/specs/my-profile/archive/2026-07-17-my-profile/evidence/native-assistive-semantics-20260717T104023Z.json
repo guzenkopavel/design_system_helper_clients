@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "UNKNOWN",
+  "observation": "Исходный код содержит labels, hints и identifier, но порядок, фокус, признаки и объявления VoiceOver не наблюдались в ассистивном runtime.",
+  "evidence_refs": []
+}

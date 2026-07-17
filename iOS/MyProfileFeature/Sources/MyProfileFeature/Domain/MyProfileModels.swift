@@ -1,37 +1,37 @@
 import Foundation
 
-public struct MyProfileAccount: Equatable, Sendable {
+struct MyProfileAccount: Equatable, Sendable {
 
-    public let email: String
+    let email: String
 
-    public init(email: String) {
+    init(email: String) {
         self.email = email
     }
 }
 
-public struct MyProfileSummary: Equatable, Sendable {
+struct MyProfileSummary: Equatable, Sendable {
 
-    public let email: String
-    public let interviewCount: Int
+    let email: String
+    let interviewCount: Int
 
-    public var isMyInterviewsEnabled: Bool {
+    var isMyInterviewsEnabled: Bool {
         interviewCount > 0
     }
 
-    public init(email: String, interviewCount: Int) {
+    init(email: String, interviewCount: Int) {
         self.email = email
         self.interviewCount = interviewCount
     }
 }
 
-public enum MyProfileFeatureError: Error, Equatable, Sendable {
+enum MyProfileFeatureError: Error, Equatable, Sendable {
     case invalidSession
     case offline
     case backend
     case decoding
 }
 
-public enum MyProfileState: Equatable, Sendable {
+enum MyProfileState: Equatable, Sendable {
     case idle
     case loading
     case loaded(MyProfileSummary)

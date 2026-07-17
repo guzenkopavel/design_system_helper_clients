@@ -4,8 +4,8 @@
 - Boundary owner: MyProfileFeature SwiftUI presentation boundary
 - Engineering scopes: ["localization", "ui"]
 - Depends on: task-002
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/task-003.md
 - Estimate (ideal): 1-1.5 days
 - Read-only context: ["iOS/specs/my-profile/changes/my-profile/implementation-spec.md", "iOS/specs/my-profile/changes/my-profile/platform-ux.md", "specs/product/my-profile/spec.md", "specs/product/my-profile/ux.md"]
 - Paths: proposed: iOS/MyProfileFeature/Sources/MyProfileFeature/Presentation; proposed: iOS/MyProfileFeature/Sources/MyProfileFeature/Resources; proposed: iOS/MyProfileFeature/Tests/MyProfileFeatureTests/Presentation

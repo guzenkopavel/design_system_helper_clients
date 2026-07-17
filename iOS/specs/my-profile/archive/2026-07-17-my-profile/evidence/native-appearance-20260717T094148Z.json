@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "UNKNOWN",
+  "observation": "Focused UI suite наблюдал content и empty states, но не зафиксировал loading/signing-out appearance и профильный символ как отдельное визуальное наблюдение.",
+  "evidence_refs": []
+}

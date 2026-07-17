@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "status": "UNKNOWN",
+  "observation": "Фокусный набор работал только на iPhone 17; размещение на iPad и целевые зоны не наблюдались.",
+  "evidence_refs": []
+}

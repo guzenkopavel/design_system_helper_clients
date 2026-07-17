@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-LIGHT",
+  "status": "UNKNOWN",
+  "observation": "Focused UI suite не фиксировал явный light appearance и читаемость всех состояний.",
+  "evidence_refs": []
+}

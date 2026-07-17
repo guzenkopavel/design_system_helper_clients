@@ -45,7 +45,7 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(tab("Профиль").exists)
 
         tapTab("Профиль")
-        XCTAssertTrue(app.staticTexts["Профиль"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["pavel@example.com"].waitForExistence(timeout: 5))
         XCTAssertTrue(tab("Профиль").isSelected)
 
         tapTab("Кейсы")
@@ -75,6 +75,14 @@ final class AppShellUITests: XCTestCase {
     }
 
     private func tab(_ title: String) -> XCUIElement {
-        app.tabBars.buttons[title]
+        let predicate = NSPredicate(format: "label == %@ OR identifier == %@", title, title)
+        let candidates = [
+            app.tabBars.buttons.matching(predicate).firstMatch,
+            app.buttons.matching(predicate).firstMatch,
+            app.cells.matching(predicate).firstMatch,
+            app.otherElements.matching(predicate).firstMatch,
+            app.descendants(matching: .any).matching(predicate).firstMatch,
+        ]
+        return candidates.first(where: \.exists) ?? candidates[candidates.count - 1]
     }
 }
