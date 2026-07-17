@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "feature": "user-profile-auth",
+  "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+  "coordinator_role": "elaborate-coordinator",
+  "lens_order": [
+    "product",
+    "ux-accessibility",
+    "design-system",
+    "data-analytics-privacy",
+    "security",
+    "cross-client-parity"
+  ],
+  "aggregate_status": "PASS",
+  "verdicts": [
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "product",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "run_id": "review-user-profile-auth-final-2-product-20260716-r1",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "context_id": "reviewer-ctx-final-2-product-5384866c",
+      "provenance_ref": "claude-code:agent-invocation:final-2:product",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Проблема и мотивация заданы конкретно: клиенты открываются в доставленной оболочке `app-shell` без идентификации, бэкенд уже предоставляет `email-first` авторизацию (`spec.md`, раздел `Problem and Why`; подтверждено evidence-таблицей `brief.md` со ссылками на `OpenAPI` и файлы бэкенда с уровнями confidence). Outcomes и сигналы успеха наблюдаемы и проверяемы: путь «почта → пароль → оболочка» без инструкций, повторный запуск без экрана входа, восстановимость ошибок (`spec.md`, `Outcomes and Success Signals`). Scope и Non-Goals взаимно согласованы между `brief.md` и `spec.md`; границы явные: выход и наполнение «Профиля» вынесены в будущую фичу с зафиксированным принятым следствием (невозможность смены аккаунта до истечения сессии), запрет предписания платформенных компонентов/`SDK`/хранения входит в Non-Goals — утечки платформенной реализации в shared contract нет. Альтернативы рассмотрены и отклонены с причинами (`brief.md`, `Rejected alternatives`: паритет с вебом, вход по требованию, ручной выбор ветки). Наблюдаемое поведение полно: happy path из 5 шагов и secondary states (`Loading`, `Empty`, валидация, `Error`, `Rate limit`, `Offline`, `Recovery`, `Accessibility`, `Localization`) заданы наблюдаемыми исходами без механизмов реализации. Атомарность REQ и AC выполнена: 25 AC, каждый задаёт один наблюдаемый outcome, все 25 `Verification dimension` уникальны (проверено пересчётом), таблица `Requirement Coverage` покрывает все `REQ-1`…`REQ-9` без пропусков и дублей ID; ветвление входа/регистрации, возврат к почте, хранение (`password-not-stored`, `session-storage-isolation`, `stale-session-cleanup`) и appearance/assistive аспекты (`assistive-semantics`, `focus-management`, `non-color-cues`, `text-scaling`, `light-dark-appearance`, `increased-contrast`) разнесены по отдельным AC. READY-когерентность соблюдена: `Readiness Decision: READY`/`none`, `Open Questions: None` в `spec.md` и `ux.md`, все строки `Client Readiness` — терминальный `PASS` с evidence для обоих клиентов, human approval `APPROVED` c approver и evidence записан в metadata; metadata `Status: DRAFT` — ожидаемое состояние final-цикла до receipt. Оба клиента проверены: паритет закреплён `REQ-9`/`AC-25`, допустимая variance явно ограничена в `ux.md` (`Allowed platform variance`) и таблице `Client Parity Check` в `brief.md`; скрытых форков поведения в product-контракте не обнаружено.",
+      "evidence_refs": [
+        "spec.md",
+        "brief.md",
+        "ux.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "ux-accessibility",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "run_id": "final-2-ux-accessibility-20260716T000000Z-8c31",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "context_id": "ctx-final-2-ux-accessibility-5c9e7a41",
+      "provenance_ref": "claude-code:agent-invocation:final-2:ux-accessibility",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Путь пользователя замкнут: `ux.md` (`User Journey`, `Entry and Exit Points`, `Flow and Screen Impact`) описывает запуск, двухшаговый флоу «почта → пароль», ветвление «Вход»/«Регистрация», возврат к правке почты и выход в оболочку; все входы/выходы, включая возврат по истёкшей или отозванной сессии, определены. Состояния полны и восстановимы: `loading`, `empty`, локальная валидация, серверные ошибки, `rate limit` со временем повтора, `offline` с сохранением почты и очисткой пароля, `recovery` — согласованы между разделом `States` в `ux.md` и `Secondary states` в `spec.md`. Семантика контента и взаимодействия задана продуктово: ровно одно основное действие на шаг, блокировка действия с видимым индикатором во время запроса, ошибки рядом с формой без немого сброса, явный заголовок режима, скрытый пароль с управляемым раскрытием. Доступность покрыта наблюдаемыми исходами и атомарными критериями `AC-19`–`AC-24` с уникальными `Verification dimension`: совпадение доступных имён с видимыми русскими подписями, ассистивное объявление ошибок, загрузки и ограничения попыток, перевод фокуса к началу нового шага, различимость состояний не только цветом, увеличенный текст, светлое/тёмное/повышенно-контрастное оформление. Локализация зафиксирована: тексты на русском текущим контрактом, будущая локализация не меняет структуру шагов. Платформенные виджеты не предписаны: нативная клавиатура, раскрытие пароля, системный «назад» и автозаполнение вынесены в явно ограниченную `Allowed platform variance` в `ux.md` при одинаковых шагах, текстах и семантике для `iOS` и `Android`; поведение системного возврата на первом шаге зафиксировано как осознанная платформенная норма. Блокирующих находок по линзе нет.",
+      "evidence_refs": [
+        "spec.md",
+        "ux.md",
+        "brief.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "design-system",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "run_id": "run-user-profile-auth-final2-design-system-20260716-8f3c",
+      "context_id": "ctx-user-profile-auth-final2-design-system-20260716-4d7a",
+      "provenance_ref": "claude-code:agent-invocation:final-2:design-system",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Раздел `Shared Design-System Intent` в `ux.md` задаёт полный набор общих ролей компонентов (`поле формы`, `основное действие`, `второстепенное действие`, `сообщение обратной связи`, `индикатор ожидания`) и токен-семантику через семантические роли, а не литеральные цвета: мягко-синий закреплён за основным действием, фокусом, выделением активного шага и информационным акцентом; отклонений от `soft blue` явно не заявлено, поверхности тихие нейтральные с иерархией через типографику и интервалы, что соответствует канону `visual-language.md`. Критическая обратная связь и заблокированность действий выражены семантическими ролями и не только цветом; не-цветовые признаки перечислены явно и подкреплены атомарными критериями `AC-21` (`non-color-cues`), `AC-22` (`text-scaling`), `AC-23` (`light-dark-appearance`), `AC-24` (`increased-contrast`) в `spec.md`, то есть светлое, тёмное и повышенно-контрастное оформления имеют раздельные проверяемые обязательства. Кросс-клиентская вариативность обоснована и ограничена разделом `Allowed platform variance`: нативные клавиатуры, контроль раскрытия пароля, системный возврат и автозаполнение допущены при сохранении порядка шагов, текстов и семантики — без выбора реализации. Общий слой не называет `Liquid Glass`, `Material`, платформенные `SDK`, `API` или компоненты; раздел `Non-Goals` в `spec.md` явно запрещает предписание платформенных компонентов. Согласованность с baseline `app-shell` (тот же `calm`/`soft-blue` mood) зафиксирована в `brief.md` в разделе `Shared design-system intent`. Проверено для обоих клиентов: `iOS` и `Android` покрыты единым контрактом ролей и оформления.",
+      "evidence_refs": [
+        "ux.md",
+        "spec.md",
+        "brief.md"
+      ],
+      "findings": []
+    },
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "data-analytics-privacy",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "run_id": "user-profile-auth-final2-dap-20260716-7c41e9",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "context_id": "reviewer-ctx-final2-dap-20260716-b58d2a",
+      "provenance_ref": "claude-code:agent-invocation:final-2:data-analytics-privacy",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Жизненный цикл данных задан полно и минимально: собираются только почта и пароль, пароль не сохраняется и не логируется (`REQ-7`, `AC-17` в `spec.md`, раздел `Analytics and Privacy` в `ux.md`), сессионный секрет хранится изолированно от других приложений (`AC-18`) и очищается при истечении или отзыве сессии (`REQ-6`, `AC-16`, `Verification dimension: stale-session-cleanup`). Retention привязан к фиксированному серверному `TTL` 14 дней без продления (раздел `Common Product Constraints` в `spec.md`), а возврат по 401 гарантирует прекращение показа персональных данных (`AC-15`). Аналитика осознанно не добавляется — «событий и свойств нет, измерений нет» (`ux.md`, раздел `Analytics and Privacy`; `Secondary states` в `spec.md`), поэтому consent на трекинг не требуется, а признаки успеха из `Outcomes and Success Signals` проверяемы через наблюдаемые `AC` без инструментирования — measurement integrity согласована с решением об отсутствии аналитики. Privacy-исходы честно ограничены: раскрытие существования аккаунта через проверку почты зафиксировано как контракт бэкенда, который клиенты не усиливают (`Common Product Constraints`, `Risks` в `brief.md`); идентификатор трассировки в ошибках явно ограничен и не расширяет раскрытие (`ux.md`). Передача учётных и сессионных данных только по защищённому каналу закреплена как продуктовое ограничение. Требования сформулированы платформенно-нейтрально и одинаково применимы к `iOS` и `Android` (`REQ-9`, `AC-25`); механизм хранения корректно оставлен платформенной фазе без предписания `SDK`. Блокирующих пробелов линза не выявила.",
+      "evidence_refs": [
+        "spec.md",
+        "ux.md",
+        "brief.md"
+      ],
+      "findings": [
+        {
+          "id": "DAP-F2-001",
+          "severity": "info",
+          "summary": "Отсутствие пользовательского выхода означает, что на общем устройстве сессия и почта пользователя остаются доступными до 14 дней; последствие явно принято владельцем продукта и зафиксировано как риск с планом снятия в будущей фиче профиля.",
+          "evidence": "`brief.md`, разделы `Non-Goals` и `Risks`; `spec.md`, раздел `Product Decisions` («сменить аккаунт на устройстве нельзя до истечения или отзыва сессии»)",
+          "requirement_ids": [
+            "REQ-4",
+            "REQ-6"
+          ]
+        },
+        {
+          "id": "DAP-F2-002",
+          "severity": "info",
+          "summary": "Признаки успеха не инструментируются аналитикой и проверяются только через приёмочные критерии; это согласовано с явным решением «аналитика не добавляется» и не создаёт скрытого сбора данных.",
+          "evidence": "`spec.md`, разделы `Outcomes and Success Signals` и `Secondary states` (строка `Analytics/privacy`); `ux.md`, раздел `Analytics and Privacy`",
+          "requirement_ids": [
+            "REQ-9"
+          ]
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "security",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "run_id": "final-2-security-run-20260716T000000Z-7f3a",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "context_id": "reviewer-ctx-final-2-security-9c41",
+      "provenance_ref": "claude-code:agent-invocation:final-2:security",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Границы доверия заданы: серверная сессия, передача учётных и сессионных данных только по защищённому каналу (`Common Product Constraints` в `spec.md`), адрес `API` вынесен во внешнее окружение. Чувствительные данные покрыты атомарными обязательствами: пароль не сохраняется и не логируется (`REQ-7`, `AC-17`), сессионный секрет изолирован от других приложений (`AC-18`), недействительный секрет очищается из хранилища (`REQ-6`, `AC-16`), `offline`-состояние сохраняет почту, но не пароль. Авторизация: полный гейт приложения (`REQ-1`, `AC-1`), возврат на вход при истечении или отзыве сессии с сокрытием данных прошлой сессии (`AC-15`). Угрозы и злоупотребления: ограничение попыток с временем повтора и блокировкой досрочной отправки (`AC-12`), неверные учётные данные не раскрывают существование аккаунта (`AC-8`), раскрытие существования через `email-check` явно признано фиксированным контрактом бэкенда с обязательством клиентов не усиливать его (`Common Product Constraints`, раздел `Risks` в `brief.md`), `traceId` в ошибках ограничен поддержкой без дополнительного раскрытия (`ux.md`, раздел `Analytics and Privacy`). Отказобезопасное поведение: блокировка повторной отправки при загрузке, локальная валидация до сетевого запроса, восстановимые состояния `offline` и `rate limit`. Механизм защищённого хранения оставлен платформенной фазе — утечки платформенных `SDK`/`API` в общий контракт нет. Требования и поведение одинаково применимы к `iOS` и `Android` (`Client Readiness`, `AC-25`). Блокирующих пробелов линза не выявила.",
+      "evidence_refs": [
+        "spec.md",
+        "brief.md",
+        "ux.md"
+      ],
+      "findings": [
+        {
+          "id": "SEC-INFO-1",
+          "severity": "info",
+          "summary": "Ограничение защищённого канала передачи зафиксировано только в `Common Product Constraints` и разделе `Shared Observable Behavior` без отдельного `AC`; проверка транспорта выполнима на платформенной фазе и блокером не является.",
+          "evidence": "`spec.md`, раздел `Common Product Constraints`: «Учётные данные и сессионный секрет передаются только по защищённому каналу»; в `Acceptance Criteria` отдельного критерия для транспорта нет.",
+          "requirement_ids": [
+            "REQ-7"
+          ]
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "feature": "user-profile-auth",
+      "lens": "cross-client-parity",
+      "subject_fingerprint": "sha256:a47ea1ee08df04e5ceb08f10cfee5e5aa8442b2392a6657f7b76360275da2a6e",
+      "reviewer_role": "product-spec-reviewer",
+      "runtime": "claude-code",
+      "run_id": "review-user-profile-auth-final-2-cross-client-parity-20260716-5384866c",
+      "parent_context_id": "elaborate-user-profile-auth-final-2",
+      "context_id": "reviewer-ctx-final-2-cross-client-parity-9727-48de-8704",
+      "provenance_ref": "claude-code:agent-invocation:final-2:cross-client-parity",
+      "independent_context": true,
+      "applicability": "REQUIRED",
+      "verdict": "PASS",
+      "clients_checked": [
+        "iOS",
+        "Android"
+      ],
+      "rationale": "Паритет клиентов задан явно и проверяемо: `spec.md` объявляет `Applies to: iOS, Android`, `REQ-9` требует одинаковое наблюдаемое поведение, тексты шагов и правила гейтинга на обеих платформах, а `AC-25` фиксирует сквозной проверяемый parity-проход с уникальной `Verification dimension: cross-client-parity`. Все состояния флоу (`Loading`, `Empty`, валидация, `Error`, `Rate limit`, `Offline`, `Recovery`, доступность, локализация) описаны платформо-нейтрально в разделах `Shared Observable Behavior` (`spec.md`) и `States` (`ux.md`) и применяются к обоим клиентам без скрытых ветвлений. Намеренные различия каталогизированы явно: колонка `iOS/Android variance` таблицы `Flow and Screen Impact` и раздел `Allowed platform variance` в `ux.md` (нативные клавиатуры, контроль раскрытия пароля, системный возврат на первом шаге, автозаполнение, форма индикатора) с ограничением, что порядок шагов, тексты и семантика сохраняются. Таблица `Client Parity Check` в `brief.md` показывает идентичные ожидания для обоих клиентов; отложенные пункты (механизм хранения сессии, edge-case возврат) вынесены как платформенные детали реализации, а не как расхождения продуктового поведения, и закрыты продуктовыми решениями в `Product Decisions` (`spec.md`). Раздел `Non-Goals` явно запрещает предписание платформенных `SDK`, компонентов и `API` хранения — утечки platform implementation в общий контракт нет. `Client Readiness` содержит отдельные терминальные `PASS`-строки для `iOS` и `Android` с evidence. Скрытых product-форков не обнаружено.",
+      "evidence_refs": [
+        "spec.md",
+        "ux.md",
+        "brief.md"
+      ],
+      "findings": []
+    }
+  ]
+}

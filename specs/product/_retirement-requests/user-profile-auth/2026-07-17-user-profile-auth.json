@@ -1,0 +1,18 @@
+{
+  "feature": "user-profile-auth",
+  "reason": "completed",
+  "retirement_approval": {
+    "approved_by": "Pavel Guzenko (product owner)",
+    "evidence": "Явная команда пользователя в текущей Codex-сессии от 2026-07-17: `/archive product user-profile-auth`; продуктовый пакет закрывается как completed после архивирования verified implementation receipts для iOS и Android."
+  },
+  "platforms": {
+    "ios": {
+      "disposition": "archived",
+      "evidence": "iOS/specs/user-profile-auth/archive/2026-07-17-user-profile-auth-public-contract-repair/archive-receipt.json"
+    },
+    "android": {
+      "disposition": "archived",
+      "evidence": "Android/specs/user-profile-auth/archive/2026-07-17-user-profile-auth/archive-receipt.json"
+    }
+  }
+}
