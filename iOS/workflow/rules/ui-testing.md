@@ -21,3 +21,20 @@ Plan для UI включает launch/reset/fixture strategy, mapping steps→a
 Simulator/device, runtime, scheme и command обнаруживаются. Параллельный запуск
 разрешён только при изолированных data/device resources. Один удачный retry не
 стирает первый failure.
+
+## Xcode runner recovery
+
+Если широкий `xcodebuild test` для UI automation зависает или долго молчит до
+первого `Test Suite`/`Running tests` output, это сначала классифицируется как
+runner/runtime `UNKNOWN`, а не как product PASS или product FAIL. Evidence
+фиксирует исходную команду, длительность, watchdog/stall budget, diagnostics и
+причину остановки.
+
+После такого runner-сбоя допустим один bounded recovery path: очистить только
+ресурсы simulator/test runner, которыми владеет текущий запуск, отключить
+параллельность через `-parallel-testing-enabled NO` и заменить широкий suite
+на набор focused `-only-testing:` команд, если они покрывают ту же method
+matrix. Focused PASS может закрыть terminal verification только когда исходный
+runner-сбой сохранён как evidence, а отчёт явно объясняет покрытие широкого
+suite более мелкими наблюдениями. Бесконечные rerun и удаление чужих booted
+simulators запрещены.

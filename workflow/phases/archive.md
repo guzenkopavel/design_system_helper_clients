@@ -24,7 +24,11 @@ Both are deterministic, collision-safe and dry-run first. Verified
 implementation mode requires validator `archive` success, then invokes
 `archive-change.py implementation ... --apply`, preserves the original
 verification fingerprint after relocation and emits `archive-receipt.json`; it
-first requires `archive-implementation` capability. Apply additionally
+first requires `archive-implementation` capability. After apply, validate the
+emitted receipt with `archive-change.py receipt --platform <platform>
+--feature <feature> --receipt <repo-relative archive-receipt.json>`; this is the
+post-archive integrity check, while `validate-platform-change --mode archive`
+is the pre-apply active-package gate. Apply additionally
 publishes the full verified post-change contract as feature-root
 `SPECIFICATION.md` and binds its archived source/published bytes in receipt v2.
 Implementation retirement mode requires explicit

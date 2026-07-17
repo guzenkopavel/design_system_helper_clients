@@ -23,7 +23,10 @@ product package; apply обязан сохранить validated copy как
 traversal, ambiguous identity, stale evidence, active product references или
 неполные platform dispositions. Implementation archive обязан сохранить
 исходный verification fingerprint после relocation и создать проверяемый
-`archive-receipt.json`; product disposition ссылается только на этот receipt.
+`archive-receipt.json`; после apply проверить его через
+`archive-change.py receipt --platform <platform> --feature <feature> --receipt
+<repo-relative archive-receipt.json>`. Product disposition ссылается только на
+этот receipt.
 Implementation apply также атомарно публикует полный verified contract в
 feature-root `SPECIFICATION.md`; receipt v2 связывает published bytes с
 immutable archived `implementation-spec.md`, не делая старые receipts зависимыми

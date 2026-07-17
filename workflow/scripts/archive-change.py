@@ -548,6 +548,31 @@ def validate_implementation_retirement_receipt(
     return errors
 
 
+def validate_implementation_archive_receipt(
+    root: Path, platform: str | None, feature: str | None, receipt: Path | None
+) -> tuple[str, list[str]]:
+    repo = root.resolve()
+    if not platform:
+        return "INVALID", ["receipt mode requires --platform"]
+    if not feature:
+        return "INVALID", ["receipt mode requires --feature"]
+    if receipt is None:
+        return "INVALID", ["receipt mode requires --receipt"]
+    if receipt.is_absolute() or ".." in receipt.parts:
+        return "INVALID", ["--receipt must be a safe repo-relative path"]
+    receipt_path = repo / receipt
+    verified_errors = validate_implementation_receipt(repo, receipt_path, feature, platform.casefold())
+    if not verified_errors:
+        return "VALID", [f"{receipt.as_posix()} (implementation)"]
+    retirement_errors = validate_implementation_retirement_receipt(repo, receipt_path, feature, platform.casefold())
+    if not retirement_errors:
+        return "VALID", [f"{receipt.as_posix()} (implementation-retirement)"]
+    return "INVALID", [
+        "verified archive: " + "; ".join(verified_errors),
+        "retirement archive: " + "; ".join(retirement_errors),
+    ]
+
+
 def retirement_validation_mode(status: object) -> str | None:
     if status == "specified":
         return "propose"
@@ -1282,6 +1307,10 @@ def self_test() -> int:
             assert ios_prior.read_bytes() == b"previous delivered iOS baseline\n"
             ios_retired_receipt = retire_repo / f"iOS/specs/sample/archive/{date.today().isoformat()}-sample/archive-receipt.json"
             assert validate_implementation_retirement_receipt(retire_repo, ios_retired_receipt, "sample", "ios") == []
+            receipt_status, receipt_details = validate_implementation_archive_receipt(
+                retire_repo, "ios", "sample", ios_retired_receipt.relative_to(retire_repo)
+            )
+            assert receipt_status == "VALID" and "implementation-retirement" in receipt_details[0]
             assert validate_implementation_receipt(retire_repo, ios_retired_receipt, "sample", "ios")
             assert validate_archived_disposition(
                 retire_repo, "sample", "ios", ios_retired_receipt.relative_to(retire_repo).as_posix()
@@ -1361,6 +1390,10 @@ def self_test() -> int:
         ios_receipt = repo / f"iOS/specs/sample/archive/{date.today().isoformat()}-sample/archive-receipt.json"
         historical_errors = validate_implementation_receipt(repo, ios_receipt, "sample", "ios")
         assert historical_errors == [], historical_errors
+        receipt_status, receipt_details = validate_implementation_archive_receipt(
+            repo, "ios", "sample", ios_receipt.relative_to(repo)
+        )
+        assert receipt_status == "VALID" and "implementation)" in receipt_details[0]
         ios_archive_root = ios_receipt.parent
         original_receipt = ios_receipt.read_bytes()
         nested_receipt_name = ios_archive_root / "evidence/archive-receipt.json"
@@ -1630,23 +1663,29 @@ def self_test() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", nargs="?", choices=("implementation", "product"))
+    parser.add_argument("mode", nargs="?", choices=("implementation", "product", "receipt"))
     parser.add_argument("--platform"); parser.add_argument("--feature"); parser.add_argument("--change")
     parser.add_argument("--retire", choices=("superseded", "cancelled"))
-    parser.add_argument("--request", type=Path); parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--request", type=Path); parser.add_argument("--receipt", type=Path); parser.add_argument("--apply", action="store_true")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2]); parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test: return self_test()
     if not args.mode or not args.feature: parser.error("mode and --feature are required")
     if args.mode == "implementation":
         if not args.platform: parser.error("implementation mode requires --platform")
+        if args.receipt: parser.error("--receipt applies only to receipt mode")
         status, details = archive_implementation(args.root, args.platform, args.feature, args.change, args.apply, args.retire)
+    elif args.mode == "receipt":
+        if args.apply or args.retire or args.request or args.change:
+            parser.error("receipt mode does not accept --apply, --retire, --request or --change")
+        status, details = validate_implementation_archive_receipt(args.root, args.platform, args.feature, args.receipt)
     else:
         if args.retire: parser.error("--retire applies only to implementation mode")
+        if args.receipt: parser.error("--receipt applies only to receipt mode")
         status, details = archive_product(args.root, args.feature, args.request, args.apply)
     print(f"Archive {args.mode}: {status}")
     for detail in details: print(f"- {detail}")
-    return 0 if status in {"DRY-RUN", "APPLIED"} else 2
+    return 0 if status in {"DRY-RUN", "APPLIED", "VALID"} else 2
 
 
 if __name__ == "__main__":

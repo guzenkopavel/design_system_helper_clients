@@ -704,6 +704,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/README.md`](workflow/test-evidence/README.md) | Test evidence |
 | [`workflow/test-evidence/android-propose-plan-implement.md`](workflow/test-evidence/android-propose-plan-implement.md) | Android propose/plan/implement — RED/GREEN |
 | [`workflow/test-evidence/android-verify-archive.md`](workflow/test-evidence/android-verify-archive.md) | Android Verify и implementation archive |
+| [`workflow/test-evidence/archive-receipt-cli.md`](workflow/test-evidence/archive-receipt-cli.md) | Archive receipt CLI evidence |
 | [`workflow/test-evidence/concurrent-work-lanes.md`](workflow/test-evidence/concurrent-work-lanes.md) | Concurrent work lanes — test evidence |
 | [`workflow/test-evidence/cross-platform-modularity.md`](workflow/test-evidence/cross-platform-modularity.md) | Cross-platform modularity — RED → GREEN → REFACTOR |
 | [`workflow/test-evidence/deep-code-review.md`](workflow/test-evidence/deep-code-review.md) | Deep code review evidence |
@@ -715,6 +716,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/ios-engineering-rules.md`](workflow/test-evidence/ios-engineering-rules.md) | iOS engineering rules — RED/GREEN evidence |
 | [`workflow/test-evidence/ios-implement-archive.md`](workflow/test-evidence/ios-implement-archive.md) | iOS implement/verify/archive — test evidence |
 | [`workflow/test-evidence/ios-propose-plan.md`](workflow/test-evidence/ios-propose-plan.md) | iOS propose/plan — test evidence |
+| [`workflow/test-evidence/ios-ui-runner-recovery.md`](workflow/test-evidence/ios-ui-runner-recovery.md) | iOS UI runner recovery — harness change evidence |
 | [`workflow/test-evidence/lifecycle-flow-hardening.md`](workflow/test-evidence/lifecycle-flow-hardening.md) | Lifecycle flow hardening — test evidence |
 | [`workflow/test-evidence/plan-task-deliverables.md`](workflow/test-evidence/plan-task-deliverables.md) | Plan task deliverables — RED/GREEN |
 | [`workflow/test-evidence/platform-native-ux.md`](workflow/test-evidence/platform-native-ux.md) | Platform-native UX harness evidence |

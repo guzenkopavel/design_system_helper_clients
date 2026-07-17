@@ -106,6 +106,12 @@ $harness-review <scope>
 $writing-skills <instructional-change>
 ```
 
+После successful `archive implementation ... --apply` пост-архивная проверка
+receipt выполняется через `workflow/scripts/archive-change.py receipt --platform
+<platform> --feature <feature> --receipt <repo-relative archive-receipt.json>`.
+`validate-platform-change --mode archive` остаётся pre-apply gate для active
+package и после relocation не является tombstone-check.
+
 `platform` обязателен для platform lifecycle и принимает adapter identity
 `ios` или `android`. Если `--change` опущен downstream, активный package должен
 быть единственным. Manual-only skills не запускаются из произвольного контекста

@@ -32,6 +32,11 @@ relocation, atomically publishes the verified full post-change contract as
 `archive-receipt.json`, and leaves
 `changes/<change-id>/ARCHIVED.md` with the exact destination. A collision or
 partial failure rolls back; the shared source is never modified.
+Post-apply receipt validation uses
+`archive-change.py receipt --platform <platform> --feature <feature> --receipt
+<repo-relative archive-receipt.json>`. The lifecycle validator mode `archive`
+is the pre-apply gate for the still-active package and is not a tombstone
+validator after relocation.
 
 `SPECIFICATION.md` is the durable current baseline for future Propose/Plan and
 is not a change package or tombstone. It contains provenance to the immutable
