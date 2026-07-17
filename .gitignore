@@ -9,6 +9,7 @@ __pycache__/
 .kotlin/
 DerivedData/
 build/
+iOS/MyProfileFeature/.build/
 
 # Machine-local IDE and build daemon state
 **/xcuserdata/
