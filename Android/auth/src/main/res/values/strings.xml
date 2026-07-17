@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Заголовки -->
+    <string name="auth_title_login">Вход</string>
+    <string name="auth_title_register">Регистрация</string>
+
+    <!-- Подсказки полей -->
+    <string name="auth_hint_email">Электронная почта</string>
+    <string name="auth_hint_password">Пароль</string>
+
+    <!-- Кнопки -->
+    <string name="auth_button_next">Далее</string>
+    <string name="auth_button_submit">Войти</string>
+    <string name="auth_button_back">Назад</string>
+
+    <!-- Ошибки локальной валидации -->
+    <string name="auth_error_empty_email">Введите адрес электронной почты</string>
+    <string name="auth_error_empty_password">Введите пароль</string>
+    <string name="auth_error_invalid_email">Некорректный адрес электронной почты</string>
+    <string name="auth_error_short_password">Пароль должен содержать не менее 6 символов</string>
+
+    <!-- Ошибки сервера -->
+    <string name="auth_error_invalid_credentials">Неверные учётные данные</string>
+    <string name="auth_error_email_taken">Аккаунт с такой почтой уже существует</string>
+    <string name="auth_error_rate_limited">Слишком много попыток. Повторите позже.</string>
+    <string name="auth_error_offline">Нет сетевого подключения</string>
+
+    <!-- Состояния -->
+    <string name="auth_label_loading">Проверка…</string>
+    <string name="auth_label_rate_limit">Повторная попытка через %1$s</string>
+</resources>

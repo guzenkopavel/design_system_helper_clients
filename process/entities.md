@@ -31,7 +31,7 @@
 | planned rule selection | active package `plan/rule-selection.json`; sealed scopes, exact rules and semantic fingerprint | `plan` → downstream validators |
 | plan path authority | task `Paths` = writable production через canonical no-symlink ownership helper; `Read-only context` = immutable existing refs | `plan` validator → `implement`/reconcile/pre-commit guards |
 | plan task deliverables | current v1 task exact `Implementation deliverables`: минимум два substantive top-level list item о concrete artifact/behavior/boundary/test/config outcome | implementation-planner → validator → implementation-writer/reconciliation |
-| implementation archive | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation` |
+| implementation archive/retirement | `<platform>/specs/<feature>/archive/<date-change-id>/` + active tombstone | `archive implementation`; verified archives publish baseline, explicit retirement only unblocks active ownership |
 | durable platform specification | `<platform>/specs/<feature>/SPECIFICATION.md` | read-only baseline для Propose/Plan; `archive implementation` публикует verified full contract |
 | product archive | `specs/product/_archive/<feature>/<archive-id>/` + exact-path tombstone | `archive product` + retirement request |
 | verification state | active package `evidence/verification-state.json` | `verify` / fingerprint capture |

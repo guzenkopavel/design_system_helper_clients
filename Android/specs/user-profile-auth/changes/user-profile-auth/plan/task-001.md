@@ -5,10 +5,10 @@
 - Engineering scopes: ["module"]
 - Depends on: none
 - Status: done
-- Evidence: evidence/task-001.md
+- Evidence: evidence/reconciliation-20260717T120000Z-task-001-task-drift.md
 - Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 300 --stall-seconds 60 --max-output-lines 1200 -- ./Android/gradlew -p Android --no-daemon projects --console=plain
 - Estimate (ideal): 0.5–1 days
-- Paths: proposed: Android/auth/build.gradle.kts; proposed: Android/auth/src/main/AndroidManifest.xml; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/AuthGate.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/AuthState.kt
+- Paths: existing: Android/gradle.properties; proposed: Android/auth/build.gradle.kts; proposed: Android/auth/src/main/AndroidManifest.xml; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/AuthGate.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/AuthState.kt
 - Read-only context: ["Android/specs/user-profile-auth/changes/user-profile-auth/design.md"]
 
 ## Goal

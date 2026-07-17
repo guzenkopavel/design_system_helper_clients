@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ru.home.sysdevsc.appshell.AppShell
 import ru.home.sysdevsc.appshell.AppShellState
+import ru.home.sysdevsc.auth.AuthGate
 import ru.home.sysdevsc.ui.theme.SysDevScTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,15 +29,23 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SysDevScApp(modifier: Modifier = Modifier) {
     var appShellState by remember { mutableStateOf(AppShellState.initial()) }
+    var isAuthenticated by remember { mutableStateOf(false) }
 
     SysDevScTheme {
-        AppShell(
-            state = appShellState,
-            onDestinationSelected = { destination ->
-                appShellState = appShellState.select(destination)
-            },
-            modifier = modifier,
-        )
+        if (isAuthenticated) {
+            AppShell(
+                state = appShellState,
+                onDestinationSelected = { destination ->
+                    appShellState = appShellState.select(destination)
+                },
+                modifier = modifier,
+            )
+        } else {
+            AuthGate(
+                onAuthenticated = { isAuthenticated = true },
+                modifier = modifier
+            )
+        }
     }
 }
 

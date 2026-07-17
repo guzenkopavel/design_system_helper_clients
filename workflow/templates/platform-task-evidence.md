@@ -1,15 +1,36 @@
-# task-NNN — доказательства реализации
+# Task Evidence — task-NNN
+
+<!-- Authored prose по-русски. Exact commands, paths, IDs, statuses и code/API
+names не переводить. Raw tool output хранить в fenced block или отдельном
+bounded `.log`; не вставлять произвольный stdout как обычный prose. -->
 
 ## Итог
 
-<Коротко по-русски: что реализовано, какой наблюдаемый результат получен и что
-подтвердили focused checks.>
+Коротко зафиксировать выполненный task outcome, какие declared Paths изменены и
+какое focused evidence подтверждает готовность task.
 
 ## Технические доказательства
 
-<Ненормативный inventory: безопасные repo-relative path/change rows и точные
-git status rows можно писать без fences; команды — только как exact repo-tooling
-command lines. Произвольный verbatim output помещать в fence или отдельный
-`.log`. Любой иной текст проверяется как authored: не помещать сюда outcome,
-решения, ограничения или объяснения. Не включать общий git status или данные
-чужих lane.>
+Допустимые unfenced строки:
+
+- safe path/change rows: `path | change | evidence`;
+- bounded repo-tooling command lines: `rtk ...`;
+- git status rows только для selected lane, если они нужны для доказательства
+  scope; общий `git status` и foreign/disjoint lane не переносить.
+
+Произвольный raw output:
+
+```text
+Поместить сюда только bounded output, необходимый для task evidence, либо
+сослаться на отдельный `.log`.
+```
+
+## Проверки
+
+- Focused checks: `<command or evidence path>` — `<PASS|FAIL|UNKNOWN>`.
+- Scope check: `<command or evidence path>` — `<PASS|FAIL|UNKNOWN>`.
+
+## Остаточные риски
+
+Зафиксировать только риски, оставшиеся внутри scope задачи. Не использовать
+этот раздел для новых требований или расширения task Paths.

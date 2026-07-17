@@ -4,11 +4,11 @@
 - Boundary owner: Владелец корневой маршрутизации шлюза авторизации и интеграции потребителя приложения
 - Engineering scopes: ["application", "module"]
 - Depends on: task-003
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260717T120000Z-task-004-task-drift.md
 - Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 420 --stall-seconds 90 --max-output-lines 2000 -- ./Android/gradlew -p Android --no-daemon app:assembleDebug app:testDebugUnitTest app:lintDebug --console=plain
 - Estimate (ideal): 1–1.5 days
-- Paths: existing: Android/settings.gradle.kts; existing: Android/build.gradle.kts; existing: Android/app/build.gradle.kts; existing: Android/app/src/main/java/ru/home/sysdevsc/MainActivity.kt; existing: Android/app/src/main/AndroidManifest.xml; existing: Android/gradle/libs.versions.toml; proposed: Android/app/src/main/res/xml/network_security_config.xml
+- Paths: existing: Android/settings.gradle.kts; existing: Android/build.gradle.kts; existing: Android/app/build.gradle.kts; existing: Android/app/src/main/java/ru/home/sysdevsc/MainActivity.kt; existing: Android/app/src/main/AndroidManifest.xml; existing: Android/gradle/libs.versions.toml; existing: Android/auth/src/main/java/ru/home/sysdevsc/auth/AuthGate.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/data/EncryptedSessionRepository.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/data/DefaultAuthApiService.kt; proposed: Android/app/src/main/res/xml/network_security_config.xml
 - Read-only context: ["Android/specs/user-profile-auth/changes/user-profile-auth/design.md"]
 
 ## Goal

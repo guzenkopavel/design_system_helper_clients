@@ -159,8 +159,10 @@ coverage, уникальными metadata/REQ/AC и PASS reviews. Verdict proven
 требует retirement approval и dispositions всех platform implementations. Она
 перемещает полный product package, оставляет `spec.md` tombstone и для
 `completed` публикует approved `SPECIFICATION.md`; cancelled/superseded
-сохраняют прежний baseline. `archive-receipt.json` создаёт только platform implementation
-archive и именно такие receipts доказывают archived dispositions.
+сохраняют прежний baseline. `archive-receipt.json` создаёт platform
+implementation archive и explicit implementation retirement; только verified
+implementation archive receipts доказывают archived dispositions, retirement
+receipts лишь классифицируют tombstone и снимают active ownership.
 Client Readiness проверяет полноту shared contract, не downstream status;
 каждый AC имеет одну уникальную verification dimension. Product/platform prose
 и authored JSON reports проходят общий sentence-level language helper; platform
@@ -191,6 +193,7 @@ Registry-anchored v0 завершает historical exact-hash checks без retr
 
 <platform>/specs/<feature>/SPECIFICATION.md
   # current verified full platform contract; archived source/receipt provenance
+  # explicit implementation retirement never publishes this baseline
 ```
 
 ```text
@@ -684,7 +687,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/templates/platform-plan-task.md`](workflow/templates/platform-plan-task.md) | task-NNN — <название> |
 | [`workflow/templates/platform-proposal.md`](workflow/templates/platform-proposal.md) | Proposal — <feature> / <platform> / <change-id> |
 | [`workflow/templates/platform-rule-selection.json`](workflow/templates/platform-rule-selection.json) | Runtime/configuration contract |
-| [`workflow/templates/platform-task-evidence.md`](workflow/templates/platform-task-evidence.md) | task-NNN — доказательства реализации |
+| [`workflow/templates/platform-task-evidence.md`](workflow/templates/platform-task-evidence.md) | Task Evidence — task-NNN |
 | [`workflow/templates/platform-ux.md`](workflow/templates/platform-ux.md) | <Feature> — <Platform> native UX |
 | [`workflow/templates/platform-verification.md`](workflow/templates/platform-verification.md) | Verification — <feature> / <platform> / <change-id> |
 | [`workflow/templates/product-archive-request.json`](workflow/templates/product-archive-request.json) | Runtime/configuration contract |
@@ -707,6 +710,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/durable-feature-specifications.md`](workflow/test-evidence/durable-feature-specifications.md) | Durable feature specifications — RED → GREEN → REFACTOR |
 | [`workflow/test-evidence/harness-bootstrap.md`](workflow/test-evidence/harness-bootstrap.md) | Harness bootstrap — test evidence |
 | [`workflow/test-evidence/implementation-reconciliation.md`](workflow/test-evidence/implementation-reconciliation.md) | Implementation reconciliation evidence |
+| [`workflow/test-evidence/implementation-retirement.md`](workflow/test-evidence/implementation-retirement.md) | Implementation retirement evidence |
 | [`workflow/test-evidence/independent-product-review.md`](workflow/test-evidence/independent-product-review.md) | Independent product specification review evidence |
 | [`workflow/test-evidence/ios-engineering-rules.md`](workflow/test-evidence/ios-engineering-rules.md) | iOS engineering rules — RED/GREEN evidence |
 | [`workflow/test-evidence/ios-implement-archive.md`](workflow/test-evidence/ios-implement-archive.md) | iOS implement/verify/archive — test evidence |

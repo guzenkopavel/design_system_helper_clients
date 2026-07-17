@@ -4,11 +4,11 @@
 - Boundary owner: Владелец экранов авторизации на материальном интерфейсе, русской локализации и доступной семантики
 - Engineering scopes: ["module", "ui"]
 - Depends on: task-002
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260717T120000Z-task-003-task-drift.md
 - Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 600 --stall-seconds 120 --max-output-lines 2500 -- ./Android/gradlew -p Android --no-daemon :auth:connectedDebugAndroidTest --console=plain
 - Estimate (ideal): 1–2 days
-- Paths: proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/ui/AuthScreen.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/ui/AuthViewModel.kt; proposed: Android/auth/src/main/res/values/strings.xml; proposed: Android/auth/src/androidTest/java/ru/home/sysdevsc/auth/ui/AuthScreenTest.kt
+- Paths: existing: Android/app/src/main/java/ru/home/sysdevsc/ui/theme/Color.kt; existing: Android/app/src/main/java/ru/home/sysdevsc/ui/theme/Theme.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/ui/AuthScreen.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/ui/AuthViewModel.kt; proposed: Android/auth/src/main/res/values/strings.xml; proposed: Android/auth/src/androidTest/java/ru/home/sysdevsc/auth/ui/AuthScreenTest.kt
 - Read-only context: ["Android/specs/user-profile-auth/changes/user-profile-auth/platform-ux.md"]
 
 ## Goal

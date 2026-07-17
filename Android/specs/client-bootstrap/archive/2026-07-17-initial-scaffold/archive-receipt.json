@@ -1,0 +1,29 @@
+{
+  "archived_at": "2026-07-17T01:31:27Z",
+  "archived_path": "Android/specs/client-bootstrap/archive/2026-07-17-initial-scaffold",
+  "change_id": "initial-scaffold",
+  "feature": "client-bootstrap",
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "161711427a552abcd02fc1148ced6845f95d2812eeba9076ddc8ca0c4fae3d9d",
+    "files": {
+      "design.md": "ae9a9819bf4b2200319b4898463220c3b9543defe92394fda316458f56dc818d",
+      "evidence/task-001.md": "3e3a98f10025abf06ec1d342b814bbc478ec50f1b28007f98e99bd20ab86e79a",
+      "implementation-spec.md": "1badc6d336e57fac50b9e9efbf15f320497eeee2721387bf06deceabe8833e3b",
+      "meta.json": "5c7b9ea1e91de8f1a5a552691769b1636776c71912cd0f5ee0597033315022a4",
+      "plan/README.md": "9868082e89138a9f9ca3b30a057960b47f61adbdd5c283bbfbe3d0af5fe5b214",
+      "plan/rule-selection.json": "e2e45212c0b6bffca1664b2d845537dea5e7f7b8d6ee51900891c489df945fa8",
+      "plan/task-001.md": "f46aaa26f0814c6674c74a68061960a7e8d2a241875b10e4426123f2ffd5ccf0",
+      "proposal.md": "794a819433b1a3a6ab33a8a066f8d1d4f1c30ee3aef84626c0184dcc838c1eaa",
+      "verification.md": "1f89282958fe9081d31856ce6a7b1cc2638affe280afa1126c1f51497ca85944"
+    }
+  },
+  "mode": "implementation-retirement",
+  "platform": "Android",
+  "reason": "superseded",
+  "retired_status": "implementing",
+  "schema_version": 1,
+  "tasks_done": 1,
+  "tasks_total": 1,
+  "verification_status": "pending"
+}

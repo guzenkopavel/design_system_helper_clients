@@ -138,7 +138,8 @@ verify <platform> <feature> [--change <change-id>]
   → exact PASS evidence + state fingerprint
   → status: verified
 archive implementation ...
-  → dry-run → collision-safe apply → publish current SPECIFICATION.md → tombstone
+  → verified: dry-run → collision-safe apply → publish current SPECIFICATION.md → tombstone
+  → --retire superseded|cancelled: dry-run → collision-safe apply → retirement receipt → tombstone, no baseline publication
 ```
 
 Перед delivery явный production set может пройти

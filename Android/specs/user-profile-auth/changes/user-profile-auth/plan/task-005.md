@@ -4,11 +4,11 @@
 - Boundary owner: Владелец интеграционных проверок, доступности и кросс-платформенного паритета авторизации
 - Engineering scopes: ["application", "ui"]
 - Depends on: task-004
-- Status: pending
-- Evidence: none
+- Status: done
+- Evidence: evidence/reconciliation-20260717T120000Z-task-005-task-drift.md
 - Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 600 --stall-seconds 120 --max-output-lines 2500 -- ./Android/gradlew -p Android --no-daemon app:connectedDebugAndroidTest --console=plain
 - Estimate (ideal): 1–2 days
-- Paths: proposed: Android/app/src/androidTest/java/ru/home/sysdevsc/AuthIntegrationTest.kt; proposed: Android/app/src/androidTest/java/ru/home/sysdevsc/AuthAccessibilityTest.kt
+- Paths: existing: Android/app/src/androidTest/java/ru/home/sysdevsc/AppShellIntegrationTest.kt; proposed: Android/app/src/androidTest/java/ru/home/sysdevsc/AuthIntegrationTest.kt; proposed: Android/app/src/androidTest/java/ru/home/sysdevsc/AuthAccessibilityTest.kt
 - Read-only context: ["Android/specs/user-profile-auth/changes/user-profile-auth/platform-ux.md"]
 
 ## Goal

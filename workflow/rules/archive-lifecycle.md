@@ -64,6 +64,35 @@ Rollback restores the exact pre-call tree for failures before or after move.
 Only archive parent directories created by the current call may be removed, and
 only while empty; pre-existing directories are preserved.
 
+## Implementation retirement
+
+`archive implementation <platform> <feature> [--change <change-id>] --retire
+superseded|cancelled` explicitly retires a non-terminal platform package that
+cannot honestly become `verified`. It requires a valid
+`specified|planned|implementing` package in its current lifecycle mode, rejects
+`verified`/`PASS` packages, runs the same collision, no-symlink and rollback
+guards as a verified implementation archive, then moves the package to:
+
+```text
+<platform>/specs/<feature>/archive/<YYYY-MM-DD-change-id>/
+```
+
+Apply writes archived metadata with `status: archived`, `retirement_reason` and
+`retired_status`, emits root `archive-receipt.json` with
+`mode: implementation-retirement`, and leaves the active
+`changes/<change-id>/ARCHIVED.md` tombstone. It never publishes, creates or
+rewrites durable `<platform>/specs/<feature>/SPECIFICATION.md`; any previous
+delivered baseline is preserved byte-for-byte and absence remains absence.
+
+The retirement receipt is integrity-bound to the archived package and is valid
+only for active tombstone classification, ownership unblocking and historical
+traceability. It is deliberately not a delivered implementation proof:
+`archive product completed` and any platform disposition
+`disposition: archived` continue to require a verified implementation archive
+receipt. Product `superseded`/`cancelled` may cite cancelled/not-applicable
+narrative evidence separately, but must not treat an implementation retirement
+receipt as delivery evidence.
+
 ## Product archive
 
 `archive product <feature>` consumes a validated retirement request based on
@@ -99,9 +128,10 @@ approval. Any active implementation reference blocks all reasons.
 Reference discovery merges adapter-defined `package_root`/active namespace with
 conventional `*/specs/<feature>/changes/` roots. Every active-namespace child is
 classified fail-closed: it must be either a valid active package with `meta.json`
-or a tombstone-only directory whose exact archive target has a valid receipt.
-Partial directories, extra tombstone files, broken targets and `archived` meta
-under active changes block product archive.
+or a tombstone-only directory whose exact archive target has a valid verified
+archive receipt or implementation retirement receipt. Partial directories,
+extra tombstone files, broken targets and `archived` meta under active changes
+block product archive.
 
 Apply moves the complete product package to
 `specs/product/_archive/<feature>/<YYYY-MM-DD-feature>/`. For `completed`, it

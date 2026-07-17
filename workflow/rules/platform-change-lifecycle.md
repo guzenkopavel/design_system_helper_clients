@@ -111,6 +111,10 @@ draft → specified → planned → implementing → verified → archived
   must match current code and contracts.
 - `archived` is written only by collision-safe archive apply after all terminal
   gates pass.
+- explicit implementation retirement may also move a valid
+  `specified|planned|implementing` package to `archived` with
+  `retirement_reason: superseded|cancelled`; this does not publish a durable
+  platform baseline and cannot satisfy delivered-product archive evidence.
 
 A failed Verify persists a recoverable `implementing` state: FAIL takes
 precedence over UNKNOWN, `problems` exactly matches non-PASS contract IDs,

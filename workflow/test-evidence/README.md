@@ -31,6 +31,9 @@
 - [`implementation-reconciliation.md`](implementation-reconciliation.md) —
   explicit-path pre-delivery package repair, guard boundaries, state/evidence
   invalidation и независимые iOS/Android pressure scenarios.
+- [`implementation-retirement.md`](implementation-retirement.md) —
+  explicit `archive implementation --retire` для non-terminal platform packages,
+  tombstone classification и iOS/Android rollback pressures.
 - [`independent-product-review.md`](independent-product-review.md) — isolated
   six-lens product review, subject fingerprint, durable receipt и downstream
   freshness gate.

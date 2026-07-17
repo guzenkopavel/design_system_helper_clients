@@ -1,21 +1,4 @@
 {
-  "platform": "Android",
-  "feature": "client-bootstrap",
-  "change_id": "initial-scaffold",
-  "change_type": "technical-only",
-  "tier": "quick",
-  "status": "implementing",
-  "shared_product_spec": null,
-  "product_status": null,
-  "product_approval": null,
-  "product_impact": "NONE",
-  "impact_evidence": "The generated client shell exposes only template behavior and does not define simulator training requirements.",
-  "engineering_scopes": [
-    "application",
-    "compose",
-    "gradle",
-    "ui"
-  ],
   "applicable_rule_files": [
     "workflow/rules/specification-layers.md",
     "workflow/rules/system-design.md",
@@ -39,13 +22,34 @@
     "Android/workflow/rules/ui-design-system.md",
     "Android/workflow/rules/emulator.md"
   ],
-  "rule_selection_snapshot": "plan/rule-selection.json",
+  "archived_at": "2026-07-17T01:31:27Z",
+  "archived_path": "Android/specs/client-bootstrap/archive/2026-07-17-initial-scaffold",
   "blocking_questions": [],
-  "problems": [],
+  "change_id": "initial-scaffold",
+  "change_type": "technical-only",
   "design_gate": "PASS",
-  "tasks_total": 1,
+  "engineering_scopes": [
+    "application",
+    "compose",
+    "gradle",
+    "ui"
+  ],
+  "feature": "client-bootstrap",
+  "impact_evidence": "The generated client shell exposes only template behavior and does not define simulator training requirements.",
+  "platform": "Android",
+  "problems": [],
+  "product_approval": null,
+  "product_impact": "NONE",
+  "product_status": null,
+  "retired_status": "implementing",
+  "retirement_reason": "superseded",
+  "rule_selection_snapshot": "plan/rule-selection.json",
+  "shared_product_spec": null,
+  "status": "archived",
   "tasks_done": 1,
+  "tasks_total": 1,
+  "tier": "quick",
+  "verification_state": null,
   "verification_status": "pending",
-  "verified_at": null,
-  "verification_state": null
+  "verified_at": null
 }

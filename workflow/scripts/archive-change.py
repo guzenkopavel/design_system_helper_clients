@@ -271,6 +271,30 @@ def create_implementation_receipt(
     }
 
 
+def create_implementation_retirement_receipt(
+    repo: Path,
+    archive: Path,
+    meta: dict[str, object],
+    reason: str,
+) -> dict[str, object]:
+    files, digest = archive_integrity(archive, ignore_ds_store=True)
+    return {
+        "schema_version": 1,
+        "mode": "implementation-retirement",
+        "reason": reason,
+        "platform": meta.get("platform"),
+        "feature": meta.get("feature"),
+        "change_id": meta.get("change_id"),
+        "archived_at": meta.get("archived_at"),
+        "archived_path": meta.get("archived_path"),
+        "retired_status": meta.get("retired_status"),
+        "tasks_total": meta.get("tasks_total"),
+        "tasks_done": meta.get("tasks_done"),
+        "verification_status": meta.get("verification_status"),
+        "integrity": {"algorithm": "sha256", "files": files, "digest": digest},
+    }
+
+
 def validate_implementation_receipt(
     repo: Path, receipt_path: Path, feature: str, platform: str
 ) -> list[str]:
@@ -423,14 +447,145 @@ def validate_implementation_receipt(
     return errors
 
 
-def implementation_preflight(root: Path, platform: str, feature: str, change: str | None) -> tuple[dict[str, object], str, Path, Path, list[str]]:
+def validate_implementation_retirement_receipt(
+    repo: Path, receipt_path: Path, feature: str, platform: str
+) -> list[str]:
+    errors: list[str] = []
+    try:
+        relative = receipt_path.relative_to(repo)
+    except ValueError:
+        return [f"{platform} retirement receipt escapes repository root"]
+    parts = relative.parts
+    if (
+        len(parts) != 6
+        or parts[0].casefold() != platform.casefold()
+        or parts[1] != "specs"
+        or parts[2] != feature
+        or parts[3] != "archive"
+        or not re.fullmatch(r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*", parts[4])
+        or parts[5] != "archive-receipt.json"
+    ):
+        return [
+            f"{platform} retired implementation evidence must be "
+            f"<Platform>/specs/{feature}/archive/<archive-id>/archive-receipt.json"
+        ]
+    archive = receipt_path.parent
+    structural_errors = directory_chain_errors(repo, archive, f"{platform} retired implementation archive")
+    if not structural_errors:
+        structural_errors.extend(regular_tree_errors(archive, f"{platform} retired implementation archive"))
+    if structural_errors:
+        return structural_errors
+    receipt_errors = regular_file_errors(receipt_path, f"{platform} implementation retirement receipt")
+    if receipt_errors:
+        return receipt_errors
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        return [f"{platform} retirement receipt JSON is invalid: {error}"]
+    expected_keys = {
+        "schema_version", "mode", "reason", "platform", "feature", "change_id",
+        "archived_at", "archived_path", "retired_status", "tasks_total",
+        "tasks_done", "verification_status", "integrity",
+    }
+    if set(receipt) != expected_keys:
+        errors.append(f"{platform} retirement receipt schema must be exact")
+    meta_path = archive / "meta.json"
+    meta_errors = regular_file_errors(meta_path, f"{platform} retired archived meta")
+    if meta_errors:
+        return meta_errors
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        return [f"{platform} retired archived meta is missing or invalid: {error}"]
+    expected_archive_path = archive.relative_to(repo).as_posix()
+    checks = {
+        "schema_version": 1,
+        "mode": "implementation-retirement",
+        "feature": feature,
+        "archived_path": expected_archive_path,
+    }
+    for field, expected in checks.items():
+        if receipt.get(field) != expected:
+            errors.append(f"{platform} retirement receipt {field} mismatch")
+    if receipt.get("reason") not in {"superseded", "cancelled"}:
+        errors.append(f"{platform} retirement receipt reason mismatch")
+    if str(receipt.get("platform", "")).casefold() != platform.casefold():
+        errors.append(f"{platform} retirement receipt platform mismatch")
+    if not non_placeholder(receipt.get("change_id")):
+        errors.append(f"{platform} retirement receipt change_id missing")
+    if not non_placeholder(receipt.get("archived_at"), 8):
+        errors.append(f"{platform} retirement receipt archived_at missing")
+    if meta.get("status") != "archived":
+        errors.append(f"{platform} retired meta status must be archived")
+    if meta.get("retirement_reason") != receipt.get("reason"):
+        errors.append(f"{platform} retired meta/receipt mismatch: retirement_reason")
+    if meta.get("retired_status") != receipt.get("retired_status"):
+        errors.append(f"{platform} retired meta/receipt mismatch: retired_status")
+    if receipt.get("retired_status") not in {"specified", "planned", "implementing"}:
+        errors.append(f"{platform} retirement receipt retired_status mismatch")
+    for field in (
+        "platform", "feature", "change_id", "archived_at", "archived_path",
+        "tasks_total", "tasks_done", "verification_status",
+    ):
+        if meta.get(field) != receipt.get(field):
+            errors.append(f"{platform} retired meta/receipt mismatch: {field}")
+    total = receipt.get("tasks_total"); done = receipt.get("tasks_done")
+    if not isinstance(total, int) or total < 0 or not isinstance(done, int) or done < 0 or done > total:
+        errors.append(f"{platform} retirement receipt task counts are invalid")
+    if receipt.get("verification_status") not in {"pending", "FAIL", "UNKNOWN"}:
+        errors.append(f"{platform} retirement receipt verification_status mismatch")
+    integrity = receipt.get("integrity")
+    if not isinstance(integrity, dict) or integrity.get("algorithm") != "sha256":
+        errors.append(f"{platform} retirement receipt integrity schema invalid")
+    else:
+        try:
+            files, digest = archive_integrity(archive, ignore_ds_store=True)
+        except ValueError as error:
+            errors.append(f"{platform} retired archive integrity tree invalid: {error}")
+        else:
+            if integrity.get("files") != files or integrity.get("digest") != digest:
+                errors.append(f"{platform} retired archive integrity mismatch")
+    return errors
+
+
+def retirement_validation_mode(status: object) -> str | None:
+    if status == "specified":
+        return "propose"
+    if status == "planned":
+        return "plan"
+    if status == "implementing":
+        return "implement"
+    return None
+
+
+def implementation_preflight(
+    root: Path,
+    platform: str,
+    feature: str,
+    change: str | None,
+    retire: str | None = None,
+) -> tuple[dict[str, object], str, Path, Path, list[str]]:
     validator = load_validator(); repo = root.resolve()
     adapter = validator.load_adapter(repo, platform)
     validator.require_capability(adapter, "archive-implementation")
     change_id, package = validator.resolve_change(repo, adapter, feature, change, "archive")
     errors = regular_tree_errors(package, "active implementation package")
     if not errors:
-        errors.extend(validator.validate_package(repo, adapter, feature, change_id, "archive"))
+        if retire is None:
+            errors.extend(validator.validate_package(repo, adapter, feature, change_id, "archive"))
+        else:
+            try:
+                meta = json.loads((package / "meta.json").read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+                meta = {}; errors.append(f"active implementation meta is invalid: {error}")
+            status = meta.get("status")
+            mode = retirement_validation_mode(status)
+            if mode is None:
+                errors.append("implementation retirement requires specified, planned or implementing status")
+            elif meta.get("verification_status") == "PASS" or status == "verified":
+                errors.append("verified packages must use normal implementation archive")
+            else:
+                errors.extend(validator.validate_package(repo, adapter, feature, change_id, mode))
     archive_id = f"{date.today().isoformat()}-{change_id}"
     package_root = validator.safe_repo_path(repo, str(adapter["package_root"]), "package_root")
     target = package_root / feature / str(adapter["archive_namespace"]) / archive_id
@@ -444,21 +599,92 @@ def implementation_preflight(root: Path, platform: str, feature: str, change: st
     implementation_spec = package / "implementation-spec.md"
     if not implementation_spec.is_file() or implementation_spec.is_symlink():
         errors.append("implementation-spec.md must be a regular non-symlink file")
-    durable_path = package_root / feature / DURABLE_SPECIFICATION
-    errors.extend(regular_file_or_absent(durable_path, "durable platform specification"))
-    errors.extend(reject_symlink_ancestors(repo, durable_path, "durable platform specification"))
+    if retire is None:
+        durable_path = package_root / feature / DURABLE_SPECIFICATION
+        errors.extend(regular_file_or_absent(durable_path, "durable platform specification"))
+        errors.extend(reject_symlink_ancestors(repo, durable_path, "durable platform specification"))
     return adapter, change_id, package, target, errors
 
 
-def archive_implementation(root: Path, platform: str, feature: str, change: str | None, apply: bool, _fault: str | None = None) -> tuple[str, list[str]]:
+def archive_implementation(
+    root: Path,
+    platform: str,
+    feature: str,
+    change: str | None,
+    apply: bool,
+    retire: str | None = None,
+    _fault: str | None = None,
+) -> tuple[str, list[str]]:
     validator = load_validator(); repo = root.resolve()
     try:
-        adapter, change_id, package, target, errors = implementation_preflight(repo, platform, feature, change)
+        adapter, change_id, package, target, errors = implementation_preflight(repo, platform, feature, change, retire)
     except (ValueError, OSError) as error:
         return "BLOCKED", [str(error)]
+    if retire is not None and retire not in {"superseded", "cancelled"}:
+        errors.append("implementation retirement reason must be superseded or cancelled")
     if errors: return "BLOCKED", errors
     package_root = validator.safe_repo_path(repo, str(adapter["package_root"]), "package_root")
     durable_path = package_root / feature / DURABLE_SPECIFICATION
+    if retire is not None:
+        if not apply:
+            return "DRY-RUN", [
+                f"would retire {package.relative_to(repo)} as {retire}, move it to "
+                f"{target.relative_to(repo)} and leave ARCHIVED.md without publishing "
+                f"{durable_path.relative_to(repo)}"
+            ]
+        meta_path = package / "meta.json"; original_meta = meta_path.read_bytes()
+        moved = False
+        created_dirs: list[Path] = []
+        try:
+            created_dirs = create_parent_tree(repo, target.parent, "implementation archive namespace")
+            if _fault == "pre-move": raise OSError("injected before move")
+            shutil.move(str(package), str(target)); moved = True
+            if _fault == "post-move": raise OSError("injected after move")
+            archived_meta = json.loads((target / "meta.json").read_text(encoding="utf-8"))
+            retired_status = archived_meta.get("status")
+            archived_meta.update(
+                status="archived",
+                archived_at=now_iso(),
+                archived_path=target.relative_to(repo).as_posix(),
+                retirement_reason=retire,
+                retired_status=retired_status,
+            )
+            (target / "meta.json").write_text(json.dumps(archived_meta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            receipt_path = target / "archive-receipt.json"
+            receipt = create_implementation_retirement_receipt(repo, target, archived_meta, retire)
+            receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            if _fault == "receipt": raise OSError("injected during receipt creation")
+            receipt_errors = validate_implementation_retirement_receipt(
+                repo, receipt_path, feature, str(adapter["platform_name"]).casefold()
+            )
+            if receipt_errors:
+                raise ValueError(f"retirement receipt validation failed: {'; '.join(receipt_errors)}")
+            if _fault == "baseline-write": raise OSError("injected after retirement receipt")
+            package.mkdir(parents=True, exist_ok=False)
+            (package / "ARCHIVED.md").write_text(
+                f"# Archived implementation change\n\n"
+                f"- Platform: {adapter['platform_name']}\n"
+                f"- Feature: {feature}\n"
+                f"- Change ID: {change_id}\n"
+                f"- Reason: {retire}\n"
+                f"- Target: `{target.relative_to(repo).as_posix()}`\n"
+                f"- Archived at: {archived_meta['archived_at']}\n",
+                encoding="utf-8",
+            )
+        except Exception as error:
+            if moved:
+                if package.exists(): shutil.rmtree(package)
+                if target.exists(): shutil.move(str(target), str(package))
+            if package.exists():
+                (package / "meta.json").write_bytes(original_meta)
+                receipt = package / "archive-receipt.json"
+                if receipt.exists(): receipt.unlink()
+            cleanup_created_dirs(created_dirs)
+            return "BLOCKED", [f"implementation retirement rolled back: {error}"]
+        return "APPLIED", [
+            f"retired {package.relative_to(repo)} as {retire}; archived at {target.relative_to(repo)}; "
+            f"tombstone {package.relative_to(repo) / 'ARCHIVED.md'}; durable specification unchanged"
+        ]
     if not apply:
         return "DRY-RUN", [
             f"would publish {durable_path.relative_to(repo)}, move {package.relative_to(repo)} "
@@ -637,8 +863,13 @@ def active_product_references(repo: Path, feature: str) -> list[str]:
                 continue
             receipt_path = target / "archive-receipt.json"
             receipt_errors = validate_implementation_receipt(repo, receipt_path, feature, platform_name)
-            if receipt_errors:
-                refs.append(f"invalid implementation tombstone receipt: {relative}: {'; '.join(receipt_errors)}")
+            retirement_errors = validate_implementation_retirement_receipt(repo, receipt_path, feature, platform_name)
+            if receipt_errors and retirement_errors:
+                refs.append(
+                    f"invalid implementation tombstone receipt: {relative}: "
+                    f"verified archive: {'; '.join(receipt_errors)}; "
+                    f"retirement archive: {'; '.join(retirement_errors)}"
+                )
                 continue
             receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
             if receipt.get("change_id") != change_id:
@@ -1009,6 +1240,62 @@ def self_test() -> int:
         status, errors = archive_product(repo, "sample", request, False)
         assert status == "BLOCKED" and any("Nonstandard/platform-packages" in error for error in errors)
         shutil.rmtree(alt_active.parent)
+        with tempfile.TemporaryDirectory() as retire_tmp:
+            retire_repo = Path(retire_tmp).resolve()
+            retire_ios_package = terminal_fixture(retire_repo)
+            retire_android_package = terminal_android_fixture(retire_repo)
+            for retired_package in (retire_ios_package, retire_android_package):
+                verification = (retired_package / "verification.md").read_text(encoding="utf-8")
+                verification = re.sub(r"\| PASS \|", "| pending |", verification)
+                verification = re.sub(
+                    r"(?m)^(- (?:Dependency graph|Public API and visibility|Module-level tests|Consumer integration and build|App-shell allowlist):) PASS$",
+                    r"\1 pending",
+                    verification,
+                )
+                (retired_package / "verification.md").write_text(verification, encoding="utf-8")
+                meta_path = retired_package / "meta.json"
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                meta.update(
+                    status="implementing", verification_status="pending",
+                    verified_at=None, verification_state=None, problems=[],
+                )
+                meta_path.write_text(json.dumps(meta), encoding="utf-8")
+            normal_status, normal_errors = archive_implementation(
+                retire_repo, "ios", "sample", "sample", False
+            )
+            assert normal_status == "BLOCKED" and any("requires verified status" in error for error in normal_errors)
+            retire_dry_run, retire_errors = archive_implementation(
+                retire_repo, "ios", "sample", "sample", False, retire="superseded"
+            )
+            assert retire_dry_run == "DRY-RUN", retire_errors
+            ios_prior = retire_repo / "iOS/specs/sample/SPECIFICATION.md"
+            ios_prior.write_bytes(b"previous delivered iOS baseline\n")
+            retirement_before = tree_signature(retire_repo)
+            rollback_status, _ = archive_implementation(
+                retire_repo, "ios", "sample", "sample", True, retire="superseded", _fault="receipt"
+            )
+            assert rollback_status == "BLOCKED" and tree_signature(retire_repo) == retirement_before
+            retire_status, retire_errors = archive_implementation(
+                retire_repo, "ios", "sample", "sample", True, retire="superseded"
+            )
+            assert retire_status == "APPLIED", retire_errors
+            assert ios_prior.read_bytes() == b"previous delivered iOS baseline\n"
+            ios_retired_receipt = retire_repo / f"iOS/specs/sample/archive/{date.today().isoformat()}-sample/archive-receipt.json"
+            assert validate_implementation_retirement_receipt(retire_repo, ios_retired_receipt, "sample", "ios") == []
+            assert validate_implementation_receipt(retire_repo, ios_retired_receipt, "sample", "ios")
+            assert validate_archived_disposition(
+                retire_repo, "sample", "ios", ios_retired_receipt.relative_to(retire_repo).as_posix()
+            )
+            android_prior = retire_repo / "Android/specs/sample/SPECIFICATION.md"
+            android_prior.write_bytes(b"previous delivered Android baseline\n")
+            android_status, android_errors = archive_implementation(
+                retire_repo, "android", "sample", "sample", True, retire="cancelled"
+            )
+            assert android_status == "APPLIED", android_errors
+            assert android_prior.read_bytes() == b"previous delivered Android baseline\n"
+            android_retired_receipt = retire_repo / f"Android/specs/sample/archive/{date.today().isoformat()}-sample/archive-receipt.json"
+            assert validate_implementation_retirement_receipt(retire_repo, android_retired_receipt, "sample", "android") == []
+            assert active_product_references(retire_repo, "sample") == []
         status, errors = archive_implementation(repo, "ios", "sample", "sample", False)
         assert status == "DRY-RUN", errors
         escape = repo / "escape"; escape.mkdir(); (escape / "marker.txt").write_text("outside archive namespace\n")
@@ -1345,6 +1632,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", nargs="?", choices=("implementation", "product"))
     parser.add_argument("--platform"); parser.add_argument("--feature"); parser.add_argument("--change")
+    parser.add_argument("--retire", choices=("superseded", "cancelled"))
     parser.add_argument("--request", type=Path); parser.add_argument("--apply", action="store_true")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2]); parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
@@ -1352,8 +1640,9 @@ def main() -> int:
     if not args.mode or not args.feature: parser.error("mode and --feature are required")
     if args.mode == "implementation":
         if not args.platform: parser.error("implementation mode requires --platform")
-        status, details = archive_implementation(args.root, args.platform, args.feature, args.change, args.apply)
+        status, details = archive_implementation(args.root, args.platform, args.feature, args.change, args.apply, args.retire)
     else:
+        if args.retire: parser.error("--retire applies only to implementation mode")
         status, details = archive_product(args.root, args.feature, args.request, args.apply)
     print(f"Archive {args.mode}: {status}")
     for detail in details: print(f"- {detail}")

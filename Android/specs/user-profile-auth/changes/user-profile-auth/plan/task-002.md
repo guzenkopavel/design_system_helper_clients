@@ -5,7 +5,7 @@
 - Engineering scopes: ["module"]
 - Depends on: task-001
 - Status: done
-- Evidence: evidence/task-002.md
+- Evidence: evidence/reconciliation-20260717T120000Z-task-002-task-drift.md
 - Discovered command: rtk bash workflow/scripts/test-watchdog.sh --max-seconds 300 --stall-seconds 60 --max-output-lines 1200 -- ./Android/gradlew -p Android --no-daemon :auth:testDebugUnitTest --console=plain
 - Estimate (ideal): 1–2 days
 - Paths: existing: Android/gradle/libs.versions.toml; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/model/AuthResult.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/data/AuthApiService.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/data/SessionRepository.kt; proposed: Android/auth/src/main/java/ru/home/sysdevsc/auth/data/AuthInputValidator.kt; proposed: Android/auth/src/test/java/ru/home/sysdevsc/auth/model/AuthStateTest.kt; proposed: Android/auth/src/test/java/ru/home/sysdevsc/auth/data/AuthInputValidatorTest.kt

@@ -62,7 +62,7 @@ skills, их канонические phases и write contract.
 <!-- BEGIN GENERATED: WORKFLOW_SKILLS -->
 | Skill | Назначение | Каноническая phase | Пишет | Verification |
 |---|---|---|---|---|
-| `archive` | Collision-safe архивировать verified platform change или явно retired shared product package. Использовать только по явному `$archive implementation ...` либо `$archive product ...`. | [`workflow/phases/archive.md`](workflow/phases/archive.md) | `platform archive package, durable SPECIFICATION.md and ARCHIVED.md tombstone`, `product archive package, durable SPECIFICATION.md and spec.md tombstone` | `terminal` |
+| `archive` | Collision-safe архивировать verified platform change, явно retired non-terminal platform package или явно retired shared product package. Использовать только по явному `$archive implementation ...` либо `$archive product ...`. | [`workflow/phases/archive.md`](workflow/phases/archive.md) | `platform archive package, durable SPECIFICATION.md and ARCHIVED.md tombstone`, `product archive package, durable SPECIFICATION.md and spec.md tombstone` | `terminal` |
 | `brainstorming` | Исследовать сырую продуктовую идею до спецификации и кода, когда проблема, scope, trade-offs или направление ещё не ясны; сформировать 2–3 реальных варианта, рекомендацию и open questions для общего iOS/Android product layer. | [`workflow/phases/brainstorming.md`](workflow/phases/brainstorming.md) | `specs/product/<feature>/concept.md (optional)` | `smoke` |
 | `deep-code-review` | Выполнить единый read-only deep review, triage feedback, доказательное bug investigation или security audit. Использовать только при явном `$deep-code-review`; fixes и lifecycle mutations запрещены. | [`workflow/phases/deep-code-review.md`](workflow/phases/deep-code-review.md) | нет | `focused` |
 | `discovery` | Превратить идею или выбранный concept в общий для iOS и Android product brief с evidence, scope, draft screen/flow impact, secondary concerns и черновыми REQ/AC; использовать для новой или неоднозначной продуктовой функциональности до финальной спеки. | [`workflow/phases/discovery.md`](workflow/phases/discovery.md) | `specs/product/<feature>/brief.md` | `focused` |
@@ -93,7 +93,7 @@ $plan <platform> <feature> [--change <change-id>]
 $implement <platform> <feature> [--change <change-id>] [--task <task-id>|--all]
 $verify <platform> <feature> [--change <change-id>]
 $reconcile-implementation <platform> <feature> [--change <change-id>] --path <repo-relative> [--path ...]
-$archive implementation <platform> <feature> [--change <change-id>]
+$archive implementation <platform> <feature> [--change <change-id>] [--retire superseded|cancelled]
 $archive product <feature>
 
 $deep-code-review review <platform> <feature> [--change <change-id>] [--against <git-ref>|--paths <...>]
@@ -187,6 +187,7 @@ gate. Исключение не действует на spec/design/plan и reco
 | `implement` | ready task/DAG | production только в task scope, focused task evidence, task/meta status | `implementing` |
 | `verify` | все tasks done | `verification.md`, scoped `evidence/`/meta и fingerprint при PASS; reopening `plan/task-NNN.md` только при non-PASS recovery | `verified` |
 | `archive implementation` | fresh verified package | immutable archive, receipt, current `SPECIFICATION.md`, active tombstone | `archived` |
+| `archive implementation --retire` | valid non-terminal platform package | immutable retirement archive, retirement receipt, active tombstone; current `SPECIFICATION.md` unchanged | `archived` |
 
 Для product-backed `ui` внутри Propose действует строгая последовательность:
 `specification-writer → adapter UX designer → platform-ux.md READY →
@@ -209,9 +210,12 @@ Product retirement request по умолчанию живёт вне active fing
 `specs/product/_retirement-requests/<feature>/<date-feature>.json`; apply
 сохраняет validated copy в archive как `retirement-request.json`.
 Implementation archive публикует полный verified post-change contract в
-platform feature-root `SPECIFICATION.md`. Product `completed` публикует approved
-product baseline; `superseded`/`cancelled` сохраняет прежний baseline и не
-продвигает retired candidate. Любой archive остаётся immutable history.
+platform feature-root `SPECIFICATION.md`; explicit
+`archive implementation --retire superseded|cancelled` только выводит
+non-terminal package из active ownership и сохраняет текущий baseline без
+публикации candidate. Product `completed` публикует approved product baseline;
+`superseded`/`cancelled` сохраняет прежний baseline и не продвигает retired
+candidate. Любой archive остаётся immutable history.
 
 Scope baseline использует schema v3 `git-visible-lane-v1`: tracked и
 non-ignored untracked файлы selected package/Paths/read dependencies/control

@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "SysDevSc"
 include(":app")
 include(":app-shell")
+include(":auth")
