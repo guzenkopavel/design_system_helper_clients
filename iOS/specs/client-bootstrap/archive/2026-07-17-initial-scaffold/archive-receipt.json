@@ -1,0 +1,29 @@
+{
+  "archived_at": "2026-07-17T02:06:46Z",
+  "archived_path": "iOS/specs/client-bootstrap/archive/2026-07-17-initial-scaffold",
+  "change_id": "initial-scaffold",
+  "feature": "client-bootstrap",
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "a679ee8fc81c41b59bb87d74843f51db568bb097828a8e048edc9a7fd84f0a24",
+    "files": {
+      "design.md": "7ed17114479f0b1bfb85e3df1fe01b31713f0475d831426b8721b464cfc557d9",
+      "evidence/task-001.md": "7989b2f2ce2f9afbb8caa9b5c8c4e3425fb5a4244bcf0b4725cefd780ee5afea",
+      "implementation-spec.md": "f3889a8026cbe14f88c78ed0f78bbde2039bbb245eb09579719ff348d62a0bd2",
+      "meta.json": "d8b3794671da09125f301b3f9af1e8c4b2c8b14f7eab3c87c3869c4d694642f9",
+      "plan/README.md": "1abd7ed14d098b17ee97f63a6da4f08433f3d075c09ed57f06d9f42c0dd9cb7e",
+      "plan/rule-selection.json": "2bdbc2d330db6d0d80ec50e086988141e72edb6651691c8e6bf35fd48d70a529",
+      "plan/task-001.md": "9efc529dca23618ee7dd581650f3e002107a81ea9ac915a5ffed83d9367281e8",
+      "proposal.md": "1c17aeed5777994d84a28a3c64163e4d0f49afcbc9935c8ebf516df7a29f8523",
+      "verification.md": "ee5047fe1c7f5fcd8e5ec4bc11a3cfd53c47af96623ea2c30ca5b13ee8d9750f"
+    }
+  },
+  "mode": "implementation-retirement",
+  "platform": "iOS",
+  "reason": "superseded",
+  "retired_status": "implementing",
+  "schema_version": 1,
+  "tasks_done": 1,
+  "tasks_total": 1,
+  "verification_status": "pending"
+}
