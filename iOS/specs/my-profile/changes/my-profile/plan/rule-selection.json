@@ -1,15 +1,5 @@
 {
-  "platform": "iOS",
-  "feature": "my-profile",
-  "change_id": "my-profile",
-  "change_type": "product-backed",
-  "tier": "standard",
-  "status": "implementing",
-  "shared_product_spec": "specs/product/my-profile/spec.md",
-  "product_status": "READY",
-  "product_approval": "APPROVED",
-  "product_impact": "PRESENT",
-  "impact_evidence": "Общая READY-спека my-profile меняет наблюдаемое поведение вкладки профиля, загрузку истории интервью и явный выход из сессии для iOS.",
+  "schema_version": 2,
   "engineering_scopes": [
     "application",
     "concurrency",
@@ -53,14 +43,6 @@
     "iOS/workflow/rules/simulator.md",
     "iOS/workflow/rules/architecture/mvvm.md"
   ],
-  "rule_selection_snapshot": "plan/rule-selection.json",
   "modularity_contract_version": 1,
-  "blocking_questions": [],
-  "problems": [],
-  "design_gate": "PASS",
-  "tasks_total": 4,
-  "tasks_done": 2,
-  "verification_status": "pending",
-  "verified_at": null,
-  "verification_state": null
+  "fingerprint": "14c64cd7414d700b9624c594c5857b93667e99c40e2cdbf26cf451cbcfe60c64"
 }
