@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SysDevSc</string>
+    <string name="auth_api_base_url">https://89.125.1.21.nip.io/</string>
 </resources>
