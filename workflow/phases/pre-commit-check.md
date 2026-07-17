@@ -11,6 +11,10 @@ recommended_roles: []
 commit. После commit intent и до staging получить явный intended path set. Для
 каждой platform/feature/change identity сначала завершить отдельный
 `$reconcile-implementation`; не считать весь dirty worktree разрешённым scope.
+Commit может происходить до или после archive: до archive reconciliation и gate
+используют active task trail, после archive — verified implementation archive
+receipt/tombstone trail, включая archived task coverage или verified scope
+coverage.
 Затем сверить requested ownership/scope с `git status`; сама фаза никогда не
 выполняет `git add`.
 
@@ -21,7 +25,8 @@ old/new; для copy — read-only unchanged source и mutable destination. Тр
 receipt. Проверить разделение scope,
 влияние на документацию и platform addenda. Для harness changes staged-index
 checkout запускает `harness-lint --warn-as-error`. Для production paths
-обязательны active task trail coverage и adapter obligations.
+обязательны active task trail coverage либо verified archived task trail
+coverage/verified scope coverage и adapter obligations.
 
 Gate остаётся read-only для repository/index/worktree, не запускает reconciliation;
 единственная запись — private ephemeral receipt вне repo.

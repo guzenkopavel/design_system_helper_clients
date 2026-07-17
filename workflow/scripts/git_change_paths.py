@@ -186,6 +186,11 @@ def matching_head_sources(repo: Path, destination: str, *, staged: bool) -> list
     return sorted(head_blob_inventory(repo).get(object_id or "", []))
 
 
+def archive_provenance_path(raw: str) -> bool:
+    parts = Path(raw).parts
+    return "archive" in parts and "provenance" in parts
+
+
 def normalize_for_intent(
     repo: Path, entries: list[ChangeEntry], intended: list[str], *, staged: bool = False,
 ) -> tuple[list[ChangeEntry], list[str]]:
@@ -198,6 +203,8 @@ def normalize_for_intent(
     used_sources: set[str] = set()
     inferred: list[ChangeEntry] = []
     for addition in additions:
+        if archive_provenance_path(addition.path):
+            continue
         matching = matching_head_sources(repo, addition.path, staged=staged)
         if not matching:
             continue

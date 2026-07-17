@@ -19,10 +19,12 @@ recommended_roles:
 # Phase: Reconcile Implementation
 
 Form: `reconcile-implementation <platform> <feature> [--change <change-id>]
---path <repo-relative>...`. Run once per platform package identity before staging. Receive the
-intended production paths explicitly from the user/coordinator; never expand
-them to all dirty files. Different feature/change IDs on the same platform use
-separate calls, guards and reports.
+--path <repo-relative>...`. Run once per platform package identity before
+staging. It may run before archive against an active package, or after archive
+against a verified implementation receipt and tombstone. Receive the intended
+production paths explicitly from the user/coordinator; never expand them to all
+dirty files. Different feature/change IDs on the same platform use separate
+calls, guards and reports.
 
 Каждый intended path проходит тот же canonical lexical/canonical ownership
 helper, что Plan и Implement: protected/excluded overlap и symlink file,
@@ -40,10 +42,14 @@ uncertain. An adapter-owned uncovered path is `task-drift` or
 `platform-implementation-drift`, not a blocker. Add/repair its coherent task and
 evidence. Shared/uncertain routes to Discovery/Elaborate with zero writes.
 
-Route `draft` to Propose, `specified` to Plan, `FAIL`/`UNKNOWN` to canonical
-`$implement` recovery, and archived state to a new change — all before guard
-writes. `planned` may start but a successful result must become `implementing`;
-an `implementing` baseline must remain `implementing`.
+Route `draft` to Propose, `specified` to Plan, and `FAIL`/`UNKNOWN` to
+canonical `$implement` recovery before guard writes. Archived state is accepted
+only as read-only post-archive `ALIGNED` when the active tombstone points to a
+verified implementation archive receipt whose tasks or verified scope cover the
+intended paths; retirement, invalid or non-PASS archived receipts still route
+to a new change/repair with zero writes. `planned` may start but a successful
+result must become `implementing`; an `implementing` baseline must remain
+`implementing`.
 
 For a supported class, run `start` with that exact classification. Use the
 canonical owners only: specification writer for platform spec/verification,
@@ -81,6 +87,8 @@ the canonical pre-commit gate accepts the reconciled production/package set.
 
 Return a pre-staging report with classification, identity, intended paths,
 affected/reopened tasks, package writes, commands/results, final validator and
-next route. A previously verified package needs fresh `$verify` to restore its
-terminal claim; a non-terminal package may proceed to scoped staging/pre-commit
-after `RECONCILED`. Do not stage, commit or push.
+next route. A previously verified active package needs fresh `$verify` to
+restore its terminal claim; a non-terminal active package may proceed to scoped
+staging/pre-commit after `RECONCILED`. A verified archived package may proceed
+after read-only `ALIGNED` because terminal archive evidence is immutable. Do
+not stage, commit or push.

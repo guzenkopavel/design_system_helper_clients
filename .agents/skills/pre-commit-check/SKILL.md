@@ -10,10 +10,12 @@ description: Проверить staged index перед явным commit intent
 
 После explicit commit intent сначала зафиксировать явный intended path set и до
 staging выполнить отдельный `$reconcile-implementation` для каждой
-platform/feature/change identity. Cross-platform и несколько packages одной
-платформы делятся на независимые запуски; весь dirty worktree не
-подставлять. После reconciliation report проверить ownership/status, stage
-только уже разрешённый set и запустить canonical
+platform/feature/change identity. Это работает как до archive, так и после
+archive: active package даёт task trail, а verified implementation archive —
+tombstone/receipt trail with archived task or verified scope coverage.
+Cross-platform и несколько packages одной платформы делятся на независимые
+запуски; весь dirty worktree не подставлять. После reconciliation report
+проверить ownership/status, stage только уже разрешённый set и запустить canonical
 `pre-commit-check.py --staged --path <path>...` с exact intended set;
 не подменять staged evidence worktree-проверкой или старым receipt. Exact PASS
 создаёт short-lived private receipt для текущего staged fingerprint. Применить

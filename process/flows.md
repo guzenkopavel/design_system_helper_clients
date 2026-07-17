@@ -31,6 +31,7 @@ flow не меняется между Codex, Claude Code, Cursor и OpenCode.
 explicit commit intent
   → explicit intended path set
   → reconcile-implementation per platform/feature/change identity
+  → active task trail OR archived verified receipt/scope trail
   → reconciliation report
   → scoped staging of approved set
   → pre-commit-check over staged index + exact intended path binding

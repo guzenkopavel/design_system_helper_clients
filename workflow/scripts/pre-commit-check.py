@@ -10,6 +10,7 @@ import json
 import math
 import os
 import re
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -454,10 +455,108 @@ def task_trails(
     return results
 
 
+def archived_task_trails(
+    repo: Path, adapter: dict[str, object], candidate: str, changed_paths: set[str]
+) -> list[dict[str, object]]:
+    package_root = str(adapter["package_root"]).rstrip("/")
+    archive_namespace = str(adapter.get("archive_namespace", "archive"))
+    meta_re = re.compile(
+        rf"^{re.escape(package_root)}/[^/]+/{re.escape(archive_namespace)}/[^/]+/meta\.json$"
+    )
+    paths = index_paths(repo)
+    results: list[dict[str, object]] = []
+    for meta_path in paths:
+        if not meta_re.fullmatch(meta_path):
+            continue
+        raw_meta = index_text(repo, meta_path)
+        if raw_meta is None:
+            continue
+        try:
+            meta = json.loads(raw_meta)
+        except json.JSONDecodeError:
+            continue
+        if meta.get("status") != "archived" or meta.get("verification_status") != "PASS":
+            continue
+        package = meta_path.removesuffix("/meta.json")
+        receipt_blob = index_text(repo, f"{package}/archive-receipt.json")
+        if not receipt_blob:
+            continue
+        try:
+            receipt = json.loads(receipt_blob)
+        except json.JSONDecodeError:
+            continue
+        if (
+            receipt.get("mode") != "implementation"
+            or receipt.get("verification_status") != "PASS"
+            or receipt.get("archived_path") != package
+            or receipt.get("tasks_done") != receipt.get("tasks_total")
+        ):
+            continue
+        current_archive = any(raw == package or raw.startswith(package + "/") for raw in changed_paths)
+        state_ref = receipt.get("verification_state")
+        state_paths: set[str] = set()
+        if isinstance(state_ref, dict) and isinstance(state_ref.get("path"), str):
+            state_blob = index_text(repo, f"{package}/{state_ref['path']}")
+            if state_blob:
+                try:
+                    state = json.loads(state_blob)
+                    if state.get("fingerprint") == state_ref.get("fingerprint"):
+                        files = state.get("files", {})
+                        if isinstance(files, dict):
+                            state_paths = {
+                                raw.removeprefix("repo/")
+                                for raw in files
+                                if isinstance(raw, str) and raw.startswith("repo/")
+                            }
+                except json.JSONDecodeError:
+                    state_paths = set()
+        covered_by_task = False
+        for task_path in paths:
+            if not re.fullmatch(rf"{re.escape(package)}/plan/task-\d{{3}}\.md", task_path):
+                continue
+            body = index_text(repo, task_path) or ""
+            if not any(declared_covers(repo, declared, candidate) for declared in parse_task_paths(body)):
+                continue
+            covered_by_task = True
+            status_match = re.search(r"(?mi)^-\s*Status:\s*(pending|done)\s*$", body)
+            evidence_match = re.search(r"(?mi)^-\s*Evidence:\s*(\S+)\s*$", body)
+            evidence = evidence_match.group(1) if evidence_match else "none"
+            evidence_path = f"{package}/{evidence}" if evidence != "none" else ""
+            evidence_blob = index_text(repo, evidence_path) if evidence_path else None
+            results.append({
+                "package": package,
+                "task": PurePosixPath(task_path).stem,
+                "done": bool(status_match and status_match.group(1) == "done"),
+                "evidence": bool(evidence_blob and evidence_blob.strip()),
+                "scopes": parse_task_scopes(body),
+                "command": parse_task_command(body),
+                "source": "archived",
+                "current": current_archive,
+            })
+        if not covered_by_task and candidate in state_paths:
+            results.append({
+                "package": package,
+                "task": "verification-state",
+                "done": True,
+                "evidence": True,
+                "scopes": [],
+                "command": "archive receipt verification",
+                "source": "archived",
+                "current": current_archive,
+            })
+    return results
+
+
 def select_package_trail(
     trails: list[dict[str, object]],
 ) -> tuple[dict[str, object] | None, list[str]]:
     packages = sorted(set(str(item["package"]) for item in trails))
+    current_packages = sorted(set(str(item["package"]) for item in trails if item.get("current")))
+    if len(current_packages) == 1:
+        trails = [item for item in trails if str(item["package"]) == current_packages[0]]
+        packages = current_packages
+    elif len(current_packages) > 1:
+        return None, current_packages
     if len(packages) > 1:
         return None, packages
     if not trails:
@@ -489,7 +588,61 @@ def worktree_task_trails(repo: Path, adapter: dict[str, object], candidate: str)
                     "task": task_path.stem,
                     "scopes": parse_task_scopes(body),
                     "command": parse_task_command(body),
+                    "source": "active",
                 })
+    archive_root = repo / str(adapter["package_root"])
+    archive_namespace = str(adapter.get("archive_namespace", "archive"))
+    for meta_path in archive_root.glob(f"*/{archive_namespace}/*/meta.json"):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            receipt = json.loads((meta_path.parent / "archive-receipt.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        package = meta_path.parent
+        if (
+            meta.get("status") != "archived"
+            or meta.get("verification_status") != "PASS"
+            or receipt.get("mode") != "implementation"
+            or receipt.get("verification_status") != "PASS"
+            or receipt.get("archived_path") != package.relative_to(repo).as_posix()
+            or receipt.get("tasks_done") != receipt.get("tasks_total")
+        ):
+            continue
+        state_ref = receipt.get("verification_state")
+        state_paths: set[str] = set()
+        if isinstance(state_ref, dict) and isinstance(state_ref.get("path"), str):
+            try:
+                state = json.loads((package / str(state_ref["path"])).read_text(encoding="utf-8"))
+                if state.get("fingerprint") == state_ref.get("fingerprint"):
+                    files = state.get("files", {})
+                    if isinstance(files, dict):
+                        state_paths = {
+                            raw.removeprefix("repo/")
+                            for raw in files
+                            if isinstance(raw, str) and raw.startswith("repo/")
+                        }
+            except (OSError, json.JSONDecodeError):
+                state_paths = set()
+        covered_by_task = False
+        for task_path in sorted((package / "plan").glob("task-*.md")):
+            body = task_path.read_text(encoding="utf-8", errors="replace")
+            if any(declared_covers(repo, declared, candidate) for declared in parse_task_paths(body)):
+                covered_by_task = True
+                results.append({
+                    "package": package.relative_to(repo).as_posix(),
+                    "task": task_path.stem,
+                    "scopes": parse_task_scopes(body),
+                    "command": parse_task_command(body),
+                    "source": "archived",
+                })
+        if not covered_by_task and candidate in state_paths:
+            results.append({
+                "package": package.relative_to(repo).as_posix(),
+                "task": "verification-state",
+                "scopes": [],
+                "command": "archive receipt verification",
+                "source": "archived",
+            })
     return results
 
 
@@ -651,6 +804,7 @@ def evaluate(
                 add(checks, "path.production-ownership", FAIL, str(error), candidate)
                 continue
             trails = task_trails(repo, candidate_adapter, candidate, changed_paths)
+            trails.extend(archived_task_trails(repo, candidate_adapter, candidate, changed_paths))
             trail, owner_packages = select_package_trail(trails)
             if len(owner_packages) > 1:
                 add(
@@ -662,7 +816,7 @@ def evaluate(
             if not trail:
                 add(
                     checks, "trail.production-task", FAIL,
-                    "production path is not covered by an active staged task; "
+                    "production path is not covered by an active or archived verified task; "
                     "before staging run reconcile-implementation with an explicit --path",
                     candidate,
                 )
@@ -671,7 +825,8 @@ def evaluate(
             if not (trail["done"] and trail["evidence"]):
                 add(checks, "trail.production-task", UNKNOWN, f"{trail['task']} is pending or lacks staged evidence", candidate)
             else:
-                add(checks, "trail.production-task", PASS, f"covered by completed {trail['task']} with staged evidence", candidate)
+                source = "archived receipt" if trail.get("source") == "archived" else "staged evidence"
+                add(checks, "trail.production-task", PASS, f"covered by completed {trail['task']} with {source}", candidate)
             candidate_profile = candidate_adapter["pre_commit"]
             categories = []
             for category, key in (
@@ -781,7 +936,7 @@ def coverage_report(repo: Path, paths: list[str]) -> dict[str, object]:
         detail = (
             f"covered by {trail['task']}" if valid
             else "active task with engineering scopes is required" if trail and scoped_surface
-            else "no active task covers path; run reconcile-implementation with an explicit --path before staging"
+            else "no active or archived verified task covers path; run reconcile-implementation with an explicit --path before staging"
         )
         add(checks, "trail.path", PASS if valid else FAIL, detail, path)
     overall = FAIL if any(item["status"] == FAIL for item in checks) else PASS
@@ -813,6 +968,7 @@ def fixture_adapter(platform: str) -> dict[str, object]:
     return {
         "platform_name": platform, "platform_root": root,
         "package_root": f"{root}/specs", "active_changes_namespace": "changes",
+        "archive_namespace": "archive",
         "production_roots": [root],
         "protected_roots": [f"{root}/AGENTS.md", f"{root}/specs", f"{root}/workflow"],
         "production_exclusions": [f"{root}/AGENTS.md", f"{root}/specs", f"{root}/workflow"],
@@ -1016,6 +1172,53 @@ def self_test() -> int:
             assert any("reconcile-implementation" in item.get("detail", "") for item in uncovered["checks"])
             git(repo, "reset", "-q", "HEAD", sibling.relative_to(repo).as_posix()); sibling.unlink()
             git(repo, "commit", "-qm", f"{platform.lower()} fixture")
+
+            package = repo / f"{platform}/specs/sample/changes/sample"
+            archive = repo / f"{platform}/specs/sample/archive/2026-07-17-sample"
+            shutil.move(str(package), str(archive))
+            meta_path = archive / "meta.json"
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            meta.update(
+                status="archived",
+                archived_path=archive.relative_to(repo).as_posix(),
+                verification_status="PASS",
+                tasks_total=1,
+                tasks_done=1,
+            )
+            meta_path.write_text(json.dumps(meta), encoding="utf-8")
+            write(
+                archive / "archive-receipt.json",
+                json.dumps({
+                    "schema_version": 2,
+                    "mode": "implementation",
+                    "platform": platform,
+                    "feature": "sample",
+                    "change_id": "sample",
+                    "archived_path": archive.relative_to(repo).as_posix(),
+                    "verification_status": "PASS",
+                    "tasks_total": 1,
+                    "tasks_done": 1,
+                }),
+            )
+            write(
+                package / "ARCHIVED.md",
+                "# Archived implementation change\n\n"
+                f"- Platform: {platform}\n- Feature: sample\n- Change ID: sample\n"
+                f"- Target: `{archive.relative_to(repo).as_posix()}`\n",
+            )
+            write(repo / f"{platform}/App/{source}", f"post-archive {platform} source\n")
+            git(repo, "add", f"{platform}/specs", f"{platform}/App/{source}")
+            post_archive = evaluate(repo)
+            assert post_archive["status"] == PASS, post_archive
+            assert any(
+                item["id"] == "trail.production-task"
+                and item.get("path") == f"{platform}/App/{source}"
+                and "archived receipt" in item["detail"]
+                for item in post_archive["checks"]
+            )
+            post_archive_coverage = coverage_report(repo, [f"{platform}/App/{source}"])
+            assert post_archive_coverage["status"] == PASS, post_archive_coverage
+            git(repo, "reset", "-q", "--hard", "HEAD")
 
             orphan = repo / f"{platform}/App/Orphan{Path(source).suffix}"
             write(orphan, "tracked without task trail\n")

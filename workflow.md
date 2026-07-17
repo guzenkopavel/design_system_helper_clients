@@ -22,6 +22,7 @@
 
 Есть явный commit intent с platform production changes?
   да → explicit intended paths → reconcile-implementation per platform package
+       → active task trail или archived receipt trail
        → report → scoped staging → pre-commit-check → commit
 ```
 
@@ -73,7 +74,7 @@ skills, их канонические phases и write contract.
 | `plan` | Создать self-contained platform plan при поддержанной plan capability. | [`workflow/phases/plan.md`](workflow/phases/plan.md) | `<platform>/specs/<feature>/changes/<change-id>/meta.json`, `<platform>/specs/<feature>/changes/<change-id>/plan/README.md`, `<platform>/specs/<feature>/changes/<change-id>/plan/rule-selection.json`, `<platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md` | `focused` |
 | `pre-commit-check` | Проверить staged index перед явным commit intent. Использовать при `$pre-commit-check` и всегда перед выполнением просьбы commit/закомить; gate сам не stage/commit/push. | [`workflow/phases/pre-commit-check.md`](workflow/phases/pre-commit-check.md) | нет | `staged-index` |
 | `propose` | Создать platform implementation package при поддержанной propose capability. | [`workflow/phases/propose.md`](workflow/phases/propose.md) | `<platform>/specs/<feature>/changes/<change-id>/meta.json`, `<platform>/specs/<feature>/changes/<change-id>/proposal.md`, `<platform>/specs/<feature>/changes/<change-id>/implementation-spec.md`, `<platform>/specs/<feature>/changes/<change-id>/design.md`, `<platform>/specs/<feature>/changes/<change-id>/verification.md`, `<platform>/specs/<feature>/changes/<change-id>/platform-ux.md (product-backed ui only)` | `focused` |
-| `reconcile-implementation` | Сверить явный набор platform production changes с active implementation package до staging и безопасно восстановить package evidence/state. | [`workflow/phases/reconcile-implementation.md`](workflow/phases/reconcile-implementation.md) | `<platform>/specs/<feature>/changes/<change-id>/implementation-spec.md`, `<platform>/specs/<feature>/changes/<change-id>/design.md`, `<platform>/specs/<feature>/changes/<change-id>/verification.md`, `<platform>/specs/<feature>/changes/<change-id>/meta.json`, `<platform>/specs/<feature>/changes/<change-id>/plan/`, `<platform>/specs/<feature>/changes/<change-id>/evidence/reconciliation-*.md` | `focused-and-implement-validator` |
+| `reconcile-implementation` | Сверить явный набор platform production changes с active implementation package или verified archived implementation receipt до staging и безопасно восстановить/подтвердить package evidence/state. | [`workflow/phases/reconcile-implementation.md`](workflow/phases/reconcile-implementation.md) | `<platform>/specs/<feature>/changes/<change-id>/implementation-spec.md`, `<platform>/specs/<feature>/changes/<change-id>/design.md`, `<platform>/specs/<feature>/changes/<change-id>/verification.md`, `<platform>/specs/<feature>/changes/<change-id>/meta.json`, `<platform>/specs/<feature>/changes/<change-id>/plan/`, `<platform>/specs/<feature>/changes/<change-id>/evidence/reconciliation-*.md` | `focused-and-implement-validator` |
 | `verify` | Проверить platform package при поддержанной verify capability и получить fresh terminal evidence. | [`workflow/phases/verify.md`](workflow/phases/verify.md) | `<platform>/specs/<feature>/changes/<change-id>/verification.md`, `<platform>/specs/<feature>/changes/<change-id>/evidence/`, `<platform>/specs/<feature>/changes/<change-id>/meta.json`, `<platform>/specs/<feature>/changes/<change-id>/plan/task-NNN.md (recovery only)` | `terminal` |
 | `writing-skills` | Проверять новые жёсткие workflow-правила, skills и runtime-роли через RED → GREEN → REFACTOR и сохранять test evidence. Использовать как обязательную зависимость harness-change при добавлении или существенном изменении инструктивного поведения; не использовать для typo, link fix, index и неинструктивной документации. | [`workflow/phases/writing-skills.md`](workflow/phases/writing-skills.md) | `workflow/test-evidence/<name>.md` | `true` |
 <!-- END GENERATED: WORKFLOW_SKILLS -->
@@ -307,10 +308,12 @@ path и ambiguous mutable package owner дают FAIL.
 Unrelated unstaged state разрешён.
 
 `$reconcile-implementation <platform> <feature> [--change <id>] --path ...`
-также не пишет production/index/shared product: он согласует только выбранный
-active package. После invalidation свежий `$verify` нужен для восстановления
-terminal claim; non-terminal package после `RECONCILED` может идти в scoped
-staging/pre-commit.
+также не пишет production/index/shared product. До archive он согласует
+выбранный active package; после archive он read-only сверяет active tombstone с
+verified implementation archive receipt и archived task/verified scope
+coverage. После active invalidation свежий `$verify` нужен для восстановления
+terminal claim; non-terminal package после `RECONCILED`, а verified archived
+package после read-only `ALIGNED`, может идти в scoped staging/pre-commit.
 Reconcile использует selected lane projection: disjoint package/product/
 platform dirty, index и unrelated commit допустимы, selected package/intended
 paths/shared spec/rules/adapter/control plane остаются guarded.

@@ -237,6 +237,169 @@ def task_coverage(
     return tasks, coverage, closure, parse_errors
 
 
+def tombstone_target(repo: Path, package: Path, validator) -> Path | None:
+    tombstone = package / "ARCHIVED.md"
+    if not tombstone.is_file():
+        return None
+    text = tombstone.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?mi)^-\s*Target:\s*`?([^`\n]+)`?\s*$", text)
+    if not match:
+        return None
+    try:
+        return validator.safe_repo_path(repo, match.group(1).strip(), "implementation tombstone target")
+    except Exception:
+        return None
+
+
+def archived_receipt_valid(repo: Path, archive: Path, feature: str, change_id: str, platform: str) -> tuple[bool, list[str]]:
+    errors: list[str] = []
+    try:
+        meta = json.loads((archive / "meta.json").read_text(encoding="utf-8"))
+        receipt = json.loads((archive / "archive-receipt.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return False, [f"archived package receipt/meta invalid: {error}"]
+    expected_archive = archive.relative_to(repo).as_posix()
+    checks = {
+        "status": meta.get("status") == "archived",
+        "mode": receipt.get("mode") == "implementation",
+        "feature": receipt.get("feature") == feature,
+        "change": receipt.get("change_id") == change_id,
+        "platform": str(receipt.get("platform", "")).casefold() == platform.casefold(),
+        "path": receipt.get("archived_path") == expected_archive,
+        "verification": receipt.get("verification_status") == "PASS",
+        "tasks": isinstance(receipt.get("tasks_total"), int)
+        and receipt.get("tasks_total") > 0
+        and receipt.get("tasks_done") == receipt.get("tasks_total"),
+    }
+    for name, passed in checks.items():
+        if not passed:
+            errors.append(f"archived receipt {name} check failed")
+    return not errors, errors
+
+
+def archived_verification_paths(archive: Path) -> set[str]:
+    try:
+        receipt = json.loads((archive / "archive-receipt.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    state_ref = receipt.get("verification_state")
+    if not isinstance(state_ref, dict) or not isinstance(state_ref.get("path"), str):
+        return set()
+    try:
+        state = json.loads((archive / str(state_ref["path"])).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    if state.get("fingerprint") != state_ref.get("fingerprint"):
+        return set()
+    files = state.get("files", {})
+    if not isinstance(files, dict):
+        return set()
+    return {
+        raw.removeprefix("repo/")
+        for raw in files
+        if isinstance(raw, str) and raw.startswith("repo/")
+    }
+
+
+def resolve_archived_context(
+    repo: Path,
+    adapter: dict[str, object],
+    feature: str,
+    change_id: str,
+    package: Path,
+    intended_raw: list[str],
+    classification: str,
+    validator,
+    precommit,
+) -> dict[str, object] | None:
+    archive = tombstone_target(repo, package, validator)
+    if archive is None:
+        return None
+    valid, receipt_errors = archived_receipt_valid(
+        repo, archive, feature, change_id, str(adapter["platform_name"])
+    )
+    if not valid:
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "repair archived implementation receipt before post-archive commit",
+            "errors": receipt_errors,
+        }
+    intended: list[str] = []
+    try:
+        intended = sorted(set(safe_path(raw) for raw in intended_raw))
+    except ReconcileError as error:
+        return {"outcome": ROUTE_REQUIRED, "route": "provide safe explicit intended paths", "errors": [str(error)]}
+    if not intended:
+        return {"outcome": ROUTE_REQUIRED, "route": "provide at least one explicit --path", "errors": []}
+    entries, detection_errors = change_paths.worktree_entries(repo)
+    selected_entries, identity_errors = change_paths.select_identity(repo, entries, intended)
+    selected_sets = change_paths.path_sets(selected_entries)
+    changes = change_paths.path_records(selected_entries)
+    mutable = selected_sets["mutable_paths"]
+    read_only_copy_sources = selected_sets["read_only_paths"]
+    relevant_detection_errors = [
+        error for error in detection_errors
+        if any(f" {raw}:" in error for raw in intended)
+    ]
+    errors: list[str] = [*relevant_detection_errors, *identity_errors]
+    if selected_sets["identity_paths"] != intended:
+        errors.append("intended set must exactly equal detected rename/copy identity paths")
+    for raw in mutable:
+        try:
+            validator.path_ownership.validate_platform_writable_path(repo, adapter, raw)
+        except validator.path_ownership.PathOwnershipError as error:
+            errors.append(f"intended path ownership invalid: {error}")
+    if classification in {"task-drift", "platform-implementation-drift", "shared-product-impact", "uncertain"}:
+        errors.append("archived implementation reconciliation is read-only; create a new change for new drift or product impact")
+    tasks, coverage, closure, parse_errors = task_coverage(
+        repo, archive, mutable, validator, precommit,
+        require_implementation_deliverables=False,
+    )
+    verified_paths = archived_verification_paths(archive)
+    for raw in mutable:
+        if not coverage.get(raw) and raw in verified_paths:
+            coverage[raw] = ["verification-state"]
+    uncovered = sorted(raw for raw, owners in coverage.items() if not owners)
+    errors.extend(f"task parse: {item}" for item in parse_errors)
+    errors.extend(f"uncovered path: {raw}" for raw in uncovered)
+    if errors:
+        return {
+            "outcome": ROUTE_REQUIRED,
+            "route": "post-archive commit requires exact archived task coverage",
+            "errors": sorted(set(errors)),
+            "platform": adapter["platform_name"],
+            "feature": feature,
+            "change": change_id,
+            "package_state": "archived",
+        }
+    return {
+        "outcome": ALIGNED,
+        "semantic_judgment_required": False,
+        "classification": classification,
+        "platform": adapter["platform_name"],
+        "platform_input": adapter["platform_input"],
+        "feature": feature,
+        "change": change_id,
+        "modularity_contract_version": "archived",
+        "package": archive.relative_to(repo).as_posix(),
+        "active_tombstone": package.relative_to(repo).as_posix(),
+        "package_state": "archived",
+        "intended_paths": intended,
+        "identity_paths": intended,
+        "mutable_paths": mutable,
+        "read_only_copy_sources": read_only_copy_sources,
+        "path_status": {raw: changes[raw] for raw in intended},
+        "task_coverage": coverage,
+        "affected_task_closure": sorted(closure),
+        "uncovered_paths": [],
+        "task_parse_errors": [],
+        "current_state": {"status": "archived", "verification_status": "PASS"},
+        "requires_focused_evidence": False,
+        "required_next_step": "stage exact intended paths with the archived package/tombstone evidence and run pre-commit-check",
+        "_post_archive_read_only": True,
+    }
+
+
 def reconciliation_next_step(status: object) -> str:
     if status == "verified":
         return "run fresh verify to restore invalidated terminal state before any terminal claim or archive"
@@ -268,6 +431,12 @@ def resolve_context(
     try:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
+        archived = resolve_archived_context(
+            repo, adapter, feature, change_id, package, intended_raw, classification,
+            validator, precommit,
+        )
+        if archived is not None:
+            return archived
         return {"outcome": ROUTE_REQUIRED, "route": "repair package identity/state", "errors": [str(error)]}
     if meta.get("status") == "archived" or (package / "ARCHIVED.md").is_file():
         return {"outcome": ROUTE_REQUIRED, "route": "start a new change; archived packages are immutable", "errors": []}
@@ -986,6 +1155,49 @@ def self_test() -> int:
         assert route["outcome"] == ROUTE_REQUIRED and not (package / "evidence/reconciliation-route.md").exists()
 
     with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp).resolve(); _validator, _adapter, package, source = write_fixture(repo, "iOS")
+        archive = repo / "iOS/specs/sample/archive/2026-07-17-sample"
+        shutil.move(str(package), str(archive))
+        meta_path = archive / "meta.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta.update(
+            status="archived",
+            archived_path=archive.relative_to(repo).as_posix(),
+            verification_status="PASS",
+            tasks_total=1,
+            tasks_done=1,
+        )
+        meta_path.write_text(json.dumps(meta), encoding="utf-8")
+        (archive / "archive-receipt.json").write_text(json.dumps({
+            "schema_version": 2,
+            "mode": "implementation",
+            "platform": "iOS",
+            "feature": "sample",
+            "change_id": "sample",
+            "archived_path": archive.relative_to(repo).as_posix(),
+            "verification_status": "PASS",
+            "tasks_total": 1,
+            "tasks_done": 1,
+        }), encoding="utf-8")
+        package.mkdir(parents=True)
+        (package / "ARCHIVED.md").write_text(
+            "# Archived implementation change\n\n"
+            "- Platform: iOS\n- Feature: sample\n- Change ID: sample\n"
+            f"- Target: `{archive.relative_to(repo).as_posix()}`\n",
+            encoding="utf-8",
+        )
+        source.write_text("post-archive change\n", encoding="utf-8")
+        archived = resolve_context(
+            repo, "ios", "sample", "sample", [source.relative_to(repo).as_posix()], "aligned"
+        )
+        assert archived["outcome"] == ALIGNED and archived["package_state"] == "archived", archived
+        archived_start = {
+            **public_report(archived),
+            "guard_state": "not-required-post-archive-immutable",
+        }
+        assert archived_start["guard_state"].startswith("not-required"), archived_start
+
+    with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp).resolve(); validator, adapter, package, source = write_fixture(repo, "iOS")
         meta_path = package / "meta.json"
         legacy_meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -1536,7 +1748,13 @@ def main() -> int:
         context = resolve_context(
             repo, args.platform, args.feature, args.change, args.paths, args.classification
         )
-        report = start_guard(context, repo) if args.command == "start" else public_report(context)
+        if args.command == "start" and context.get("_post_archive_read_only"):
+            report = {
+                **public_report(context),
+                "guard_state": "not-required-post-archive-immutable",
+            }
+        else:
+            report = start_guard(context, repo) if args.command == "start" else public_report(context)
     except (OSError, ReconcileError, json.JSONDecodeError) as error:
         report = {"outcome": ROUTE_REQUIRED, "errors": [str(error)]}
     emit(report, args.as_json)

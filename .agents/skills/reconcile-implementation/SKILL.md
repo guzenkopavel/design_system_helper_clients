@@ -1,6 +1,6 @@
 ---
 name: reconcile-implementation
-description: Сверить явный набор platform production changes с active implementation package до staging и безопасно восстановить package evidence/state.
+description: Сверить явный набор platform production changes с active implementation package или verified archived implementation receipt до staging и безопасно восстановить/подтвердить package evidence/state.
 ---
 
 # Reconcile Implementation
@@ -17,14 +17,19 @@ dirty worktree. Cross-platform change — два независимых запу
 собственный запуск, guard и report.
 
 Сначала read-only `reconcile-implementation.py inspect`, затем semantic
-classification canonical roles. Shared behavior `PRESENT`/`UNCERTAIN`, archive,
+classification canonical roles. Shared behavior `PRESENT`/`UNCERTAIN`,
 ambiguity, unsafe/outside/mixed ownership paths маршрутизируются с нулём
 записей; symlink file/directory/proposed-child блокируется canonical ownership
-helper. Adapter-owned uncovered path — это drift: добавить/исправить task,
-plan state и fresh evidence. `draft` идёт в Propose, `specified` в Plan, а
-`FAIL`/`UNKNOWN` в canonical `$implement` recovery до guard. Для
-поддержанного класса запустить guard `start`, менять только разрешённые package
-artifacts, выполнить focused checks и завершить `check`.
+helper. Adapter-owned uncovered active path — это drift: добавить/исправить
+task, plan state и fresh evidence. Post-archive path допустим только как
+read-only `ALIGNED`, если tombstone указывает на verified implementation archive
+receipt, а archived tasks или verified scope покрывают intended paths;
+retirement/non-PASS archive не является delivery coverage. `draft` идёт в
+Propose, `specified` в Plan, а `FAIL`/`UNKNOWN` в canonical `$implement`
+recovery до guard. Для поддержанного active класса запустить guard `start`,
+менять только разрешённые package artifacts, выполнить focused checks и
+завершить `check`; для verified archived package guard не нужен и report
+остаётся read-only.
 Guard scoped выбранной identity и не блокируется disjoint platform/feature/
 product dirty, index или commit; selected package/intended paths/shared spec/
 rules/adapter/control plane остаются неизменяемыми вне allowlist. Ambiguous

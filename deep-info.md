@@ -720,6 +720,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/lifecycle-flow-hardening.md`](workflow/test-evidence/lifecycle-flow-hardening.md) | Lifecycle flow hardening — test evidence |
 | [`workflow/test-evidence/plan-task-deliverables.md`](workflow/test-evidence/plan-task-deliverables.md) | Plan task deliverables — RED/GREEN |
 | [`workflow/test-evidence/platform-native-ux.md`](workflow/test-evidence/platform-native-ux.md) | Platform-native UX harness evidence |
+| [`workflow/test-evidence/post-archive-commit-gate.md`](workflow/test-evidence/post-archive-commit-gate.md) | Post-archive commit gate evidence |
 | [`workflow/test-evidence/pre-commit-and-hooks.md`](workflow/test-evidence/pre-commit-and-hooks.md) | Pre-commit and hooks evidence |
 | [`workflow/test-evidence/product-elaboration.md`](workflow/test-evidence/product-elaboration.md) | Product elaboration skills — test evidence |
 | [`workflow/test-evidence/root-documentation.md`](workflow/test-evidence/root-documentation.md) | Root project documentation |

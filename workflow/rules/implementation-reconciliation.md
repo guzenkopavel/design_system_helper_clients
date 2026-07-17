@@ -2,11 +2,12 @@
 
 Implementation reconciliation is the pre-delivery boundary between an explicit
 user-owned production change set and one platform package. It runs before
-staging. The coordinator may invoke it after explicit commit intent, but it
-must receive the intended set explicitly; it never treats every dirty path as
-authorized scope. Every platform package identity (`platform + feature +
-change_id`) gets an independent invocation, guard and report. Therefore both a
-cross-platform change and two packages on the same platform are split.
+staging, but the commit may happen before or after lifecycle archive. The
+coordinator may invoke it after explicit commit intent, but it must receive the
+intended set explicitly; it never treats every dirty path as authorized scope.
+Every platform package identity (`platform + feature + change_id`) gets an
+independent invocation, guard and report. Therefore both a cross-platform
+change and two packages on the same platform are split.
 
 Form:
 
@@ -25,12 +26,16 @@ peer. Exact byte matches elsewhere never auto-select a source. Zero/multiple
 explicit peers, cross-adapter source, changed/symlink source, reused source or a
 missing side fail before writes. Read-only means exact HEAD/index/worktree
 agreement: one regular tracked stage-0 entry, unchanged mode/blob, no cached or
-unstaged delta and no unmerged stages. Task ownership/coverage applies only to the
-copy destination, but source and destination both remain in intended evidence,
-guard projection, receipt and exact staged identity. Unknown platform/package, ambiguity,
-archived package, unsafe/outside-ownership path or a mixed ownership set routes
-without writes. An adapter-owned uncovered path is valid drift: repair or add
-its task and focused evidence inside the guard.
+unstaged delta and no unmerged stages. Task ownership/coverage applies only to
+the copy destination, but source and destination both remain in intended
+evidence, guard projection, receipt and exact staged identity.
+Unknown platform/package, ambiguity, unsafe/outside-ownership path or a mixed
+ownership set routes without writes. An active adapter-owned uncovered path is
+valid drift: repair or add its task and focused evidence inside the guard. A
+post-archive package may not be repaired; it is accepted only when the active
+namespace contains the exact tombstone and the target archive has a verified
+implementation receipt whose immutable tasks cover every intended mutable
+production path, or whose verified scope contains that path.
 
 ## Classification and routing
 
@@ -45,7 +50,9 @@ its task and focused evidence inside the guard.
   Discovery/Elaborate. Reconciliation must not edit the shared product package.
 
 Classification is semantic work by the canonical roles, not a filename
-heuristic. Ambiguity and archive routing produce zero repository writes.
+heuristic. Ambiguity and invalid archive routing produce zero repository
+writes. A valid post-archive reconciliation is read-only `aligned` evidence and
+does not run the mutation guard.
 
 ## Entry state
 
@@ -57,7 +64,8 @@ heuristic. Ambiguity and archive routing produce zero repository writes.
 | `implementing` + verification `pending` | reconciliation may start and must remain `implementing` |
 | `verified` | reconciliation may start and invalidate terminal state |
 | verification `FAIL` or `UNKNOWN` | `ROUTE_REQUIRED` to canonical `$implement` recovery; zero writes |
-| `archived` | immutable; zero writes |
+| `archived` verified implementation receipt | read-only `ALIGNED`; no guard writes; proceed to scoped staging/pre-commit |
+| `archived` retirement or invalid/non-PASS receipt | immutable but not delivery coverage; zero writes and route to new change/repair |
 
 ## Write and preservation boundary
 
@@ -116,11 +124,17 @@ Delete no historical evidence. Existing `FAIL`/`UNKNOWN`, problem IDs and
 recovery state route to canonical `$implement` recovery before the guard; the
 post-guard defense still rejects any attempted clearing.
 
-Run the final platform validator in `implement` mode. A previously verified
-package requires fresh `$verify` to restore terminal state. A non-terminal
-package may proceed to scoped staging/pre-commit after `RECONCILED`; Verify
-remains the later terminal lifecycle step rather than a new universal commit
-gate.
+Run the final platform validator in `implement` mode for active package
+reconciliation. A previously verified active package requires fresh `$verify`
+to restore terminal state. A non-terminal active package may proceed to scoped
+staging/pre-commit after `RECONCILED`; Verify remains the later terminal
+lifecycle step rather than a new universal commit gate. A valid archived
+package has already passed terminal archive; reconciliation only proves that
+the explicit production paths are covered by immutable archived tasks and
+receipt evidence, including verified scope when task paths are narrower than
+the final terminal verification set. Verify/archive remain the terminal lifecycle step;
+commit timing only changes which immutable or active evidence source pre-commit
+reads.
 
 ## Guard protocol
 
@@ -131,7 +145,8 @@ Use `workflow/scripts/reconcile-implementation.py`:
 2. `start` requires the explicit semantic classification and captures a private
    mode `0600` baseline outside the repository: selected package, intended
    production paths, shared/rule/adapter/control-plane dependencies and their
-   exact projected index.
+   exact projected index. For valid post-archive `ALIGNED`, `start` is a
+   read-only no-op report with `guard_state: not-required-post-archive-immutable`.
 3. Roles make only allowed package repairs and focused checks.
 4. `check <token>` proves selected production, selected-lane index,
    shared/proposal/rules/history and required state/evidence semantics hold, and
@@ -146,6 +161,7 @@ final state before staging. The delivery sequence is exactly:
 explicit commit intent
 → explicit intended path set
 → reconcile-implementation per platform package identity
+  (active task trail or archived verified receipt trail)
 → reconciliation report
 → staging of the approved set
 → pre-commit-check
