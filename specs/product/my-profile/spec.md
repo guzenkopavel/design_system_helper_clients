@@ -3,7 +3,7 @@
 - **Status:** `READY`
 - **Product approval:** `APPROVED`
 - **Approved by:** `Pavel Guzenko (product owner)`
-- **Approval evidence:** Явный ответ пользователя в текущей Codex-сессии от 2026-07-17: `APPROVED my-profile`
+- **Approval evidence:** Явный ответ пользователя в текущей Codex-сессии от 2026-07-17: APPROVED my-profile
 - **Applies to:** `iOS, Android`
 - **Source brief:** `brief.md`
 - **UX artifact:** `ux.md`
