@@ -13,6 +13,7 @@ final class AppShellUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments = ["--auth-stub-active"]
         app.launch()
     }
 

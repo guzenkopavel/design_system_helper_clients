@@ -1,5 +1,5 @@
 /// Контракт API-клиента auth-операций.
-public protocol AuthAPIClient: Sendable {
+protocol AuthAPIClient: Sendable {
 
     func checkEmail(_ email: String) async throws -> Bool
     func login(email: String, password: String) async throws -> String

@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "observation": "Матрица запуска выполнила портретную и альбомную ориентации на iPhone 17 Pro; сфокусированные тесты AuthFlow и AppShell прошли на том же симуляторе без блокирующих сбоев компоновки.",
+  "schema_version": 1,
+  "status": "PASS"
+}

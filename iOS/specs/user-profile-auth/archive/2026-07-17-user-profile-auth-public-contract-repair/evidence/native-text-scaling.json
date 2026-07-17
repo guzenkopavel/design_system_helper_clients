@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-TEXT-SCALING",
+  "observation": "UI авторизации построен на стандартных SwiftUI `Text`, `TextField`, `SecureField`, `Button` и вертикальной компоновке без фиксированных ограничений размера шрифта; runtime UI-тесты подтвердили доступность подписей и элементов управления.",
+  "schema_version": 1,
+  "status": "PASS"
+}

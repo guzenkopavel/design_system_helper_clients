@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-MOTION",
+  "observation": "Инспекция исходников не выявила обязательных собственных анимаций или переходов во флоу авторизации; изменения состояния выполняются стандартной SwiftUI-навигацией и остаются работоспособными в UI-прогонах.",
+  "schema_version": 1,
+  "status": "PASS"
+}

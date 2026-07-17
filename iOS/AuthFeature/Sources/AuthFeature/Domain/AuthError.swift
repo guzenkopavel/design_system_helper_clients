@@ -1,7 +1,7 @@
 import Foundation
 
 /// Доменные ошибки auth.
-public enum AuthError: Error, Sendable {
+enum AuthError: Error, Sendable {
 
     case invalidInput(message: String)
     case emailAlreadyRegistered

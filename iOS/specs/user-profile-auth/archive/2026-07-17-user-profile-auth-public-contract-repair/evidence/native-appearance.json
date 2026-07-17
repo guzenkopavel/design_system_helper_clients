@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-APPEARANCE",
+  "observation": "Нативная auth-поверхность использует стандартные SwiftUI controls, семантические подписи и системные состояния; свежие UI-прогоны подтвердили запуск, ветвление, ввод, submit и переход в оболочку без custom visual dependency.",
+  "schema_version": 1,
+  "status": "PASS"
+}

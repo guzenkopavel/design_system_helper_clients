@@ -1,0 +1,58 @@
+{
+  "archived_at": "2026-07-17T03:17:08Z",
+  "archived_path": "iOS/specs/user-profile-auth/archive/2026-07-17-user-profile-auth-public-contract-repair",
+  "change_id": "user-profile-auth-public-contract-repair",
+  "durable_specification": {
+    "path": "iOS/specs/user-profile-auth/SPECIFICATION.md",
+    "published_sha256": "6f9443162d48639885c8c7861b3cab94688babdf01e325f8acf76cc7804ed235",
+    "source": "iOS/specs/user-profile-auth/archive/2026-07-17-user-profile-auth-public-contract-repair/implementation-spec.md",
+    "source_sha256": "2d5c9385d1894c11d44f44a3501615d3499a7bfa265379dbbff2e588caead265"
+  },
+  "feature": "user-profile-auth",
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "a856d3e749f98a913136a91ddf1d240ca3e4c5fd960005eb35b7c7d9841de2ad",
+    "files": {
+      "design.md": "c3dde84576de34dc7a5d1b3ffbd236259b2ee245e17286150bf4ffc58218889b",
+      "evidence/native-appearance.json": "dfbf62aecc4a904afe0821b621073b2790b3fc33c28e08d334ccab73b5a460d9",
+      "evidence/native-assistive-semantics.json": "6965b62362b0234fd07c3f7fd60b571c8b98ff3362fa339c0aa9acc98d14afbd",
+      "evidence/native-availability-fallback.json": "103e451b38eb0a6c1a89212ec3f63156bdb263fd7cbe525b6c7cf8f6c56a11e8",
+      "evidence/native-dark.json": "941f6dbb0579ed95fd3db02b7fe8d7d63f1ebb9d3ca959f3737352529877c599",
+      "evidence/native-device-adaptation.json": "e9c4c5bedd813ed6b8a8c238afc12024f5a6244669867c9f6812b74e9a9ca46a",
+      "evidence/native-increased-contrast.json": "3dc10eb0a0aee71f29dccfb4804011aaaf1d1ead30bae0a922d1763bd260999b",
+      "evidence/native-light.json": "c0f1482a66532c55a6d24e8b43ece96e6d41b35b2a54a39ca080c471353eee88",
+      "evidence/native-motion.json": "0050e348e81009d732803c25376daa8bdc557ede9fbaf0a73957e665f7c6e2b7",
+      "evidence/native-text-scaling.json": "4dd2db34ae44d2ea3330fc70924c7a0a6c93382b3f6d645525d88c3b264c42fb",
+      "evidence/scope-baseline-task-001.json": "d815e5061a97d4e6bec9dcd8a21a048a3fb59872475ad05282f089acc7bcd98f",
+      "evidence/scope-baseline-task-002.json": "4ba8bd660e194a6343d90dfc469481dc0c3e60133a854dd9c105ce743e9398c2",
+      "evidence/scope-baseline-task-003.json": "2a2711e6ac0bdcaf561494ee88cbb8fa68024c7016852931f432b56a61efe048",
+      "evidence/task-001.md": "072339f4aa3141ed1d69b8dfe7aeb578253078ea6669cab76732cae593e68f50",
+      "evidence/task-002.md": "0c4cb51e8559dde6c6f43f49a26bb88a63eb2ef5340f752c692bfa0447b22d53",
+      "evidence/task-003.md": "b3a8eb16af38b91c4289e5e563c5d4a0a26829e6ca5b4d13c995c4af2cdce049",
+      "evidence/verification-state.json": "d1475deb26578c1bf19ba8245bf34dd9024e44ebfd3fdaaa1a121ffe7eaab2a5",
+      "evidence/verification-terminal.md": "20c1258b5ea9c569d40216592bc71a83b0aec4436dcffb459cebdec65a868244",
+      "evidence/verify-scope-baseline.json": "617143558603b1a83e47efccd10ac20a256d2ed12515bf5635583e532195fe05",
+      "implementation-spec.md": "2d5c9385d1894c11d44f44a3501615d3499a7bfa265379dbbff2e588caead265",
+      "meta.json": "3c582dda3dddc9c098113000da22f9272f0ec51faa0cfce4bdc7b313aa93268d",
+      "plan/README.md": "dbc5b203d7e030ae9e41201c732adf0975f51aaf43d1d2b3d4ecfbbe3586a359",
+      "plan/rule-selection.json": "2d3153ff021079c87466932adb2d171cce974bbd9a24525208df6dfc07420a31",
+      "plan/task-001.md": "535d9db8483bead31f37d9a6aafffec80b400ef809557a23cf9c6eb68f0c6666",
+      "plan/task-002.md": "6c85c2fca7e015f9f39554538b7a0caa07cf16f88431115c04353f1de0996f1c",
+      "plan/task-003.md": "52174c26daabacf2edf6ff869258096be4fe3e4ebf94d22bb033f7ed5bf71bb8",
+      "platform-ux.md": "13ec492fc807981938c2bb33cb3bceb08fea221451ed7ebc956ce287c1fef811",
+      "proposal.md": "ad91573b249674cd235f87ac51e97d4859cb233e8fa00b82440997c47326614c",
+      "provenance/shared-product-spec.md": "81f7bf88afe2a85953c3af44b6724c77ba410cb34ad46d40d2b2691a688e45a9",
+      "verification.md": "7463003c4bce9934f16e369b1b4aedc0f461572746abeb1c0a0d828541094cb2"
+    }
+  },
+  "mode": "implementation",
+  "platform": "iOS",
+  "schema_version": 2,
+  "tasks_done": 3,
+  "tasks_total": 3,
+  "verification_state": {
+    "fingerprint": "6f50fa04f496000ddf31398cb04868722540de991d6fb7ad4aea17600cc44be1",
+    "path": "evidence/verification-state.json"
+  },
+  "verification_status": "PASS"
+}

@@ -8,6 +8,12 @@ let package = Package(
         .iOS("18.0"),
         .macOS("13.0")
     ],
+    products: [
+        .library(
+            name: "AuthFeature",
+            targets: ["AuthFeature"]
+        )
+    ],
     targets: [
         .target(
             name: "AuthFeature",

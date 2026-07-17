@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "observation": "Инспекция исходников и UI-прогоны подтвердили, что состояния авторизации проверяются текстами, подписями и идентификаторами, а не только цветом; собственные цветовые литералы для контраста не добавлены.",
+  "schema_version": 1,
+  "status": "PASS"
+}

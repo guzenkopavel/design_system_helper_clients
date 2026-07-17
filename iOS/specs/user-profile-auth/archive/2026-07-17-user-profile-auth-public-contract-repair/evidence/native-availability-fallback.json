@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "observation": "Инспекция исходников не выявила API, требующих отдельного запасного пути для старой ОС сверх объявленной платформы пакета iOS 18.0 и цели приложения; собственный fallback для Liquid Glass или размытия не добавлен.",
+  "schema_version": 1,
+  "status": "PASS"
+}

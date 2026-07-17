@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "observation": "UI-тесты AuthFlow взаимодействуют с видимыми русскими подписями и accessibility-идентификаторами `auth.email`, `auth.continue`, `auth.password`, `auth.submit-password`, `auth.back-to-email`; подписи оболочки также проверены.",
+  "schema_version": 1,
+  "status": "PASS"
+}

@@ -1,0 +1,9 @@
+{
+  "evidence_refs": [
+    "evidence/verification-terminal.md"
+  ],
+  "obligation_id": "NATIVE-LIGHT",
+  "observation": "Launch matrix на iPhone 17 Pro, iOS 26.5 выполнил Portrait/Light и Landscape/Light, оба запуска завершились PASS и приложили launch screen attachment.",
+  "schema_version": 1,
+  "status": "PASS"
+}
