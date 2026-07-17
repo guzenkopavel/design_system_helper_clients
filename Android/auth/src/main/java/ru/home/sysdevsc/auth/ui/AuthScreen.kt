@@ -103,6 +103,7 @@ private fun EmailStep(
     serverError: ServerError?,
     modifier: Modifier = Modifier
 ) {
+    val showFieldError = shouldShowFieldError(error, serverError)
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -111,8 +112,8 @@ private fun EmailStep(
             value = email,
             onValueChange = onEmailChanged,
             label = { Text(stringResource(R.string.auth_hint_email)) },
-            isError = error != null,
-            supportingText = if (error != null) {
+            isError = showFieldError,
+            supportingText = if (showFieldError) {
                 { Text(getErrorMessageText(error, serverError)) }
             } else null,
             modifier = Modifier.fillMaxWidth(),
@@ -147,6 +148,8 @@ private fun PasswordStep(
     modifier: Modifier = Modifier
 ) {
     val titleRes = if (isLogin) R.string.auth_title_login else R.string.auth_title_register
+    val submitRes = if (isLogin) R.string.auth_button_login else R.string.auth_button_register
+    val showFieldError = shouldShowFieldError(error, serverError)
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
@@ -171,8 +174,8 @@ private fun PasswordStep(
             value = password,
             onValueChange = onPasswordChanged,
             label = { Text(stringResource(R.string.auth_hint_password)) },
-            isError = error != null,
-            supportingText = if (error != null) {
+            isError = showFieldError,
+            supportingText = if (showFieldError) {
                 { Text(getErrorMessageText(error, serverError)) }
             } else null,
             modifier = Modifier
@@ -184,7 +187,7 @@ private fun PasswordStep(
         AuthActionButtons(
             isLoading = isLoading,
             isRateLimited = isRateLimited,
-            buttonText = stringResource(R.string.auth_button_submit),
+            buttonText = stringResource(submitRes),
             onClick = onSubmit
         )
 
@@ -257,6 +260,10 @@ private fun AuthActionButtons(
             )
         }
     }
+}
+
+private fun shouldShowFieldError(error: ValidationError?, serverError: ServerError?): Boolean {
+    return error != null || (serverError != null && serverError != ServerError.RateLimited)
 }
 
 /**

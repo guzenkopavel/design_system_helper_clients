@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "status": "PASS",
+  "observation": "Компактная среда выполнения Pixel 6 и увеличенный текст сохранили линейный порядок, подписи и доступность формы.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}

@@ -142,16 +142,16 @@ class AuthViewModelFactory(
 }
 
 /**
- * Создаёт DefaultAuthApiService с базовым URL из build config.
- * В production URL подставляется через BuildConfig или gradle build config field.
+ * Создаёт DefaultAuthApiService с базовым URL из ресурсов приложения.
+ * В production URL подставляется через app resource auth_api_base_url.
  */
 private fun createDefaultApiService(context: Context): AuthApiService {
     // Базовый URL берётся из ресурсов — внешний параметр окружения
     val resourceId = context.resources.getIdentifier("auth_api_base_url", "string", context.packageName)
     val baseUrl = if (resourceId != 0) {
-        context.getString(resourceId).takeIf { it.isNotEmpty() }
+        context.getString(resourceId).trim().takeIf { it.isNotEmpty() }
     } else {
         null
-    } ?: "https://api.sysdevsc.ru"
+    } ?: "https://89.125.1.21.nip.io/"
     return DefaultAuthApiService(baseUrl = baseUrl)
 }

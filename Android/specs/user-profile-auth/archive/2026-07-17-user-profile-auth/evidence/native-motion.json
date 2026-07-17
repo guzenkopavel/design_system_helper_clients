@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "PASS",
+  "observation": "Загрузка и rate-limit имеют текстовые/индикаторные признаки; состояние не зависит от анимации как единственного носителя.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}

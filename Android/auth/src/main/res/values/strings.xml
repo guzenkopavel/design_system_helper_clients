@@ -10,7 +10,8 @@
 
     <!-- Кнопки -->
     <string name="auth_button_next">Далее</string>
-    <string name="auth_button_submit">Войти</string>
+    <string name="auth_button_login">Войти</string>
+    <string name="auth_button_register">Зарегистрироваться</string>
     <string name="auth_button_back">Назад</string>
 
     <!-- Ошибки локальной валидации -->

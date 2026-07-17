@@ -118,7 +118,7 @@ class AuthIntegrationTest {
         }
         composeRule.onNodeWithText("Регистрация").assertIsDisplayed()
         composeRule.onNode(hasSetTextAction()).performTextInput(TEST_CREDENTIAL)
-        composeRule.onNodeWithText("Войти").performClick()
+        composeRule.onNodeWithText("Зарегистрироваться").performClick()
 
         composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MILLIS) {
             repository.currentToken == SESSION_VALUE
@@ -275,11 +275,7 @@ class AuthIntegrationTest {
 
         override suspend fun checkEmail(email: String): AuthResult {
             checkedEmails += email
-            return if (emailExists) {
-                AuthResult.Success(token = EMAIL_EXISTS_MARKER, email = email)
-            } else {
-                AuthResult.Failure("Почта не найдена")
-            }
+            return AuthResult.EmailChecked(email = email, exists = emailExists)
         }
 
         override suspend fun login(email: String, password: String): AuthResult {
@@ -298,7 +294,6 @@ class AuthIntegrationTest {
         const val TEST_CREDENTIAL = "correct-pass"
         const val SESSION_VALUE = "persisted-session"
         const val EXPIRED_SESSION_VALUE = "repository-owned-expired"
-        const val EMAIL_EXISTS_MARKER = "email-exists"
         const val UI_TIMEOUT_MILLIS = 5_000L
         const val ASYNC_TIMEOUT_SECONDS = 5L
     }

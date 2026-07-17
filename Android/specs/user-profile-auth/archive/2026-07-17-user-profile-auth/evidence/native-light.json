@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-LIGHT",
+  "status": "PASS",
+  "observation": "Светлая палитра ролей Material проверена на читаемые цвета текста поверх ролей через тест доступности.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}

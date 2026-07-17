@@ -14,6 +14,7 @@ package ru.home.sysdevsc.auth.model
  * ошибка с сообщением, ограничение попыток и отсутствие сетевого подключения.
  */
 sealed interface AuthResult {
+    data class EmailChecked(val email: String, val exists: Boolean) : AuthResult
     data class Success(val token: String, val email: String) : AuthResult
     data class Failure(val message: String) : AuthResult
     data object RateLimited : AuthResult

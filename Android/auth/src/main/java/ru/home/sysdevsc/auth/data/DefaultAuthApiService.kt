@@ -17,6 +17,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import ru.home.sysdevsc.auth.model.AuthResult
+import java.util.concurrent.TimeUnit
 
 /**
  * Реализация сетевого контракта авторизации на базе OkHttp.
@@ -27,13 +28,18 @@ import ru.home.sysdevsc.auth.model.AuthResult
  */
 class DefaultAuthApiService(
     private val baseUrl: String,
-    private val httpClient: OkHttpClient = OkHttpClient.Builder().build()
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .build()
 ) : AuthApiService {
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+    private val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
 
     override suspend fun checkEmail(email: String): AuthResult = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/auth/check-email"
+        val url = "$normalizedBaseUrl/api/auth/email-check"
         val body = JSONObject().apply { put("email", email) }.toString().toRequestBody(jsonMediaType)
 
         val request = Request.Builder()
@@ -41,11 +47,11 @@ class DefaultAuthApiService(
             .post(body)
             .build()
 
-        executeAuthRequest(request)
+        executeEmailCheckRequest(request, email)
     }
 
     override suspend fun login(email: String, password: String): AuthResult = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/auth/login"
+        val url = "$normalizedBaseUrl/api/auth/login"
         val body = JSONObject().apply {
             put("email", email)
             put("password", password)
@@ -56,11 +62,11 @@ class DefaultAuthApiService(
             .post(body)
             .build()
 
-        executeAuthRequest(request)
+        executeSessionRequest(request, successCodes = setOf(200))
     }
 
     override suspend fun register(email: String, password: String): AuthResult = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/auth/register"
+        val url = "$normalizedBaseUrl/api/auth/register"
         val body = JSONObject().apply {
             put("email", email)
             put("password", password)
@@ -71,34 +77,30 @@ class DefaultAuthApiService(
             .post(body)
             .build()
 
-        executeAuthRequest(request)
+        executeSessionRequest(request, successCodes = setOf(201))
     }
 
-    private fun executeAuthRequest(request: Request): AuthResult {
+    private fun executeEmailCheckRequest(request: Request, requestedEmail: String): AuthResult {
         val call: Call = httpClient.newCall(request)
         return try {
             val response = call.execute()
+            val responseBody = response.body?.string()
             when (response.code) {
                 200 -> {
-                    val responseBody = response.body?.string()
                     if (!responseBody.isNullOrEmpty()) {
                         val json = JSONObject(responseBody)
-                        val token = json.optString("token", "")
                         val email = json.optString("email", "")
-                        if (token.isNotEmpty()) {
-                            AuthResult.Success(token = token, email = email)
-                        } else {
-                            AuthResult.Failure("Пустой токен в ответе сервера")
-                        }
+                        AuthResult.EmailChecked(
+                            email = email.ifEmpty { requestedEmail },
+                            exists = json.optBoolean("exists", false)
+                        )
                     } else {
                         AuthResult.Failure("Пустой ответ сервера")
                     }
                 }
-                401 -> AuthResult.Failure("Неверные учётные данные")
-                409 -> AuthResult.Failure("Аккаунт с такой почтой уже существует")
-                422 -> AuthResult.Failure("Почта не найдена, создайте аккаунт")
+                422 -> AuthResult.Failure(parseServerMessage(responseBody, "Некорректный адрес электронной почты"))
                 429 -> AuthResult.RateLimited
-                else -> AuthResult.Failure("Ошибка сервера: ${response.code}")
+                else -> AuthResult.Failure(parseServerMessage(responseBody, "Ошибка сервера: ${response.code}"))
             }
         } catch (e: Exception) {
             if (e.message?.contains("etag", ignoreCase = true) == true ||
@@ -109,5 +111,65 @@ class DefaultAuthApiService(
                 AuthResult.Offline
             }
         }
+    }
+
+    private fun executeSessionRequest(request: Request, successCodes: Set<Int>): AuthResult {
+        val call: Call = httpClient.newCall(request)
+        return try {
+            val response = call.execute()
+            val responseBody = response.body?.string()
+            when (response.code) {
+                in successCodes -> {
+                    val sessionCookie = extractSessionCookie(response.headers("Set-Cookie"))
+                    if (sessionCookie.isNotEmpty()) {
+                        val email = parseProfileEmail(responseBody)
+                        AuthResult.Success(token = sessionCookie, email = email)
+                    } else {
+                        AuthResult.Failure("Сервер не вернул сессионную cookie")
+                    }
+                }
+                401 -> AuthResult.Failure(parseServerMessage(responseBody, "Неверные учётные данные"))
+                409 -> AuthResult.Failure(parseServerMessage(responseBody, "Аккаунт с такой почтой уже существует"))
+                422 -> AuthResult.Failure(parseServerMessage(responseBody, "Некорректные данные"))
+                429 -> AuthResult.RateLimited
+                else -> AuthResult.Failure(parseServerMessage(responseBody, "Ошибка сервера: ${response.code}"))
+            }
+        } catch (e: Exception) {
+            if (e.message?.contains("etag", ignoreCase = true) == true ||
+                e.message?.contains("unreachable", ignoreCase = true) == true ||
+                e.message?.contains("failed to connect", ignoreCase = true) == true) {
+                AuthResult.Offline
+            } else {
+                AuthResult.Offline
+            }
+        }
+    }
+
+    private fun extractSessionCookie(cookies: List<String>): String {
+        return cookies
+            .firstOrNull { it.startsWith("dsh_session=", ignoreCase = true) }
+            ?.substringBefore(';')
+            .orEmpty()
+    }
+
+    private fun parseProfileEmail(responseBody: String?): String {
+        if (responseBody.isNullOrEmpty()) return ""
+        return runCatching {
+            JSONObject(responseBody)
+                .optJSONObject("profile")
+                ?.optString("email", "")
+                .orEmpty()
+        }.getOrDefault("")
+    }
+
+    private fun parseServerMessage(responseBody: String?, fallback: String): String {
+        if (responseBody.isNullOrEmpty()) return fallback
+        return runCatching {
+            JSONObject(responseBody)
+                .optJSONObject("error")
+                ?.optString("message")
+                ?.takeIf { it.isNotBlank() }
+                ?: fallback
+        }.getOrDefault(fallback)
     }
 }

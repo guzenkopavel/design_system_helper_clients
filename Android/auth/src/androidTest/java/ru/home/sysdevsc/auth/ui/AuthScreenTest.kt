@@ -8,8 +8,13 @@
 
 package ru.home.sysdevsc.auth.ui
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -64,13 +69,17 @@ class AuthScreenTest {
         capturedPassword = ""
     }
 
+    private fun stringResource(@StringRes resId: Int): String {
+        return InstrumentationRegistry.getInstrumentation().targetContext.getString(resId)
+    }
+
     @Test
     fun emailStep_showsEmailField() {
         val state = createState()
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_hint_email)
+            stringResource(R.string.auth_hint_email)
         ).assertExists()
     }
 
@@ -80,7 +89,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_next)
+            stringResource(R.string.auth_button_next)
         ).assertExists()
     }
 
@@ -92,7 +101,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_empty_email)
+            stringResource(R.string.auth_error_empty_email)
         ).assertExists()
     }
 
@@ -104,7 +113,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_invalid_email)
+            stringResource(R.string.auth_error_invalid_email)
         ).assertExists()
     }
 
@@ -118,7 +127,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_title_login)
+            stringResource(R.string.auth_title_login)
         ).assertExists()
     }
 
@@ -132,7 +141,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_title_register)
+            stringResource(R.string.auth_title_register)
         ).assertExists()
     }
 
@@ -145,7 +154,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_hint_password)
+            stringResource(R.string.auth_hint_password)
         ).assertExists()
     }
 
@@ -153,12 +162,27 @@ class AuthScreenTest {
     fun passwordStep_showsSubmitButton() {
         val state = createState(
             currentStep = AuthStep.Password,
-            email = "test@example.com"
+            email = "test@example.com",
+            isLogin = true
         )
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_submit)
+            stringResource(R.string.auth_button_login)
+        ).assertExists()
+    }
+
+    @Test
+    fun passwordStep_showsRegisterButton_forRegistration() {
+        val state = createState(
+            currentStep = AuthStep.Password,
+            email = "test@example.com",
+            isLogin = false
+        )
+        launchAuthScreen(state)
+
+        composeTestRule.onNodeWithText(
+            stringResource(R.string.auth_button_register)
         ).assertExists()
     }
 
@@ -171,7 +195,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_back)
+            stringResource(R.string.auth_button_back)
         ).assertExists()
     }
 
@@ -197,7 +221,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_empty_password)
+            stringResource(R.string.auth_error_empty_password)
         ).assertExists()
     }
 
@@ -211,7 +235,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_short_password)
+            stringResource(R.string.auth_error_short_password)
         ).assertExists()
     }
 
@@ -225,7 +249,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_invalid_credentials)
+            stringResource(R.string.auth_error_invalid_credentials)
         ).assertExists()
     }
 
@@ -239,7 +263,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_offline)
+            stringResource(R.string.auth_error_offline)
         ).assertExists()
     }
 
@@ -254,7 +278,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_rate_limited)
+            stringResource(R.string.auth_error_rate_limited)
         ).assertExists()
     }
 
@@ -263,9 +287,9 @@ class AuthScreenTest {
         val state = createState(isLoading = true)
         launchAuthScreen(state)
 
-        composeTestRule.onNodeWithContentDescription(
-            composeTestRule.resources.getString(R.string.auth_label_loading)
-        ).assertExists()
+        composeTestRule.onAllNodesWithContentDescription(
+            stringResource(R.string.auth_label_loading)
+        ).assertCountEquals(2)
     }
 
     @Test
@@ -277,14 +301,14 @@ class AuthScreenTest {
         )
         launchAuthScreen(state)
 
-        composeTestRule.onNodeWithContentDescription(
-            composeTestRule.resources.getString(R.string.auth_label_loading)
-        ).assertExists()
+        composeTestRule.onAllNodesWithContentDescription(
+            stringResource(R.string.auth_label_loading)
+        ).assertCountEquals(2)
     }
 
     @Test
     fun backTransition_returnsToEmailStep() {
-        var currentStep = AuthStep.Password
+        var currentStep by mutableStateOf(AuthStep.Password)
         val email = "test@example.com"
 
         composeTestRule.setContent {
@@ -303,22 +327,22 @@ class AuthScreenTest {
 
         // На шаге пароля
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_title_login)
+            stringResource(R.string.auth_title_login)
         ).assertExists()
 
         // Нажимаем «Назад»
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_back)
+            stringResource(R.string.auth_button_back)
         ).performClick()
 
         // Заголовок входа исчезает (мы на шаге почты)
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_title_login)
+            stringResource(R.string.auth_title_login)
         ).assertDoesNotExist()
 
         // Поле почты видимо
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_hint_email)
+            stringResource(R.string.auth_hint_email)
         ).assertExists()
     }
 
@@ -327,9 +351,9 @@ class AuthScreenTest {
         val state = createState()
         launchAuthScreen(state)
 
-        composeTestRule.onNodeWithContentDescription(
-            composeTestRule.resources.getString(R.string.auth_hint_email)
-        ).assertExists()
+        composeTestRule.onNode(hasSetTextAction() and hasText(
+            stringResource(R.string.auth_hint_email)
+        )).assertExists()
     }
 
     @Test
@@ -340,9 +364,9 @@ class AuthScreenTest {
         )
         launchAuthScreen(state)
 
-        composeTestRule.onNodeWithContentDescription(
-            composeTestRule.resources.getString(R.string.auth_hint_password)
-        ).assertExists()
+        composeTestRule.onNode(hasSetTextAction() and hasText(
+            stringResource(R.string.auth_hint_password)
+        )).assertExists()
     }
 
     @Test
@@ -351,7 +375,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_next)
+            stringResource(R.string.auth_button_next)
         ).assertIsNotEnabled()
     }
 
@@ -365,7 +389,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_button_submit)
+            stringResource(R.string.auth_button_login)
         ).assertIsNotEnabled()
     }
 
@@ -375,7 +399,7 @@ class AuthScreenTest {
         launchAuthScreen(state)
 
         composeTestRule.onNodeWithText(
-            composeTestRule.resources.getString(R.string.auth_error_offline)
+            stringResource(R.string.auth_error_offline)
         ).assertExists()
     }
 }

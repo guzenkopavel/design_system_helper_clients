@@ -108,6 +108,7 @@ class AuthAccessibilityTest {
 
         composeRule.onNodeWithText("Регистрация").assertIsDisplayed()
         composeRule.onNodeWithText(TEST_EMAIL).assertIsDisplayed()
+        composeRule.onNodeWithText("Зарегистрироваться").assertIsDisplayed()
     }
 
     @Test

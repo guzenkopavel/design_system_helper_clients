@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "PASS",
+  "observation": "Доступные имена полей, роли кнопок, семантика ошибок, описание загрузки и управление фокусом проверены тестами времени выполнения.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}

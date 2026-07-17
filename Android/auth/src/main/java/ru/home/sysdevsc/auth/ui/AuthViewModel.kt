@@ -113,8 +113,16 @@ class AuthViewModel(
             _uiState.update { it.copy(isLoading = true, validationError = null, serverError = null) }
             val result = authApiService.checkEmail(currentState.email)
             when (result) {
+                is AuthResult.EmailChecked -> {
+                    _uiState.update {
+                        it.copy(
+                            currentStep = AuthStep.Password,
+                            isLogin = result.exists,
+                            isLoading = false
+                        )
+                    }
+                }
                 is AuthResult.Success -> {
-                    // checkEmail возвращает Success когда почта существует
                     _uiState.update {
                         it.copy(
                             currentStep = AuthStep.Password,
@@ -124,19 +132,7 @@ class AuthViewModel(
                     }
                 }
                 is AuthResult.Failure -> {
-                    // Если ошибка означает, что почта не найдена — переходим к регистрации
-                    if (result.message.contains("not found", ignoreCase = true) ||
-                        result.message.contains("не найден", ignoreCase = true)) {
-                        _uiState.update {
-                            it.copy(
-                                currentStep = AuthStep.Password,
-                                isLogin = false,
-                                isLoading = false
-                            )
-                        }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, serverError = ServerError.Custom(result.message)) }
-                    }
+                    _uiState.update { it.copy(isLoading = false, serverError = ServerError.Custom(result.message)) }
                 }
                 AuthResult.RateLimited -> {
                     _uiState.update {
@@ -188,6 +184,14 @@ class AuthViewModel(
             }
 
             when (result) {
+                is AuthResult.EmailChecked -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            serverError = ServerError.Custom("Неожиданный ответ сервера")
+                        )
+                    }
+                }
                 is AuthResult.Success -> {
                     sessionRepository.saveSession(result.token)
                     _uiState.update { it.copy(isLoading = false) }

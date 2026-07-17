@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "status": "PASS",
+  "observation": "Контраст и различимость подтверждены проверками цветов текста поверх ролей и нецветовых признаков ошибок, загрузки и ограничения попыток.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}

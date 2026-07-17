@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "PASS",
+  "observation": "Поля Material 3, заголовки входа/регистрации, контекст почты, поддерживающий текст ошибок и основное действие проверены тестами интерфейса и интеграции.",
+  "evidence_refs": [
+    "evidence/verification-20260717.md"
+  ]
+}
