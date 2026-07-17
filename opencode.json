@@ -1,8 +1,32 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
   "permission": {
     "skill": {
       "*": "allow"
     }
-  }
+  },
+  "provider": {
+    "eltex_llm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "ELTEX LLM",
+      "options": {
+        "baseURL": "http://llm3.eltex.loc:4000/v1",
+        "apiKey": "{env:ELTEX_LLM_API_KEY}"
+      },
+      "models": {
+        "Eltex-Coder-Senior": {
+          "name": "Eltex Coder Senior"
+        },
+        "Eltex-GLM": {
+          "name": "Eltex GLM"
+        }
+      }
+    }
+  },
+  "model": "eltex_llm/Eltex-Coder-Senior"
 }
