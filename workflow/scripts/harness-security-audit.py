@@ -23,7 +23,7 @@ SCAN_DIRECTORIES = (
 )
 SCAN_FILES = ("AGENTS.md", "workflow/README.md", "iOS/AGENTS.md", "Android/AGENTS.md", ".mcp.json")
 TEXT_SUFFIXES = {"", ".md", ".json", ".toml", ".yaml", ".yml", ".py", ".sh", ".ts"}
-EXCLUDED_PARTS = {".git", "node_modules", "build", ".build", "DerivedData", "cache", "__pycache__"}
+EXCLUDED_PARTS = {".git", "node_modules", "build", ".build", "DerivedData", "cache", "worktrees", "__pycache__"}
 MAX_FILE_BYTES = 1_000_000
 MAX_FILES = 5_000
 MAX_TOTAL_BYTES = 20_000_000

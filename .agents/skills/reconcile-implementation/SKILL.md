@@ -23,10 +23,13 @@ ambiguity, unsafe/outside/mixed ownership paths маршрутизируются
 helper. Adapter-owned uncovered active path — это drift: добавить/исправить
 task, plan state и fresh evidence. Post-archive path допустим только как
 read-only `ALIGNED`, если tombstone указывает на verified implementation archive
-receipt, а archived tasks или verified scope покрывают intended paths;
+receipt; archived tasks или verified scope preferred, но валидный receipt может
+покрывать coherent package-level delivery slice с warnings.
 retirement/non-PASS archive не является delivery coverage. `draft` идёт в
 Propose, `specified` в Plan, а `FAIL`/`UNKNOWN` в canonical `$implement`
-recovery до guard. Для поддержанного active класса запустить guard `start`,
+recovery до guard. Copy identity возникает только при явном source+destination
+или Git-reported copy; совпавший blob обычного added file source peer не
+требует. Для поддержанного active класса запустить guard `start`,
 менять только разрешённые package artifacts, выполнить focused checks и
 завершить `check`; для verified archived package guard не нужен и report
 остаётся read-only.

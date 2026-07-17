@@ -13,8 +13,9 @@ commit. После commit intent и до staging получить явный int
 `$reconcile-implementation`; не считать весь dirty worktree разрешённым scope.
 Commit может происходить до или после archive: до archive reconciliation и gate
 используют active task trail, после archive — verified implementation archive
-receipt/tombstone trail, включая archived task coverage или verified scope
-coverage.
+receipt/tombstone trail. Archived task coverage или verified scope coverage —
+preferred evidence; валидный текущий verified archive также может покрывать
+coherent post-archive delivery slice на package level.
 Затем сверить requested ownership/scope с `git status`; сама фаза никогда не
 выполняет `git add`.
 
@@ -25,8 +26,12 @@ old/new; для copy — read-only unchanged source и mutable destination. Тр
 receipt. Проверить разделение scope,
 влияние на документацию и platform addenda. Для harness changes staged-index
 checkout запускает `harness-lint --warn-as-error`. Для production paths
-обязательны active task trail coverage либо verified archived task trail
-coverage/verified scope coverage и adapter obligations.
+обязательны active task trail coverage либо verified implementation archive
+coverage. Для verified archive exact task/scope coverage preferred, но
+package-level receipt coverage допускается с warning, если staged set несёт
+текущий archive/tombstone trail и проходит adapter obligations. Для
+post-archive verified receipt trail project/tool evidence берётся из terminal
+archive receipt, а не требует повторного staged task command/result.
 
 Gate остаётся read-only для repository/index/worktree, не запускает reconciliation;
 единственная запись — private ephemeral receipt вне repo.

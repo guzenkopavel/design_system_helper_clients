@@ -56,7 +56,8 @@ proposed child не могут пересекать protected roots или пр�
 Delivery change-entry helper отдельно фиксирует identity и write authority:
 rename old/new входят в mutable set; copy source+destination входят в identity,
 но source остаётся unchanged read-only, а mutable/task-covered только destination.
-Explicit source выбирается из intended, identical repository candidates не
-добавляются автоматически. Read-only source имеет ровно одну regular stage-0
-index entry; index mode/blob и worktree mode/blob совпадают с HEAD, staged,
-unstaged, deletion и unmerged delta запрещены.
+Copy identity требует explicit source+destination или Git-reported copy;
+обычный added file не получает source peer только потому, что identical
+repository candidate существует. Read-only source имеет ровно одну regular
+stage-0 index entry; index mode/blob и worktree mode/blob совпадают с HEAD,
+staged, unstaged, deletion и unmerged delta запрещены.

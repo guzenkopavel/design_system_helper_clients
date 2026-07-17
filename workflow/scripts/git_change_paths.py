@@ -198,6 +198,10 @@ def normalize_for_intent(
     errors: list[str] = []
     additions = [entry for entry in entries if entry.status == "A"]
     deleted = {entry.path for entry in entries if entry.status == "D"}
+    reserved_sources = {
+        entry.old_path for entry in entries
+        if entry.status in {"R", "C"} and entry.old_path
+    }
     consumed_additions: set[str] = set()
     consumed_deletions: set[str] = set()
     used_sources: set[str] = set()
@@ -208,18 +212,17 @@ def normalize_for_intent(
         matching = matching_head_sources(repo, addition.path, staged=staged)
         if not matching:
             continue
-        explicit = sorted(set(matching) & intended_set)
+        explicit = sorted((set(matching) & intended_set) - reserved_sources)
         relevant = addition.path in intended_set or bool(explicit)
         if not relevant:
             continue
+        if not explicit:
+            continue
         if len(explicit) != 1:
-            if not explicit:
-                errors.append(f"exact added destination requires one explicit source peer: {addition.path}")
-            else:
-                errors.append(
-                    f"exact added destination has multiple explicit source peers: {addition.path}: "
-                    + ", ".join(explicit)
-                )
+            errors.append(
+                f"exact added destination has multiple explicit source peers: {addition.path}: "
+                + ", ".join(explicit)
+            )
             continue
         source = explicit[0]
         if source in used_sources:
@@ -327,7 +330,8 @@ def self_test() -> int:
             "mutable_paths": ["iOS/App/Copy.swift"],
             "read_only_paths": ["iOS/App/Source.swift"],
         }
-        assert select_identity(repo, entries, ["iOS/App/Copy.swift"])[1]
+        added_only, added_only_errors = select_identity(repo, entries, ["iOS/App/Copy.swift"])
+        assert added_only_errors == [] and len(added_only) == 1 and added_only[0].status == "A"
         assert select_identity(
             repo, entries, ["iOS/App/Copy.swift", "iOS/App/Source.swift", "iOS/App/Peer.swift"]
         )[1]

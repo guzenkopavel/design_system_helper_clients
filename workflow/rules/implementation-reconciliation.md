@@ -18,24 +18,29 @@ reconcile-implementation <platform> <feature> [--change <change-id>] \
 
 Every path must be repo-relative, belong to the selected adapter production
 roots and be present in the current Git change set. Deletion is named by its
-old path. Rename requires both old and new paths; neither side may be inferred.
-Copy identity also requires both explicit source and destination. One canonical
-change-entry helper is shared with pre-commit: rename old/new are both mutable,
-while copy destination is mutable and its source is an unchanged safe read-only
-peer. Exact byte matches elsewhere never auto-select a source. Zero/multiple
-explicit peers, cross-adapter source, changed/symlink source, reused source or a
-missing side fail before writes. Read-only means exact HEAD/index/worktree
-agreement: one regular tracked stage-0 entry, unchanged mode/blob, no cached or
-unstaged delta and no unmerged stages. Task ownership/coverage applies only to
-the copy destination, but source and destination both remain in intended
-evidence, guard projection, receipt and exact staged identity.
+old path. Rename requires both old and new paths when Git reports a rename;
+neither side may be silently dropped. Copy identity applies only when the
+coordinator explicitly supplies source+destination or Git reports a copy; an
+ordinary added file is not upgraded to copy just because its blob matches some
+tracked HEAD file. One canonical change-entry helper is shared with pre-commit:
+rename old/new are both mutable, while explicit copy destination is mutable and
+its source is an unchanged safe read-only peer. Multiple explicit peers,
+cross-adapter source, changed/symlink source, reused source or a missing side
+for an explicit copy fail before writes. Read-only means exact HEAD/index/
+worktree agreement: one regular tracked stage-0 entry, unchanged mode/blob, no
+cached or unstaged delta and no unmerged stages. Task ownership/coverage applies
+only to the copy destination, but explicit source and destination both remain in
+intended evidence, guard projection, receipt and exact staged identity.
 Unknown platform/package, ambiguity, unsafe/outside-ownership path or a mixed
 ownership set routes without writes. An active adapter-owned uncovered path is
 valid drift: repair or add its task and focused evidence inside the guard. A
 post-archive package may not be repaired; it is accepted only when the active
 namespace contains the exact tombstone and the target archive has a verified
-implementation receipt whose immutable tasks cover every intended mutable
-production path, or whose verified scope contains that path.
+implementation receipt. Immutable archived task/verified-scope coverage is
+preferred and reported when available. If the final delivery set is broader
+than those exact archived path lists, the verified receipt is allowed to cover
+the coherent platform package at package level and reconciliation reports
+coverage warnings instead of blocking.
 
 ## Classification and routing
 
@@ -64,7 +69,7 @@ does not run the mutation guard.
 | `implementing` + verification `pending` | reconciliation may start and must remain `implementing` |
 | `verified` | reconciliation may start and invalidate terminal state |
 | verification `FAIL` or `UNKNOWN` | `ROUTE_REQUIRED` to canonical `$implement` recovery; zero writes |
-| `archived` verified implementation receipt | read-only `ALIGNED`; no guard writes; proceed to scoped staging/pre-commit |
+| `archived` verified implementation receipt | read-only `ALIGNED`; no guard writes; exact task/scope coverage preferred, package-level receipt coverage allowed with warnings; proceed to scoped staging/pre-commit |
 | `archived` retirement or invalid/non-PASS receipt | immutable but not delivery coverage; zero writes and route to new change/repair |
 
 ## Write and preservation boundary
@@ -130,11 +135,13 @@ to restore terminal state. A non-terminal active package may proceed to scoped
 staging/pre-commit after `RECONCILED`; Verify remains the later terminal
 lifecycle step rather than a new universal commit gate. A valid archived
 package has already passed terminal archive; reconciliation only proves that
-the explicit production paths are covered by immutable archived tasks and
-receipt evidence, including verified scope when task paths are narrower than
-the final terminal verification set. Verify/archive remain the terminal lifecycle step;
-commit timing only changes which immutable or active evidence source pre-commit
-reads.
+the explicit production paths are covered by immutable archived tasks,
+verified scope or the verified package receipt itself when path-level archived
+lists are narrower than the final terminal delivery set. Verify/archive remain
+the terminal lifecycle step; commit timing only changes which immutable or
+active evidence source pre-commit reads. Post-archive reconciliation must not
+force artificial task rewrites just to satisfy a path-by-path commit gate after
+terminal verification has already been archived.
 
 ## Guard protocol
 

@@ -31,7 +31,7 @@ flow не меняется между Codex, Claude Code, Cursor и OpenCode.
 explicit commit intent
   → explicit intended path set
   → reconcile-implementation per platform/feature/change identity
-  → active task trail OR archived verified receipt/scope trail
+  → active task trail OR verified archive receipt trail
   → reconciliation report
   → scoped staging of approved set
   → pre-commit-check over staged index + exact intended path binding
@@ -49,6 +49,9 @@ Hook/gate только подсказывают reconciliation для uncovered 
 Unrelated unstaged state не входит в delivery lane. Extra/missing staged path,
 неполная rename/copy identity или ambiguous active package owner mutable path
 блокируют commit; copy source остаётся explicit guarded read-only peer.
+Обычный added file не требует copy source peer только из-за совпавшего blob.
+После verified archive exact task/scope coverage preferred, но текущий archive
+receipt может покрывать coherent package-level delivery slice с warnings.
 Generic hook без свежего receipt не авторизует commit; exact intended binding
 принадлежит coordinator gate до commit, tracked hook потребляет receipt one-shot.
 

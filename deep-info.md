@@ -284,8 +284,10 @@ production set с одной platform/feature/change identity. Каждый pack
 task/plan, а unsafe/mixed/cross-package ownership route блокируется. Private
 guard сохраняет scoped index, production, shared/proposal/rules и historical
 evidence selected lane; disjoint dirty/index/commit другой identity не блокирует;
-per-class meta allowlist сохраняет identity/intake/product authority. После
-package repair запускается implement-mode validator. Hook/gate не вызывают
+per-class meta allowlist сохраняет identity/intake/product authority.
+Post-archive verified receipt допускает package-level delivery coverage с
+warnings, когда exact archived task/verified scope уже финального set.
+После package repair запускается implement-mode validator. Hook/gate не вызывают
 repair и могут дать только hint. FAIL/UNKNOWN маршрутизируется в Implement
 recovery до guard; verified invalidation требует свежий Verify только для
 восстановления terminal claim.
@@ -723,6 +725,7 @@ native product/source, transient `specs/` packages и тела third-party ли�
 | [`workflow/test-evidence/post-archive-commit-gate.md`](workflow/test-evidence/post-archive-commit-gate.md) | Post-archive commit gate evidence |
 | [`workflow/test-evidence/pre-commit-and-hooks.md`](workflow/test-evidence/pre-commit-and-hooks.md) | Pre-commit and hooks evidence |
 | [`workflow/test-evidence/product-elaboration.md`](workflow/test-evidence/product-elaboration.md) | Product elaboration skills — test evidence |
+| [`workflow/test-evidence/relaxed-post-archive-delivery-gate.md`](workflow/test-evidence/relaxed-post-archive-delivery-gate.md) | Relaxed post-archive delivery gate |
 | [`workflow/test-evidence/root-documentation.md`](workflow/test-evidence/root-documentation.md) | Root project documentation |
 | [`workflow/test-evidence/russian-platform-artifacts.md`](workflow/test-evidence/russian-platform-artifacts.md) | Russian platform artifacts — RED → GREEN → REFACTOR |
 | [`workflow/test-evidence/simple-model-task-evidence.md`](workflow/test-evidence/simple-model-task-evidence.md) | Simple-model task evidence — RED → GREEN → REFACTOR |

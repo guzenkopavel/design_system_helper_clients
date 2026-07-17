@@ -50,7 +50,7 @@ INVENTORY_ROOT_FILES = (
 )
 EXCLUDED_DIRS = {
     ".git", ".build", ".gradle", ".idea", ".kotlin", ".swiftpm",
-    "DerivedData", "__pycache__", "build", "node_modules", "specs",
+    "DerivedData", "__pycache__", "build", "node_modules", "specs", "worktrees",
 }
 EXCLUDED_FILES = {".ds_store", "thumbs.db", "desktop.ini"}
 EXCLUDED_INVENTORY_PATHS = {

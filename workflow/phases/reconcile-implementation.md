@@ -31,8 +31,9 @@ helper, что Plan и Implement: protected/excluded overlap и symlink file,
 directory либо proposed-child traversal дают route до guard writes.
 Canonical change-entry helper разделяет `identity_paths`, `mutable_paths` и
 `read_only_copy_sources`: rename old/new mutable, у copy mutable только
-destination, а unchanged source остаётся guarded read-only. Обе стороны copy
-обязательны в intended и reconciliation evidence.
+destination, а unchanged source остаётся guarded read-only. Copy identity
+появляется только при явном source+destination или Git-reported copy; обычный
+added file не требует source peer из-за совпавшего blob.
 
 First run the canonical script in `inspect` mode. `implementation-discovery`
 then compares the explicit production diff with shared behavior, platform
@@ -45,11 +46,12 @@ evidence. Shared/uncertain routes to Discovery/Elaborate with zero writes.
 Route `draft` to Propose, `specified` to Plan, and `FAIL`/`UNKNOWN` to
 canonical `$implement` recovery before guard writes. Archived state is accepted
 only as read-only post-archive `ALIGNED` when the active tombstone points to a
-verified implementation archive receipt whose tasks or verified scope cover the
-intended paths; retirement, invalid or non-PASS archived receipts still route
-to a new change/repair with zero writes. `planned` may start but a successful
-result must become `implementing`; an `implementing` baseline must remain
-`implementing`.
+verified implementation archive receipt. Exact archived tasks or verified
+scope are preferred and reported, but the verified receipt may cover the
+coherent platform package at package level with warnings; retirement, invalid
+or non-PASS archived receipts still route to a new change/repair with zero
+writes. `planned` may start but a successful result must become
+`implementing`; an `implementing` baseline must remain `implementing`.
 
 For a supported class, run `start` with that exact classification. Use the
 canonical owners only: specification writer for platform spec/verification,

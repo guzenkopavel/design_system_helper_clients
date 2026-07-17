@@ -301,17 +301,19 @@ RED → GREEN → REFACTOR и сохраняет test evidence.
 `$pre-commit-check` не делает `git add`, commit или push. Любое изменение index
 инвалидирует receipt. Runtime hooks дают ранние deny/warnings, но не заменяют
 tracked Git hook, не потребляют receipt и не расширяют delivery authorization.
-Exact intended set обязан совпасть со всем staged set, включая обе стороны
-rename/copy; rename old/new mutable, у copy source guarded read-only, а
-destination mutable и единственный требует task coverage. Extra/missing staged
-path и ambiguous mutable package owner дают FAIL.
+Exact intended set обязан совпасть со всем staged set. Rename old/new mutable;
+explicit copy source guarded read-only, destination mutable и единственный
+требует task coverage. Обычный added file не становится copy только из-за
+совпавшего blob. Extra/missing staged path и ambiguous mutable package owner
+дают FAIL.
 Unrelated unstaged state разрешён.
 
 `$reconcile-implementation <platform> <feature> [--change <id>] --path ...`
 также не пишет production/index/shared product. До archive он согласует
 выбранный active package; после archive он read-only сверяет active tombstone с
-verified implementation archive receipt и archived task/verified scope
-coverage. После active invalidation свежий `$verify` нужен для восстановления
+verified implementation archive receipt. Archived task/verified scope coverage
+preferred, но валидный receipt может покрывать coherent package-level delivery
+slice с warnings. После active invalidation свежий `$verify` нужен для восстановления
 terminal claim; non-terminal package после `RECONCILED`, а verified archived
 package после read-only `ALIGNED`, может идти в scoped staging/pre-commit.
 Reconcile использует selected lane projection: disjoint package/product/

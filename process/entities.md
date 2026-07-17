@@ -41,7 +41,7 @@
 | implementation reconciliation guard | private `0600` scoped lane baseline outside repo | `reconcile-implementation` inspect/start/check before staging |
 | iOS engineering rule | `iOS/workflow/rules/` | iOS addenda, adapter profiles и platform roles |
 | Android engineering rule | `Android/workflow/rules/` | Android addenda, adapter profiles и platform roles |
-| pre-commit gate | exact intended identity: rename mutable old/new, copy read-only source + mutable destination → private TTL receipt | portable skill + canonical change-entry helper + hook runner + `.githooks/pre-commit` |
+| pre-commit gate | exact intended identity: rename mutable old/new, explicit copy read-only source + mutable destination, verified archive package-level fallback → private TTL receipt | portable skill + canonical change-entry helper + hook runner + `.githooks/pre-commit` |
 | runtime hook policy | `workflow/rules/hook-contract.md` + `workflow/hooks/hook-runner.py` | thin Codex/Claude/Cursor/OpenCode bindings |
 | platform pre-commit profile | `<platform>/workflow/platform-contract.json#pre_commit` | platform addendum + common staged gate |
 | deep review invocation | `workflow/phases/deep-code-review.md` + common review rules | manual-only portable `deep-code-review`; read-only runtime roles |

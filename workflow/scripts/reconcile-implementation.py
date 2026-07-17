@@ -360,12 +360,14 @@ def resolve_archived_context(
         if not coverage.get(raw) and raw in verified_paths:
             coverage[raw] = ["verification-state"]
     uncovered = sorted(raw for raw, owners in coverage.items() if not owners)
-    errors.extend(f"task parse: {item}" for item in parse_errors)
-    errors.extend(f"uncovered path: {raw}" for raw in uncovered)
+    coverage_warnings = [
+        *(f"task parse: {item}" for item in parse_errors),
+        *(f"package-level archive receipt covers path without exact task/scope match: {raw}" for raw in uncovered),
+    ]
     if errors:
         return {
             "outcome": ROUTE_REQUIRED,
-            "route": "post-archive commit requires exact archived task coverage",
+            "route": "post-archive commit requires safe identity and a valid verified archive receipt",
             "errors": sorted(set(errors)),
             "platform": adapter["platform_name"],
             "feature": feature,
@@ -391,8 +393,10 @@ def resolve_archived_context(
         "path_status": {raw: changes[raw] for raw in intended},
         "task_coverage": coverage,
         "affected_task_closure": sorted(closure),
-        "uncovered_paths": [],
-        "task_parse_errors": [],
+        "uncovered_paths": uncovered,
+        "task_parse_errors": parse_errors,
+        "coverage_warnings": sorted(set(coverage_warnings)),
+        "coverage_mode": "verified-archive-package",
         "current_state": {"status": "archived", "verification_status": "PASS"},
         "requires_focused_evidence": False,
         "required_next_step": "stage exact intended paths with the archived package/tombstone evidence and run pre-commit-check",
@@ -1630,7 +1634,8 @@ def self_test() -> int:
         missing_source = resolve_context(
             repo, "ios", "sample", "sample", [copied.relative_to(repo).as_posix()], "task-drift"
         )
-        assert missing_source["outcome"] == ROUTE_REQUIRED
+        assert missing_source["outcome"] == DRIFT
+        assert missing_source["identity_paths"] == [copied.relative_to(repo).as_posix()]
         missing_destination = resolve_context(
             repo, "ios", "sample", "sample", [source_raw], "task-drift"
         )
@@ -1686,9 +1691,10 @@ def self_test() -> int:
         assert git(repo, "add", "--", *staged_paths).returncode == 0
         precommit = copy_context["_precommit"]
         delivery_intended = sorted([source_raw, copied_raw, *copy_checked["updated_artifacts"]])
+        delivery_without_source = sorted([raw for raw in delivery_intended if raw != source_raw])
         assert precommit.canonical_evaluate(
-            repo, [raw for raw in delivery_intended if raw != source_raw]
-        )["status"] == precommit.FAIL
+            repo, delivery_without_source
+        )["status"] == precommit.PASS
         assert precommit.canonical_evaluate(
             repo, [raw for raw in delivery_intended if raw != copied_raw]
         )["status"] == precommit.FAIL
@@ -1703,7 +1709,7 @@ def self_test() -> int:
         git(repo, "reset", "-q", "--hard", "HEAD")
         original = source; renamed = source.with_name("Renamed.swift"); original.rename(renamed)
         one_side = resolve_context(repo, "ios", "sample", "sample", [renamed.relative_to(repo).as_posix()], "task-drift")
-        assert one_side["outcome"] == ROUTE_REQUIRED
+        assert one_side["outcome"] == DRIFT
         both = resolve_context(repo, "ios", "sample", "sample", [original.relative_to(repo).as_posix(), renamed.relative_to(repo).as_posix()], "task-drift")
         assert both["outcome"] == DRIFT
         git(repo, "reset", "-q", "--hard", "HEAD")

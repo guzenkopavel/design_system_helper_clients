@@ -53,6 +53,7 @@ EXCLUDED_DIRS = {
     "DerivedData",
     "build",
     "node_modules",
+    "worktrees",
     "__pycache__",
 }
 

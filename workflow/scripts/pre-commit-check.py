@@ -544,6 +544,17 @@ def archived_task_trails(
                 "source": "archived",
                 "current": current_archive,
             })
+        elif not covered_by_task and current_archive:
+            results.append({
+                "package": package,
+                "task": "archive-receipt",
+                "done": True,
+                "evidence": True,
+                "scopes": [],
+                "command": "verified archive package receipt",
+                "source": "archived-package",
+                "current": current_archive,
+            })
     return results
 
 
@@ -825,7 +836,10 @@ def evaluate(
             if not (trail["done"] and trail["evidence"]):
                 add(checks, "trail.production-task", UNKNOWN, f"{trail['task']} is pending or lacks staged evidence", candidate)
             else:
-                source = "archived receipt" if trail.get("source") == "archived" else "staged evidence"
+                if trail.get("source") == "archived-package":
+                    source = "verified archive package receipt"
+                else:
+                    source = "archived receipt" if trail.get("source") == "archived" else "staged evidence"
                 add(checks, "trail.production-task", PASS, f"covered by completed {trail['task']} with {source}", candidate)
             candidate_profile = candidate_adapter["pre_commit"]
             categories = []
@@ -876,7 +890,15 @@ def evaluate(
             )
             platform = str(adapter["platform_name"])
             if discovered_project:
-                if not discovered_tools or any(not trail["command"] or not trail["evidence"] for trail in trails):
+                archived_terminal = all(
+                    trail.get("source") in {"archived", "archived-package"}
+                    and trail.get("done")
+                    and trail.get("evidence")
+                    for trail in trails
+                )
+                if archived_terminal:
+                    add(checks, f"platform.{platform}.project", PASS, "verified archive receipt covers discovered project/tool evidence")
+                elif not discovered_tools or any(not trail["command"] or not trail["evidence"] for trail in trails):
                     add(checks, f"platform.{platform}.project", UNKNOWN, "project/tool discovery requires task command and staged result evidence")
                 else:
                     add(checks, f"platform.{platform}.project", PASS, f"task command/result evidence covers discovered tools: {','.join(discovered_tools)}")
