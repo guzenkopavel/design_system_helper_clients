@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "PASS",
+  "observation": "Runtime tests подтвердили transient feedback без навигации; motion не является единственным признаком состояния.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md"
+  ]
+}

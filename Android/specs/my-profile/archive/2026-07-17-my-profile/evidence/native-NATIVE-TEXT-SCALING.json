@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-TEXT-SCALING",
+  "status": "UNKNOWN",
+  "observation": "Font scaling и отсутствие перекрытия с bottom navigation не проверены на runtime из-за отсутствия устройства.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md",
+    "evidence/verify-runtime-app.md"
+  ]
+}

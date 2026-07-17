@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "status": "PASS",
+  "observation": "Runtime infrastructure была доступна через Pixel_6 AVD; profile fallback states остаются ресурсными и проверены локальными/runtime тестами.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-runtime-app.md",
+    "evidence/verify-pass-local-commands.md"
+  ]
+}

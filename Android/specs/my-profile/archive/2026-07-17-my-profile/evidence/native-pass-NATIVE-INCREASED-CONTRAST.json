@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-INCREASED-CONTRAST",
+  "status": "PASS",
+  "observation": "Интерфейс профиля использует цвета текста из темы и признаки состояния не только цветом; проверочный набор прошёл на подключённом эмуляторе.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-code-inspection.md"
+  ]
+}

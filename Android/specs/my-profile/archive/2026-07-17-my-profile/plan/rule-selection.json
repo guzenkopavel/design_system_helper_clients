@@ -1,23 +1,5 @@
 {
-  "platform": "Android",
-  "feature": "my-profile",
-  "change_id": "my-profile",
-  "change_type": "product-backed",
-  "tier": "standard",
-  "status": "specified",
-  "shared_product_spec": "specs/product/my-profile/spec.md",
-  "product_status": "READY",
-  "product_approval": "APPROVED",
-  "product_impact": "PRESENT",
-  "impact_evidence": "Общий продуктовый контракт READY/APPROVED задаёт авторизованную вкладку профиля, показ email текущего аккаунта, полный счётчик истории интервью, условное действие «Мои интервью», logout и recovery-состояния; Android должен адаптировать это поведение через существующую оболочку, auth baseline, Material 3, repository/data boundary и корневую композицию без изменения shared REQ/AC.",
-  "blocking_questions": [],
-  "problems": [],
-  "design_gate": "PASS",
-  "tasks_total": 0,
-  "tasks_done": 0,
-  "verification_status": "pending",
-  "verified_at": null,
-  "verification_state": null,
+  "schema_version": 2,
   "engineering_scopes": [
     "application",
     "compose",
@@ -55,6 +37,6 @@
     "Android/workflow/rules/ui-design-system.md",
     "Android/workflow/rules/emulator.md"
   ],
-  "rule_selection_snapshot": null,
-  "modularity_contract_version": 1
+  "modularity_contract_version": 1,
+  "fingerprint": "86769d4471a668e549cd066fea810676a3d8c5099a1171ad6285961aa9fd848a"
 }

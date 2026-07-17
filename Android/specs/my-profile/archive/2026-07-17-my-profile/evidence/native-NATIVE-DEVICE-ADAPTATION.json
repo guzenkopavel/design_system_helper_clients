@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "status": "UNKNOWN",
+  "observation": "Device adaptation, системные inset и layout относительно bottom navigation не проверены на runtime из-за отсутствия устройства.",
+  "evidence_refs": [
+    "evidence/verify-runtime-app.md"
+  ]
+}

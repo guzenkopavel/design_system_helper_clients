@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DEVICE-ADAPTATION",
+  "status": "PASS",
+  "observation": "Runtime app tests подтвердили profile content внутри AppShell с сохранённой нижней навигацией на эмуляторе Pixel_6.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-app.md"
+  ]
+}

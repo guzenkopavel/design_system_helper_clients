@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "PASS",
+  "observation": "Проверки интерфейса подтвердили наличие email, действий профиля, недоступного состояния и текста обратной связи; email имеет ассистивное описание с фактическим адресом.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-local-commands.md"
+  ]
+}

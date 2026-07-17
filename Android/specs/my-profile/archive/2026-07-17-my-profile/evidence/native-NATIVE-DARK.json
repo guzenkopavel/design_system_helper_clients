@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DARK",
+  "status": "UNKNOWN",
+  "observation": "Dark appearance не проверен на runtime, потому что emulator/device недоступен.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md"
+  ]
+}

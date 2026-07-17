@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "UNKNOWN",
+  "observation": "Runtime appearance профиля на репрезентативном Android device/emulator не наблюдался: connected test для модуля профиля остановился на No connected devices.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md"
+  ]
+}

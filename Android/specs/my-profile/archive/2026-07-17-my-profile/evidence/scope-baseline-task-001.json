@@ -1,0 +1,1671 @@
+{
+  "allowed": [
+    {
+      "boundary": "file",
+      "path": "Android/settings.gradle.kts"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/my-profile/build.gradle.kts"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/my-profile/src/main/AndroidManifest.xml"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileRoute.kt"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileState.kt"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/my-profile/src/test/java/ru/home/sysdevsc/myprofile/ProfileContractTest.kt"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/specs/my-profile/changes/my-profile/meta.json",
+      "protected_exception": "true"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/specs/my-profile/changes/my-profile/plan/task-001.md",
+      "protected_exception": "true"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/specs/my-profile/changes/my-profile/evidence/task-001.md",
+      "protected_exception": "true"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json",
+      "protected_exception": "true"
+    },
+    {
+      "boundary": "file",
+      "path": "Android/specs/my-profile/changes/my-profile/verification.md",
+      "protected_exception": "true"
+    }
+  ],
+  "change_id": "my-profile",
+  "denied": [
+    "Android/AGENTS.md",
+    "Android/specs",
+    "Android/workflow"
+  ],
+  "feature": "my-profile",
+  "files": {
+    ".agents/skills/implement/SKILL.md": "3cfd7310cec27df77cd1a43232b27429721c3abf0d3c6999fa1b6de3796240b6",
+    ".agents/skills/implement/agents/openai.yaml": "1643aa52c64edf8fd7f0005b3954cf7be8acefdc135a12bd04eec2021d4e484b",
+    ".agents/skills/verify/SKILL.md": "49016d9c89b6eb0f03a6d4344a53fa5bb7a781660469dc8e824e5fa69f5efd26",
+    ".agents/skills/verify/agents/openai.yaml": "b7e5abde067d71679121621bda8576f8e68507a87189150c1c6faf9fb5d715e2",
+    "AGENTS.md": "6911b65bd8a0e4ebc90b6cfbad9d395fe534fc1371062f98f90b6756413bbe78",
+    "Android/AGENTS.md": "de33ec8112b35ace93fe9c4c23f570e1c71c09c0f3befeabc3f416b98a22fda6",
+    "Android/my-profile/build.gradle.kts": "a6f45aa912a8031f8f9c405c4272a63eaed560a6fd4832329397d8b004c1401c",
+    "Android/my-profile/src/main/AndroidManifest.xml": "daa0fb1f32ba7ea85a07ef6302ab3d58c3407d7fd2aa03ec132cb9e38e8d9849",
+    "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileRoute.kt": "72b64290e0e5c502213f1d2ee072818df5e8ffe2993bd36630ed2ee82e1229f6",
+    "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileState.kt": "6281960bf049f933f1ce177618d2a20e32510a16cd6db41070332930fed37c5d",
+    "Android/my-profile/src/test/java/ru/home/sysdevsc/myprofile/ProfileContractTest.kt": "0ed6d9e9ab5c139e4446a7b7d087f4fd5b7045032f8a1925e4de8ac53b12df7a",
+    "Android/settings.gradle.kts": "817f75e97383ed674ca9083b13b4fa92c18693d10ecdbbc8b9c4eea72826e8ff",
+    "Android/specs/my-profile/changes/my-profile/design.md": "429614fe7de9c63ce417c8bc8bdab79a546e6048cde3c9bf8ffb996606fe4cc9",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-APPEARANCE.json": "262280b5edea14c462ac2f049be3d9f0e39fee038b07ced43a23597ac422ad25",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-ASSISTIVE-SEMANTICS.json": "cc8ad28e851db86962f4f73096bfb2abeb7da98594d51122fad30bf578760447",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-AVAILABILITY-FALLBACK.json": "c76fb4586eb38af75ba133bd1630497bab3af18b29159ad87718c4b8513fd0a8",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-DARK.json": "86a3053e4c64b108cbcfb6d0b9eda811534fd5a7c05076ced6977ba39d905b9f",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-DEVICE-ADAPTATION.json": "1c945627efd47b81da8c7d47e067fe8b2e030235cfb87f32ed2cea1e1898c405",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-INCREASED-CONTRAST.json": "b2af919c6a9eee2ac884fe70a3d863a61016995b8c637dffbb48dde67145ac2f",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-LIGHT.json": "a778934fdb705f9781c23e46ca231589f8d63b826c0954b106e8571eda18c371",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-MOTION.json": "7a591129b59ab3d9103f7923b3c9a80c3bc2b5e53f3dce1a92258cc34b2e45d2",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-TEXT-SCALING.json": "4afd842f0062870bcc5b955c7c11483d631098b7d7c22bd60e683f38d9188d9c",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json": "903deb524d8ebf37a2d5003e9bdc06034b467c2ebb1969fd85e31b7fb67531f2",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json": "e1a7a0777415ee1adb1d2014a4f2f04225753e1d08a4e80cb99ac38f6ffffe8b",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-003.json": "12f1841272fbfaf0659e5f186a7ee3c0142bcf9ac3a61be64c09dba248053a52",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-004.json": "e82d1c7de37a6b91069074702399b459e908b0c8a632d4f138681e9931e14433",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-005.json": "c218cfbd0efae33124aa75a36258b9909ee0fb24ba878de02703480b7e134f55",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-001.md": "bdfd7c0e0f6da212cff8f6d2e89992d528d401ad63b58611cbf2cfd75ed3d778",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-002.md": "e9107e06d416521e13acbf3c85e39b51cdfce4dbaf51602be9be39c50719bb4e",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-003.md": "60f0b61ac0b2bc82d301abc6830b6f9d27932850fb1cba19d7caae4f5eaa980f",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-004.md": "50c639c199878fa4503de71db6a12ecded883031176188e0b76c64ea8088463e",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-005.md": "bfe2549ade9e76e85a727b2d58bf7da296680acfe6e2d55b9633a6b29f01d3b3",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-code-inspection.md": "d7437d658c35f1f64cda0fc04d8776b6883720f580f4073f78133b2c0de6fe40",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-local-commands.md": "0b9ae2acac67296d0cb4c07bb243d792599c72fde878f77d0c9023f23500aca0",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-runtime-app.md": "1cd42ec058a800d59ad0f11148f62235a0e7425403ecb6f3065d248bc142e33c",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-runtime-my-profile.md": "b8e5a23ea7a67651d888bfa19d31fd6b1dd68bbbf9b627d727b4b94ccc6aa7f3",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-scope-baseline.json": "2471c165f3718106880e0d9c1502502ede2ea4d2494e8faac41f84aaac3ac6ff",
+    "Android/specs/my-profile/changes/my-profile/implementation-spec.md": "4eaa386b05ace64d075171ba2a691957d901ce97bc296e1c50fbf46559a0310a",
+    "Android/specs/my-profile/changes/my-profile/meta.json": "cf59119c59c53e27dbc61a44323063e284a02aa7c0358c43cd3817f5f63ec67e",
+    "Android/specs/my-profile/changes/my-profile/plan/README.md": "46ba62e104625c7b8000422430fe76de6bbf1378424fedeb96b740da3463c5fd",
+    "Android/specs/my-profile/changes/my-profile/plan/rule-selection.json": "c39571f649771b34f8d35e036c71ad3d86de6b1e9d2787b4bda795087736def0",
+    "Android/specs/my-profile/changes/my-profile/plan/task-001.md": "4e8d585d6f19be70c0aae2628af86ffbf387c346226e6ccc4ffb0ce14e5db810",
+    "Android/specs/my-profile/changes/my-profile/plan/task-002.md": "381a5c5dc5aa5a6ef354ca7ec1ae11c4d55b2e0fb030d7da401bc0091e1c0ba5",
+    "Android/specs/my-profile/changes/my-profile/plan/task-003.md": "01757db22d1a099122a3c4ec2fdfb933a742ea179adddc033699de9ab6931854",
+    "Android/specs/my-profile/changes/my-profile/plan/task-004.md": "bf68616db525ae92924096c80502682daefcb93fed8b1b67d0939c693bd52264",
+    "Android/specs/my-profile/changes/my-profile/plan/task-005.md": "da5da040e4dcd3980ac0a2fd27bebe19080fa96cb790b2ff52518cd5b075d5dd",
+    "Android/specs/my-profile/changes/my-profile/platform-ux.md": "cf1f25eb45947e8ce726f77b66e91090557661964a7aa7e7675fb0d0a9d90167",
+    "Android/specs/my-profile/changes/my-profile/proposal.md": "7074cc918d05210b846ffac626bfea5403ed7aaf240ed6c55c7e07953e232287",
+    "Android/specs/my-profile/changes/my-profile/verification.md": "c21ace349296fee92665279b06a7545c2c8fe3b4b5bb81623765ebaa0a88aedc",
+    "Android/workflow/README.md": "f3bc4a934980f83f3176dfef24899bb17c349db131637196a2c77bc8d346492d",
+    "Android/workflow/phases/archive.md": "d266887b26e9c7801aee657969a4f5d63c81aae1c2f82729719151ba9388ac3d",
+    "Android/workflow/phases/deep-code-review.md": "5ae88b0458e8025935641cc193aac83572aa289f5da646c9009d73d7edc37190",
+    "Android/workflow/phases/implement.md": "58bbb5e6ac501177c6c3cf5c0382860f0cf469047d604ae5c963085027aeb87e",
+    "Android/workflow/phases/plan.md": "a26f86f9ee6d10403ed66a1118a645e1a41c172ce60a41803d0523c75ca7b08d",
+    "Android/workflow/phases/pre-commit-check.md": "c6fdd7a39020547639f18483103c401cc34f39c7ddb3aecd0277aaba35be428e",
+    "Android/workflow/phases/propose.md": "387efa5328a4baf5f0292232048a71751474424b868fc92af6ce5740bfdc81ec",
+    "Android/workflow/phases/reconcile-implementation.md": "826bac16e38090c4891d440f3c84043867f2868e3ff20716d457735ba37758c0",
+    "Android/workflow/phases/verify.md": "5ba0ff5dcc26131bc43a477e9a16e9803a3eb2ee8536f5960d545c4ec0542bcc",
+    "Android/workflow/platform-contract.json": "ad05af3522a211e9c4add3f483f8314f495554bde983d0070fd8e60ec9e6b2cb",
+    "Android/workflow/roles/android-build-diagnostician.md": "91f7dcec5b3717a691a56f19f7f4ff7af8387c386baa396c167b5298efdaa3ef",
+    "Android/workflow/roles/android-kotlin-reviewer.md": "9dc74a00a0c331cdceac0104ea55a0b11d949ade75ec3cafa4c5e15766c916ef",
+    "Android/workflow/roles/android-package-boundary-guard.md": "8607071751f390dbb89e77c1945b104eb6df7dcacc8ba510c9224671922edff2",
+    "Android/workflow/roles/android-ux-designer.md": "a4f11b838bad5c4aaf908582801df6c11632dc695ffa284b85a7acda6057eab6",
+    "Android/workflow/rules/accessibility.md": "0f8c5e17d4c4dc69563fd30f26459a2a98ec9b4245b16a9cf0ac3db8ee725e58",
+    "Android/workflow/rules/android-pitfalls.md": "7cc36b822f5a9569090fc59b7eddcc2f2e5e36a2a00674ac783016b255a5c7cf",
+    "Android/workflow/rules/architecture.md": "3c8af01cc3edc36878a340c05d014dcb922f6d1aeab349590b7352f9ab5cdd8b",
+    "Android/workflow/rules/architecture/data-layer.md": "903b117d2147f8d85aaae5a37c518004a5048b6c1a37c74118973eed87e63339",
+    "Android/workflow/rules/architecture/dependency-injection.md": "f843727e7fab3c07eab4d6c119db27b5e7f56ef9eacf14fee7a1e0d474808f1f",
+    "Android/workflow/rules/architecture/domain-layer.md": "d8b697ba5e0991112a6f7261355a817c21de9fceb96f2d441f832ed8bfc67921",
+    "Android/workflow/rules/architecture/modularization.md": "f9f9e7dd0d9c259ac26ba46192cb8fd2166405b1d994d7e0040ae6d2c7bc5ff8",
+    "Android/workflow/rules/architecture/ui-layer.md": "4467fdaca699a5903eee2b0a8877b87c6ba694bb072fd5c09f81f1005a636f07",
+    "Android/workflow/rules/compose.md": "56f7dd890b8b48fdf9e1628e07a16d0f58a0f3250a9beb7ea1f5516ecaf87dd4",
+    "Android/workflow/rules/coroutines-flows.md": "0284d7538103544bc99bf9f2805af1eb91b832d8d01f1ffea1c94c2850dc036d",
+    "Android/workflow/rules/emulator.md": "350e40223fe1a8d6a9cd547ae86d33a3054bc26a88b1c60247a28c0aae7b7243",
+    "Android/workflow/rules/gradle-build.md": "62f145fe8ef29b401e6ad03b48c33b7a171dfca547575a96f7ba4245f62659f7",
+    "Android/workflow/rules/kotlin-style.md": "8ffcf84f362cfd6973d7ec5c03a4b7c031d4bfed83dd3e93d2de5711beb1c4e0",
+    "Android/workflow/rules/localization.md": "8549bf782934a2f3e17405da881fe37f868b128d7b74ee956856efb0cf6808f4",
+    "Android/workflow/rules/multiplatform.md": "9e4106b0371ab717ac9994b65466006a935d3febc4b5582db363b33ca66690d4",
+    "Android/workflow/rules/ui-design-system.md": "0f32780d2fef873b9cac9d84348f127dc00270d08a96fd0d6d81f3ef2a87f065",
+    "Android/workflow/rules/ui-testing.md": "3f45c20ad4371e806d1b1566713f368073369a108ae6fe453dfdc998f9949b82",
+    "Android/workflow/rules/unit-testing.md": "c003984ac8e049ae58ee154f0ad2456beee2849e368d93bc731a3c08f2b4604f",
+    "specs/product/my-profile/spec.md": "37e9dd9957d560611a445d995891d42481a021f182f10c61864ff40b58bad2a5",
+    "workflow/README.md": "780146d8695db352cc4f156f1ae9674fafb3d13d51bf75e16a7071c00e366e2c",
+    "workflow/archive-requests/app-shell-2026-07-16.json": "e33c7941f271ba344489453e8e8b63ff9425e573481a2a59b4792e5f459361df",
+    "workflow/compatibility/modularity-v0.json": "c6d4d63ac1d7a3967f3248da09b03eab4a497409119414789067a4c27a52e400",
+    "workflow/hooks/hook-runner.py": "599de2504ed2b963ff22714a31e575b6a5277c2aa5999d595b7222db822c7112",
+    "workflow/phases/archive.md": "03be43e9ec032ce1d9220b3182e920d37f56de548c770b530d67088726d577fa",
+    "workflow/phases/brainstorming.md": "92e1af56a594c98e7e024478a74c1f295209ba9401bc4d922c857bc72a5e6685",
+    "workflow/phases/deep-code-review.md": "c659c92f97b39f9fdf122ba1203e3568c97cbca80d3bd40c4f8559bb086098df",
+    "workflow/phases/discovery.md": "baca8f7f9b412d0032ac042de0d4b200ecc2b8421777f55b75ae4b397960efec",
+    "workflow/phases/elaborate.md": "0098dcdd6be550d0d07243cfdf433280fc70ca19fdf7093118c271a52ab437a3",
+    "workflow/phases/harness-change.md": "843db3f84c60307aab72ae3f0bd4f7e643768613d4e0a63c27766d5e306f7b2e",
+    "workflow/phases/harness-review.md": "efe6f7303358d964575fbdd924422569d45f8f2dd6e8b684384ab565dea1cf68",
+    "workflow/phases/implement.md": "5947620c9a3da76d3552aec81b3ddcbcd9bb5c9cde0663280d7e96268a10e156",
+    "workflow/phases/plan.md": "49a05a8507c71f86489e1d392d7fc1705391053f8ef5431656627881fe7fcef3",
+    "workflow/phases/pre-commit-check.md": "0f19b4a607a75bdadeaf474de649d6ea61b0538cfa32dbbcf161923f87ed75fb",
+    "workflow/phases/propose.md": "6a568535aebf12f2e6cab8e2e757f8b154669681d0a895d592adb1cf02b2f19b",
+    "workflow/phases/reconcile-implementation.md": "5f5e24203d29543ded08da5839b312452af45f4613f6a5c2c6e8fbad9660f993",
+    "workflow/phases/verify.md": "e3349219d5bbeea53967f89ad5038f0621d8050074223d5f21b5863ff33c5c99",
+    "workflow/phases/writing-skills.md": "50e66bbb59a751d173622e09afe4addbd5ea719f396e026506d5a9824b231a41",
+    "workflow/roles/architecture-designer.md": "607cdfe5705060ba6fbd397edd44aa46b326c495bfd46ba0220f82e9cacf444f",
+    "workflow/roles/bug-investigator.md": "38848cb334dbee1fcd0dcfad209b5e8e7a0996df8085606cfa94f810431e3485",
+    "workflow/roles/deep-code-reviewer.md": "e4adcabc098340a1fce038bcd1b4f61bbd5d0999d07552e984d8cf3f01df78f9",
+    "workflow/roles/harness-auditor.md": "eab268e64b6336ec55128c2e1fe41c15042949e401d35ab107dd798f7708a807",
+    "workflow/roles/implementation-discovery.md": "e990313ed7b9f80d5f28318a4e9135d0475a3eb7e4a3cba404e184090926dc8a",
+    "workflow/roles/implementation-planner.md": "690969d14aedd24b31d4118ea32140799aff5787063037920b7e8c35de606f0a",
+    "workflow/roles/implementation-writer.md": "ffdcec3ac4ead9871afaed4c01bb3fcdbe7f2240c2a13f6fe9f7ade766c8c8b5",
+    "workflow/roles/product-spec-reviewer.md": "10be19ea885caa177e1191db9716712785ddebfcbe774782905a87e55ee18eb7",
+    "workflow/roles/repo-navigator.md": "3f7a3c404bf8ed14daa5c398fde794d6058a06741ee1cb3e7d0aa0660cc8ba6b",
+    "workflow/roles/security-reviewer.md": "4e26c6474e7e6f6655281e715d22cb4ee4281faa64cfa8c30fd42acc256b5d65",
+    "workflow/roles/specification-writer.md": "45a5f8f2846bc1b7e3dc4ceb1f0917e65819cdd9e981db52338ca3cb41778d5c",
+    "workflow/roles/verifier.md": "0b5cee87b456f6eb83b77dd545f808b0cd4083ec2507e8d8984161c6e3753967",
+    "workflow/rules/agent-roster.md": "2a90e27adae179126dd97e2988c08234aaa4fbc9d66f1df52866b46f72714f41",
+    "workflow/rules/archive-lifecycle.md": "9f7a9aaa56a9fdfb1988e75d2b2b1c8d4ff594bf3aa4ef940045897145d7ebf0",
+    "workflow/rules/artifact-language.md": "87ec05a1f2f551f6e48fba0f073b87871c2c92753e9da4b9b353c6334e6b634b",
+    "workflow/rules/branching.md": "be3f9026d5dc1671f1203bd3c2a5a68d8ab3be4f21d74cd53f38c3ed66623466",
+    "workflow/rules/bug-investigation.md": "3ddffff92676fdc8f7f60b8a9f03ddf7d3c5bb52c7d9fae01e862a38af858064",
+    "workflow/rules/code-comments.md": "6b793ede6df53f7bbdd3271968fc2c438896e4584548536382d49eea2ce35a2d",
+    "workflow/rules/code-review.md": "143654593180c7b63ae532db3933ea119b94df2c99c10c7bb9194d8449b9d30c",
+    "workflow/rules/coding-standards.md": "2a25b4a2e12b397ec7932b49880b2cad41c2c3bc6520c6cdaafc16c23b7c9778",
+    "workflow/rules/developer-experience.md": "26d3226e984f19d24dc70bb007d7fbdcec9aed6415bc474a50b62c738c38a1a5",
+    "workflow/rules/git-conventions.md": "68840f4a01bae878fe1126b59dc97f90e696a4197497aa333d5ea8df8a3e3d30",
+    "workflow/rules/hook-contract.md": "ff3d2c1fd035f9577c04a10d8924d9712b29669c3194de0a667e8a08b7ff1680",
+    "workflow/rules/implementation-reconciliation.md": "cfb69484a426a09db8966653f04eb52161ebae0fa74089eee03cd1201886f0ef",
+    "workflow/rules/memory-architecture.md": "4fb4719692952d37bb8248bff1ba0dbdaf94018758fae83119a95ed60c4dfc23",
+    "workflow/rules/orchestration-core.md": "e3cc7f75e6facc34ef0ede29d67844c9da80dd3f074c13e6c44e439e9f7a58c7",
+    "workflow/rules/platform-change-lifecycle.md": "d57bfc95674b28c61138efba110f374a2051c0a90bdec879f2efe89d5e4c997a",
+    "workflow/rules/platform-scope.md": "b2c2391aba281d84c3b709d27f42f3d2bc86cd2c1026bf43d7e5c9209fcb08b3",
+    "workflow/rules/pre-commit-integrity.md": "cc95affd23017de3ad972758bf9b39f47e8d40c28f612fff2416ff3b55ee4653",
+    "workflow/rules/product-spec-review.md": "518d37b53feb954731f7109a8ad839541410ba6529aa2d396a2fe5129b953306",
+    "workflow/rules/repository-documentation.md": "08343cb338ecf63119bf22e4d506d61dc17574574178c674cb7b2b6c8c98cc6a",
+    "workflow/rules/runtime-adapters.md": "54ed19f47b352d4a51b54ad2e126bf5efd2ea6cd2bdb61a9a1ab99c27e913138",
+    "workflow/rules/security-review.md": "7b94f6d02e42a30995aeb20c85a898c2f16d43ca990d5021cfd39760ae84b3e2",
+    "workflow/rules/specification-layers.md": "3fc57c9c1db8e59408d2f104d3ad5426676d48f27c4021e5d9050f5cdae859d8",
+    "workflow/rules/system-design.md": "db17157d9810cef357100ea9caba6a636371412ac8c92ff7dcfc04f55f410312",
+    "workflow/rules/system-design/design-gates.md": "df953df53e280b405c62906ce0c7acc4c546ea832ba8b4fd64f2c3bc6d6e3d6a",
+    "workflow/rules/system-design/estimation-rfc.md": "695ddcbcb92e41167cba325680f89ffe9dd04494cab6a65d5e4352e7226d8b5c",
+    "workflow/rules/system-design/hdd-ui-principles.md": "8f37e233448de95cccae98cc7491c76aaf94c026c5890395654e4563bcddb16a",
+    "workflow/rules/system-design/landscape.md": "0b5ff77de9258f5f1c6bbf812c5d5fb5073d8e28a66cdc6c9efd1bb395653937",
+    "workflow/rules/system-design/mobile-challenges.md": "ee37f2ddd2d1e08b50469efda8628080a22fa4dd8821679cfce1935143e37416",
+    "workflow/rules/system-design/modularity.md": "24c8536ed543b3c15307f34ac636d6361e6c9df9fa8fec248a237d9a9770ea91",
+    "workflow/rules/system-design/review.md": "24799a810c220c3c1a25dbbd66fd9d3ac36e5c6557a45bd8ea9a2a4a6e6eb881",
+    "workflow/rules/tdd-first.md": "303bcc8c48b6ee0d56e09109081f1655046434c9ef1fc4ab7023698f4f749a99",
+    "workflow/rules/test-execution.md": "0f5725a36c130c51049abfe6769e4e8106d19cedbc66a0e91befa73c71a58ee0",
+    "workflow/rules/verification-evidence.md": "020d07ceb3f77eb2167065ebd2f51b73d02ac20767539d17cc708a3ab645ab3f",
+    "workflow/rules/verification-matrix.md": "5d692065c6e3870f8ba7253e4dbdedf011b999d3938b8f5f1fb29383fb381902",
+    "workflow/rules/visual-language.md": "a314448c62722e215bafc7b1d450a93da75a43baa9191cc2755dbede1c974b20",
+    "workflow/rules/wording-clarity.md": "d57c3bb0648a1e729048e888cbe3114a2f579466d1c9288a91c7e7fa814b08cf",
+    "workflow/scripts/archive-change.py": "ef3bf26340199dc7beefe5aee43241f8ef33810176cdf083d2819e8b533d2287",
+    "workflow/scripts/artifact_language.py": "bb8f02091f7a329186a6a269fbcbfd10b8c3901edc7cf4e1a231317e77cfdd4f",
+    "workflow/scripts/capture-verification-state.py": "4037cbc69ccbc95a62079ab2a94f058e17d94430712173c371cfcb0e192d00ef",
+    "workflow/scripts/configure-git-hooks.sh": "74761ecf926b0ed3aeac1f3ede796ba48c7622970b0354899a934d3cd5036989",
+    "workflow/scripts/deep-code-review-readonly-guard.py": "9a0fea1d27313344562c2a184a43b1b573326d112f5d5223be889ec7e80472b2",
+    "workflow/scripts/deep_code_review_report.py": "2340d72de5a2f424fddcc5df58fbbadb39a608740263c3bbc6f06eb7b4142faf",
+    "workflow/scripts/find-platform-context.py": "818be18adb5a5a2b69f5f50828fecafa984fff365e6fddf1a9528793330d8432",
+    "workflow/scripts/git_change_paths.py": "325837724727f444c7194dade8de420d77bc7b2a78f8918028f907579f19712d",
+    "workflow/scripts/harness-docs.py": "323b3a73e6c09dc8bb43549ff659c27718e7df2b11b6777edc0abaf9e08782b2",
+    "workflow/scripts/harness-lint.py": "ab1eeae61a9ac7b5b78c5b9fca543c9592ae5f9e224a59fd053ca2742b918b38",
+    "workflow/scripts/harness-security-audit.py": "65ca293dfe431ac283c98f7d86de1cfaa1247b18ba647bffa0b866e2113b9314",
+    "workflow/scripts/platform_path_ownership.py": "e9aaab1abc0229ab0e51d7b8f5c3e8f88c969cfbc4d695941a37ac0ca39d780c",
+    "workflow/scripts/platform_rule_profiles.py": "d959807e2426dbb5df0d9d99701187f2eec3406e507b80f80a940443b027bfec",
+    "workflow/scripts/pre-commit-check.py": "78a2b3abda6051bb51789607dde9f6824836c9a9b482b9525082ec1e28209e41",
+    "workflow/scripts/read-deep-code-review-report.py": "f7681b56922f3e72298f10a15b00d1b2afd311aa4ee34d21b8ad22f4f9a37f4b",
+    "workflow/scripts/reconcile-implementation.py": "f9d714afee69e5545bb2106fdbaac52b0f161c716fd09570e3f665121ca8371e",
+    "workflow/scripts/test-watchdog.sh": "068f544555c93276ee0e4a94132bd885ee8a6090b65533b3792ea081cef36453",
+    "workflow/scripts/validate-deep-code-review.py": "68af049f9207d69b4bd04d8c301f696d0afb3d88effb1cabba12c44031cc41e9",
+    "workflow/scripts/validate-implementation-scope.py": "579cf9ada89d6374ef3d55ba66ca1c091a114f241fc9a43a9b228dedd4823e00",
+    "workflow/scripts/validate-platform-change.py": "fa1dc6393200fb76090316426e985f349b40f18d24400d8ed525c4b22db5ee49",
+    "workflow/scripts/validate-product-spec.py": "59b1407f6005ad16e2be1057a3d2116a1a3116ba9dac3f4c2c35e483b9496787",
+    "workflow/scripts/workflow-reflection.py": "d7dabe106728fbc2372633bbb1882372495d4f207592fc1026b8bc0c2e76a32e",
+    "workflow/templates/harness-change.md": "9146f2eb6723c12f38eef262ce48166385ae71be8bf12c7cf796c774ceb802dd",
+    "workflow/templates/native-verification-observation.json": "e993f0ed3eb0b27bf1e394ad220fd71c36d3a8751e8a0af173b6b56bb6228705",
+    "workflow/templates/platform-design.md": "0414df025bae01b8553626e3060daa5b29bf2e13882183e4afc6e1f37deb0248",
+    "workflow/templates/platform-implementation-spec.md": "3bf7a5f0c9a886fb879e1ffa4b88ee662a78c2d17f05bfeaf4fe01eecd40169e",
+    "workflow/templates/platform-meta.json": "d90932e3916303b0188b62d332d0430ce855788097c800db275c50b2477621d8",
+    "workflow/templates/platform-plan-readme.md": "bcef7cbe1067c971e308d1cd7e963a5c86f6b80bebdc60226b21dd9fa5b899be",
+    "workflow/templates/platform-plan-task.md": "4f773da92c844289aa0d9aa443ccfa16dd9de63196b504e3156e534a6096a61e",
+    "workflow/templates/platform-proposal.md": "a99e95050743285dcc2a954f4f96b5bbbd5ea1bb1201c9ea2834a068b597c983",
+    "workflow/templates/platform-rule-selection.json": "bacb7c4628f39afff7dfdbf2adeb9dc1717e1a469439a56509d74df5beb87932",
+    "workflow/templates/platform-task-evidence.md": "1365777542f6a38f05c8cd58d7df5ed099ff2294faa17b987148ea884c2031e9",
+    "workflow/templates/platform-ux.md": "79c1e468c317c2de67fe93c6df5c79a677032caf727b3489fa0fad97efd37d13",
+    "workflow/templates/platform-verification.md": "c27adfcb72bee8c7b7ef1079b49cc31734c61ba9c099f7e795b155334e65d55a",
+    "workflow/templates/product-archive-request.json": "961b93d5b8bd64942cb76870883cd9e3c93915b298044974758844bc79e44998",
+    "workflow/templates/product-brief.md": "1454b850eec51dbc683084bff94c5b5b36c0d8de69e1227100c123e379c7434f",
+    "workflow/templates/product-concept.md": "21a5931468da96537503d72767b52ef5b6fa7bdc879f82c10065b5e4d977cbaa",
+    "workflow/templates/product-review-verdict.json": "9764c12a1376878e0b044d51426239739402d774f48bdccc968ed213e186aa83",
+    "workflow/templates/product-spec.md": "923c10516c2bfc33a86c88bae0e69b68a654583ec702025fb02c21e8ced60b25",
+    "workflow/templates/product-ux.md": "57156252a05f4f7f41d5be11b97be7a4c9c37c4171d344a1a2438f0dafefc772",
+    "workflow/test-evidence/README.md": "3faa90f62edd743ff079ea405c7a3e1174b34aa083791e4c9b829a45aeaad499",
+    "workflow/test-evidence/android-propose-plan-implement.md": "0a365fb0a30090e062463fc5aa4637501c39fa954519e4ab7a5039539bed81c4",
+    "workflow/test-evidence/android-verify-archive.md": "e9db3e9d9dd54ae262b2a2657c64980383ebc35712ce0f159a63af1f121f7f80",
+    "workflow/test-evidence/archive-receipt-cli.md": "4fdeb51180127f9d22ae10fc518949391709cf9f179a7ce8152493aebb70bea9",
+    "workflow/test-evidence/concurrent-work-lanes.md": "953b62279434be94e442230e1e7c3c14728ff68406018998a742425a02468f15",
+    "workflow/test-evidence/cross-platform-modularity.md": "5b952d45b097e7f101481c51260a7bbfd059656a5d9a4d0f719ca6d992a78bd9",
+    "workflow/test-evidence/deep-code-review.md": "ad1e7ad414bd30a9a8c6e2082ed27234640786f2b3984bb020652147932a9d0e",
+    "workflow/test-evidence/durable-feature-specifications.md": "40d4858d459f4aec1fd3eaa98db09c8e1e4c435106cca72ec9820a02bfc8f403",
+    "workflow/test-evidence/harness-bootstrap.md": "ddb62bfc04958ffc96f65d6d1a38458faec854af9ac584eea02a6a5ed8d615fe",
+    "workflow/test-evidence/implementation-reconciliation.md": "d22d6941211f49de2ca9220f4819d5d845557e6e665c1f2b0ac3d5bdc284cb55",
+    "workflow/test-evidence/implementation-retirement.md": "736c963e17258d08e4792fa91b1dbbdf694e82a5db6287c4a70d8b32f2cc40ca",
+    "workflow/test-evidence/independent-product-review.md": "b9a3543ac4475256bdf5e64ab490703c2116eb5de27806c91a58a6ddfca72348",
+    "workflow/test-evidence/ios-engineering-rules.md": "b9dbdf02caf90e2133c8c0365f16e1e12511cd0e1ab1176f9eae94497b969861",
+    "workflow/test-evidence/ios-implement-archive.md": "8c114712361cf97bffed61e71ea17264ce6d87d8294199ff64a3af632c6cf323",
+    "workflow/test-evidence/ios-propose-plan.md": "d2d1ed94daaf4944da81b3eb80f1214cd1a151a77e1432ddf4c2240503ba7264",
+    "workflow/test-evidence/ios-ui-runner-recovery.md": "d2f91f3f35e235b68fbdcf24dae5372ea26fd2746de7a40ce32c985031a2fa53",
+    "workflow/test-evidence/lifecycle-flow-hardening.md": "c5d623d41b05f421ca391c6ea372cfa12959c670fade7a1f879e0b9cfb089935",
+    "workflow/test-evidence/plan-task-deliverables.md": "0332f291ddf40a958ed5ecfa14a6a4f7fa7c8f496a6f3d7ac15188f929ccd343",
+    "workflow/test-evidence/platform-native-ux.md": "2d2ffe0184c565651bf39e80bbbb8174f2449fd08d9265be3609d093072e5862",
+    "workflow/test-evidence/post-archive-commit-gate.md": "014499bf90806c1f9086064475229fd02fc50cf10e9cc52816bb91ebc89797a1",
+    "workflow/test-evidence/pre-commit-and-hooks.md": "f83e727a80edeec14ed640c8c702d4a00cd34dc3fb0a63f6d99059cd5a084735",
+    "workflow/test-evidence/product-elaboration.md": "b55e2921d9709ae6ca4a966b0c119397faabd42241ba5c62752c02373942c9dd",
+    "workflow/test-evidence/relaxed-post-archive-delivery-gate.md": "d75ca1cb1652abda116208e07b8fdb9b740a7d0b8b95e5928d0f7c9e80db5aba",
+    "workflow/test-evidence/root-documentation.md": "431771810e8d36e381648ac6d92c942ba2c2d33e3a7af02cbedf5fc2236dac9d",
+    "workflow/test-evidence/russian-platform-artifacts.md": "e81950de2ba2db1735684c560f7a0920e2090769fff2ee9735921ee96ce8134c",
+    "workflow/test-evidence/simple-model-task-evidence.md": "b5dd3188ef9464b94c9626160cd708478f6c329d623d208e9412a12bb48a78d6"
+  },
+  "index_algorithm": "git-ls-files-stage-lane-v1",
+  "index_entries": {
+    ".agents/skills/implement/SKILL.md": [
+      {
+        "blob_id": "7f892d3104f5e410db24982306691825df03f691",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    ".agents/skills/implement/agents/openai.yaml": [
+      {
+        "blob_id": "5d8aa4f96654a661ec6de07f748861397e4150a6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    ".agents/skills/verify/SKILL.md": [
+      {
+        "blob_id": "732040fb84bcba1c4b40525423a0f55b4169c3c2",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    ".agents/skills/verify/agents/openai.yaml": [
+      {
+        "blob_id": "fafb90667405e8f0dae4b54f77a93185a68330ba",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "AGENTS.md": [
+      {
+        "blob_id": "ff501dd78ce64ec01faee2a144178694894f0964",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/AGENTS.md": [
+      {
+        "blob_id": "c4008cb2e1f28b462eecedcf34e9d8a883f5edb4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/settings.gradle.kts": [
+      {
+        "blob_id": "9c3544a00e654b18a3431ada0ecf03e5425a5758",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/design.md": [
+      {
+        "blob_id": "c2b1c484122483845d1310fa26b81aed4c508b43",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/implementation-spec.md": [
+      {
+        "blob_id": "17f471d48d5a543bc744bee2b5924e2d188adac3",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/meta.json": [
+      {
+        "blob_id": "4fcad113ec58fea6d416360d2c8c70bd995a954a",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/platform-ux.md": [
+      {
+        "blob_id": "c6a1e1ba9fcdeed9c473388cea04dff4e9dcee3c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/proposal.md": [
+      {
+        "blob_id": "eab04a62c5e4f4bfb368b86231da488974805cda",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/specs/my-profile/changes/my-profile/verification.md": [
+      {
+        "blob_id": "c5e63ec0870e7588e265fb0e177aaa3e39b64179",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/README.md": [
+      {
+        "blob_id": "639c8c8cfa2a8434d508708496b3c95974e4af6e",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/archive.md": [
+      {
+        "blob_id": "587b7f536177a136c016a6d167917d73daf73d49",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/deep-code-review.md": [
+      {
+        "blob_id": "1c605e21c6fe31e0126d4154a80cdace4aef38f0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/implement.md": [
+      {
+        "blob_id": "d3cebcb9233a892f771fe9f3f5c2b39199fbffc5",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/plan.md": [
+      {
+        "blob_id": "79c14f519a43a5a9e9f5ff26fc21b7ed4ac05bcd",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/pre-commit-check.md": [
+      {
+        "blob_id": "a6b37cc7c4fd318a8070c2ab9f991ddf0331c78f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/propose.md": [
+      {
+        "blob_id": "4187f1c5d163dc2b909f3eaa3f8135bcf38595ed",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/reconcile-implementation.md": [
+      {
+        "blob_id": "d96609ba27a91a9886f70725d06d57002c4089d6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/phases/verify.md": [
+      {
+        "blob_id": "70eb7999c46e13769b6f8d290576c6cafd27732f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/platform-contract.json": [
+      {
+        "blob_id": "385c7a043e2ce0e65cdc6565f67c0d74ee6e494f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/roles/android-build-diagnostician.md": [
+      {
+        "blob_id": "9bc7aa892bd46773c06c80d7981a379bd24b99b0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/roles/android-kotlin-reviewer.md": [
+      {
+        "blob_id": "9416c164543bc2925a81ef98b27c54d45ba0dd1b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/roles/android-package-boundary-guard.md": [
+      {
+        "blob_id": "692a32bf7b0aa4c4a4b4a91949fc54a2ae5f1911",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/roles/android-ux-designer.md": [
+      {
+        "blob_id": "f5d02e5ee91287d5a50f1cd1b17d7c564dc9c8b6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/accessibility.md": [
+      {
+        "blob_id": "8ec5412d9465a194d945e98c465a2782d593bc33",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/android-pitfalls.md": [
+      {
+        "blob_id": "29afd579e8d36d70b09971c9fc855f99e85034e9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture.md": [
+      {
+        "blob_id": "927bece210a0bff36c8bce137e8973a5d8d2bd84",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture/data-layer.md": [
+      {
+        "blob_id": "bf3acfe211f3689d40949cdcb66f73ba42b69738",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture/dependency-injection.md": [
+      {
+        "blob_id": "3baaa9abd41eeb6d564ee3018899aa00348a5591",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture/domain-layer.md": [
+      {
+        "blob_id": "3134042280337eb69e07d6175a1614c17808ac7f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture/modularization.md": [
+      {
+        "blob_id": "634d69cac9ecf29c6479e3da500a3d0e742dc85d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/architecture/ui-layer.md": [
+      {
+        "blob_id": "ee78beebfebeec13120474b49aab4c4fa8bc838f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/compose.md": [
+      {
+        "blob_id": "76cb6607e382a41144423d065624c01909aff8c5",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/coroutines-flows.md": [
+      {
+        "blob_id": "483a5d6c50910bbdea8bfc43e40ea240b5cb7590",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/emulator.md": [
+      {
+        "blob_id": "1653bd3c63d971fb8d627a338fba082aa6439ad3",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/gradle-build.md": [
+      {
+        "blob_id": "2aa533731db44bf2fd579c1a5951e12c2ccc9b19",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/kotlin-style.md": [
+      {
+        "blob_id": "87f242cd1c298248759f4d55bf8ac9ed597d9bcb",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/localization.md": [
+      {
+        "blob_id": "11012729b65e05f911711404d186589c6c94c1d0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/multiplatform.md": [
+      {
+        "blob_id": "31667c549c2bd76be25c4760b8cb3cb5f596f9f7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/ui-design-system.md": [
+      {
+        "blob_id": "35dda1c041be6fe47cf70924dd1c2095428033c7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/ui-testing.md": [
+      {
+        "blob_id": "4a42871ce092b7e743a258a108219a849ffeca7b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "Android/workflow/rules/unit-testing.md": [
+      {
+        "blob_id": "45260d30c58afc76e0d202f6af0379cd291b524b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "specs/product/my-profile/spec.md": [
+      {
+        "blob_id": "3f55f1bec9a2f67d3999a687e8f3fa2e043f0a07",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/README.md": [
+      {
+        "blob_id": "273c49f7c62ff5fb184eb4d5dfdd1e63ced61a17",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/archive-requests/app-shell-2026-07-16.json": [
+      {
+        "blob_id": "9afc459fc9962721ba2bf261071961300166daea",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/compatibility/modularity-v0.json": [
+      {
+        "blob_id": "1d73451c7327d7be9675c984b10feb79c360e18b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/hooks/hook-runner.py": [
+      {
+        "blob_id": "67fe2fd0895bf0c2ed05ceb5490dc4d292a3b45c",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/archive.md": [
+      {
+        "blob_id": "cc919aec04a46b167fac974a9556559e644c4017",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/brainstorming.md": [
+      {
+        "blob_id": "a2f7f0024ebec68fc0cc95f30314673e72d7fcb4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/deep-code-review.md": [
+      {
+        "blob_id": "8d99fe92f766eb7bdc3671e513240dfe2b40408a",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/discovery.md": [
+      {
+        "blob_id": "d32f3716545550998dc86b4f0c0bf4971b771113",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/elaborate.md": [
+      {
+        "blob_id": "9ac9cbb3900cfb42689b84f9d2e653222e7cf1cb",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/harness-change.md": [
+      {
+        "blob_id": "edf257b62a64fcef569f0005c8bef272fe67778d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/harness-review.md": [
+      {
+        "blob_id": "98f5366b0783aea54381dd8ba83a2f72c60fb1f7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/implement.md": [
+      {
+        "blob_id": "b05a1e438e8652be68f980729460b46fb4990f55",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/plan.md": [
+      {
+        "blob_id": "07c9cae17f39119b467a2c8ad8a44e9ff6bb9cad",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/pre-commit-check.md": [
+      {
+        "blob_id": "c3c1a80336b501e0cbd77d3b5580106d6f440dd9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/propose.md": [
+      {
+        "blob_id": "b7047731ef86cf07d3bea5e241136573d8506d07",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/reconcile-implementation.md": [
+      {
+        "blob_id": "b5c1023f22132d8592e21988525b92ea3597f507",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/verify.md": [
+      {
+        "blob_id": "b66794f130936ba22d99e9ea026453556e4e4c9f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/phases/writing-skills.md": [
+      {
+        "blob_id": "800a5e7626af2b4b47b63175b577dff7ef3e54d4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/architecture-designer.md": [
+      {
+        "blob_id": "66710f89bde0bd5c2a600d1f0d2640c2b2a4b5a2",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/bug-investigator.md": [
+      {
+        "blob_id": "75e9b3a2f6f2269d08b37e5a25c146453e2d8a09",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/deep-code-reviewer.md": [
+      {
+        "blob_id": "ad92621c14527c788e4d4332305e3d287234ce46",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/harness-auditor.md": [
+      {
+        "blob_id": "a8510bb28b04aa88723c350bbc2d3dfbabcee908",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/implementation-discovery.md": [
+      {
+        "blob_id": "8ef155a32ec6cf9fb4f414d8fd53386bb782b5fe",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/implementation-planner.md": [
+      {
+        "blob_id": "866494432eb11642774f8100748eafe7b3d387ea",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/implementation-writer.md": [
+      {
+        "blob_id": "6f06d4b25d791a3b160aeb051250961c18b99382",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/product-spec-reviewer.md": [
+      {
+        "blob_id": "79f667b503e6da22dab09fedc3aaeb6859db2e2e",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/repo-navigator.md": [
+      {
+        "blob_id": "4c9dcc9bbb84f21d2af59ebb896764ebb3549570",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/security-reviewer.md": [
+      {
+        "blob_id": "f90ab262373d5a826e74c13cfd8bc25b845f3af6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/specification-writer.md": [
+      {
+        "blob_id": "79bb0b2d608439e31882e80eb14c98dd08e8bacb",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/roles/verifier.md": [
+      {
+        "blob_id": "a014f69930e45f6199d5466267e48e37e56e3659",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/agent-roster.md": [
+      {
+        "blob_id": "1071ce6b225177ebe1a00b025ba99e99b2921124",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/archive-lifecycle.md": [
+      {
+        "blob_id": "29435357ae49253fae0c4c5e666d1c047bffb978",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/artifact-language.md": [
+      {
+        "blob_id": "f1212157e38ae08cb0895fb06143d1532f97d0c6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/branching.md": [
+      {
+        "blob_id": "05994975e13ed6fc46dc4f284356077034ac4915",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/bug-investigation.md": [
+      {
+        "blob_id": "76ae619f73ed30d4b0d5791d530cc4bfffca1b50",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/code-comments.md": [
+      {
+        "blob_id": "283e5fba1dfccf6ca81ed28d87c40b27ec369c32",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/code-review.md": [
+      {
+        "blob_id": "edce4f8793df63e3d67164d7a221222b0b8e4405",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/coding-standards.md": [
+      {
+        "blob_id": "8fc07ea45d849d837e6cee170b5c9c834ee7f82b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/developer-experience.md": [
+      {
+        "blob_id": "8d98ad85051cc582788aee5d4186c312bb6909a8",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/git-conventions.md": [
+      {
+        "blob_id": "9aa4f8240e3825fc075aef8c48fa926b87e1a61b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/hook-contract.md": [
+      {
+        "blob_id": "3a4fddf117d3d7e0cc646b74e7962133a2b4f406",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/implementation-reconciliation.md": [
+      {
+        "blob_id": "cc21f685c4953b50ffc0ed38cfb3b3b0f07aef52",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/memory-architecture.md": [
+      {
+        "blob_id": "81548880804b3ede5ac67e993adb68d8333479a7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/orchestration-core.md": [
+      {
+        "blob_id": "f17cdaea792c4b8e9013d3ce9fd10a9e6de76412",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/platform-change-lifecycle.md": [
+      {
+        "blob_id": "c61ed2a8f6cebe0536aa30f97f5b0df8f657659e",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/platform-scope.md": [
+      {
+        "blob_id": "f52b30c8e4e24e11ebf1221a0898bee469a6da33",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/pre-commit-integrity.md": [
+      {
+        "blob_id": "06beb0200738dc4d791e842a198851d44e88440f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/product-spec-review.md": [
+      {
+        "blob_id": "75b38cadfbebd8be141e598539f2c4ea937d7779",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/repository-documentation.md": [
+      {
+        "blob_id": "3bac354e61d644bf60b69af2e25b2ceb9b11f2c3",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/runtime-adapters.md": [
+      {
+        "blob_id": "06ce1a20166742e91087c5a27dd498b24ab157b7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/security-review.md": [
+      {
+        "blob_id": "abb0b9924ae6101648161bfd1374558cc82f5874",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/specification-layers.md": [
+      {
+        "blob_id": "37e2c54caad440f722f43e80d814dc3172a5d9b4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design.md": [
+      {
+        "blob_id": "7b71662a2c85a65b329af331d204be1a1396778d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/design-gates.md": [
+      {
+        "blob_id": "460b3e3a8999dbecf06afbc8385b75c4942a93ae",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/estimation-rfc.md": [
+      {
+        "blob_id": "b15f00aba5b0310b45e11794a3a12ff1b5930668",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/hdd-ui-principles.md": [
+      {
+        "blob_id": "822571520e0941974e9fababb485cd00c7e86202",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/landscape.md": [
+      {
+        "blob_id": "1d0b3ab1aa080ac63fa524b09415245dde0a45bf",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/mobile-challenges.md": [
+      {
+        "blob_id": "2b828116df36189f88f5702144f99ed9d02ff7c9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/modularity.md": [
+      {
+        "blob_id": "cbf5d0aed97d2d9fd54f231e3ec3896f719543c1",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/system-design/review.md": [
+      {
+        "blob_id": "f62f23d1ed0758f3e90da3f6d36820e7cf760de9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/tdd-first.md": [
+      {
+        "blob_id": "0164260ef0350579a64d8981e9bf94ee171d6de9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/test-execution.md": [
+      {
+        "blob_id": "c7f53c0353d5cd24550dd30093a73347592bdce6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/verification-evidence.md": [
+      {
+        "blob_id": "e4b0c286c62bfd2e059f90311aa6cf9f8d1fa6f5",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/verification-matrix.md": [
+      {
+        "blob_id": "6413a8f2d70ce6aab237435ce5c75a7413b1521d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/visual-language.md": [
+      {
+        "blob_id": "8c582e00ba3f5506ab312026d01eab7f0af01271",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/rules/wording-clarity.md": [
+      {
+        "blob_id": "da9e95cb572a69e0a73cf6b29c6c94739c0841f4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/archive-change.py": [
+      {
+        "blob_id": "69d77670e0d738b817b2a359812cd60444c24485",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/artifact_language.py": [
+      {
+        "blob_id": "ae4aa3f5cb69e5c9a8c8413b428003fec695b33a",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/capture-verification-state.py": [
+      {
+        "blob_id": "99ca862c6276cad42f01ac5fdab8644e330af7eb",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/configure-git-hooks.sh": [
+      {
+        "blob_id": "d56fedf07d19c7b70e92bb339c26c658ee780d86",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/deep-code-review-readonly-guard.py": [
+      {
+        "blob_id": "79a3155e0b45b5a315364bbc20d40e3ed7322832",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/deep_code_review_report.py": [
+      {
+        "blob_id": "14eb340a533d7f3c8ee869074c0f7aca4d5850d1",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/find-platform-context.py": [
+      {
+        "blob_id": "7f0d93c81bcd3b5c13cbbf846878cded0fe0c93d",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/git_change_paths.py": [
+      {
+        "blob_id": "7f0b14f44ae7391466ce00ef66ff17c47d11d960",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/harness-docs.py": [
+      {
+        "blob_id": "20e1dad079daae402854a77f5877d25811df4990",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/harness-lint.py": [
+      {
+        "blob_id": "6cd85b79c23327831ab3a9821e8c49e63bfb347a",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/harness-security-audit.py": [
+      {
+        "blob_id": "3dddc0060bb291c4dc0d16421892574df69cf0c5",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/platform_path_ownership.py": [
+      {
+        "blob_id": "b0d39c229724f86d63c680bf3b5ed7ecbe01879c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/platform_rule_profiles.py": [
+      {
+        "blob_id": "e20ee216d36c06fdb3f36858a140c5bb9630630c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/pre-commit-check.py": [
+      {
+        "blob_id": "a67d6c3ed10d50864512c9653b9514493c2aa69d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/read-deep-code-review-report.py": [
+      {
+        "blob_id": "20d987e1b84b958f8cbb50326a626492c0a83902",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/reconcile-implementation.py": [
+      {
+        "blob_id": "430eacf87013965eccc758d558902dfd31f5c656",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/test-watchdog.sh": [
+      {
+        "blob_id": "4134681e95379e1ee4729419c9504cab2031adb8",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/validate-deep-code-review.py": [
+      {
+        "blob_id": "b5d5e72bb4064b69b5e25f86fea0d56ee2ba43d0",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/validate-implementation-scope.py": [
+      {
+        "blob_id": "1b16ce240d07ea88972a84129586e591ab98098d",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/validate-platform-change.py": [
+      {
+        "blob_id": "7ea4037b37189da3c8288d9504fb0e7d45ce7943",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/validate-product-spec.py": [
+      {
+        "blob_id": "c78330aa9c42d4f557743a11fc30af4be3d76676",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/scripts/workflow-reflection.py": [
+      {
+        "blob_id": "23dd3a1d2d9a6a8033d8c4cc02e15bbb0a1b7697",
+        "mode": "100755",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/harness-change.md": [
+      {
+        "blob_id": "488977279a5ab8de93b6331c8161858b1b878cf8",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/native-verification-observation.json": [
+      {
+        "blob_id": "032b64815f47acf8f0a33a13d18b46951c4f0a1c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-design.md": [
+      {
+        "blob_id": "d31d72cc61609fda1dbbceeb4aac3ae59deb2035",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-implementation-spec.md": [
+      {
+        "blob_id": "616e5327e53ceee2762f43d91f22ab21b6f4d00b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-meta.json": [
+      {
+        "blob_id": "c151ed44162f34fed6705178b81316e3ad008bfb",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-plan-readme.md": [
+      {
+        "blob_id": "7249dfb604d453736ca97875c11c26bbe7cdbf56",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-plan-task.md": [
+      {
+        "blob_id": "ad19e27847c26cd45d42d8a71c5bbd6021889df6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-proposal.md": [
+      {
+        "blob_id": "0adf581cc2e0b03ccbf5a5ca68efd4856016c80c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-rule-selection.json": [
+      {
+        "blob_id": "4dbe01e4a039d468c634d49931a45fb8c552450f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-task-evidence.md": [
+      {
+        "blob_id": "2e28e8efa415c1b3df0ffedb170cdb3443cd6b3c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-ux.md": [
+      {
+        "blob_id": "2f41404a71600299e048c64de203e149d4363c21",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/platform-verification.md": [
+      {
+        "blob_id": "6747ff5ceffa4bc5b1b8a980371fc5c4ec958855",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-archive-request.json": [
+      {
+        "blob_id": "a60b6204057dd6341c821615b41332c6fee09ec9",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-brief.md": [
+      {
+        "blob_id": "762f794e14004f24c84ef0646cdea17eff8bf8eb",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-concept.md": [
+      {
+        "blob_id": "3fe5e3db6b92a4d943e7a2b43f498fb876432925",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-review-verdict.json": [
+      {
+        "blob_id": "477e5df251403e1886d9527e63bc4e32e9ff926c",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-spec.md": [
+      {
+        "blob_id": "3afbda5b91b3d8d273e6869a29a88109b721ba89",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/templates/product-ux.md": [
+      {
+        "blob_id": "238065e5927ea223a14df81cc3c7ddd53525c64b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/README.md": [
+      {
+        "blob_id": "c809501a65db088894224e349735694a0fd1d12e",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/android-propose-plan-implement.md": [
+      {
+        "blob_id": "9a2d4af9f23b3d003896185ad68ed928676e2906",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/android-verify-archive.md": [
+      {
+        "blob_id": "d49f78843a95a496876c23564ef018df7714f94b",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/archive-receipt-cli.md": [
+      {
+        "blob_id": "bb8e591a9d2d033217c023e8f32e39cd8448335d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/concurrent-work-lanes.md": [
+      {
+        "blob_id": "0c99e0f643566274b818c21883821904c87f7cbc",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/cross-platform-modularity.md": [
+      {
+        "blob_id": "12ba685988011f3d96713c064660e93c4c87ba25",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/deep-code-review.md": [
+      {
+        "blob_id": "459b16508f6364379d8dc6e829fb1dbc524ec0d2",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/durable-feature-specifications.md": [
+      {
+        "blob_id": "561a0035b86a3c5968f9e2bbd5db8cacfec9ebe6",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/harness-bootstrap.md": [
+      {
+        "blob_id": "53ce92b225c6638affd76dd923b5c43108d78ff7",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/implementation-reconciliation.md": [
+      {
+        "blob_id": "45b36bedbe4ae2a849a241cff911a95bdad93850",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/implementation-retirement.md": [
+      {
+        "blob_id": "c7a821411ffcd6642ece084ffb14669c34ac431d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/independent-product-review.md": [
+      {
+        "blob_id": "5c664eccd83f7bdb8283b1733eb66fb0ed24abcc",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/ios-engineering-rules.md": [
+      {
+        "blob_id": "6eb2e89791cd705ca3687afc2eaed80cee132268",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/ios-implement-archive.md": [
+      {
+        "blob_id": "82eed4a5b981b3a46419bfe0c17b2fbc957762b1",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/ios-propose-plan.md": [
+      {
+        "blob_id": "7a20529f1fe82477d4f9290d4933c2281d0a8108",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/ios-ui-runner-recovery.md": [
+      {
+        "blob_id": "0a757b4b41fed5007c4ae6a679ba7e66851c7dfd",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/lifecycle-flow-hardening.md": [
+      {
+        "blob_id": "a66358fa2504dcf7af5196d8959234a6d1b47bf3",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/plan-task-deliverables.md": [
+      {
+        "blob_id": "434d3c2b1f2ba825a24768fc4dfea394d56f937d",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/platform-native-ux.md": [
+      {
+        "blob_id": "a6efb156fcbdf27db107cbbea28e26a8e4e9fa5f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/post-archive-commit-gate.md": [
+      {
+        "blob_id": "8e8d88b10540cc8565686524545932669c8c751f",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/pre-commit-and-hooks.md": [
+      {
+        "blob_id": "1bb86526b5d783388777dc1e09d14b4aadc0ea50",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/product-elaboration.md": [
+      {
+        "blob_id": "bc8e1010a3e3ee77a691d350664ea70138e7bec4",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/relaxed-post-archive-delivery-gate.md": [
+      {
+        "blob_id": "971eae2db2e74b79b2c3f5338fa4d31683227cc1",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/root-documentation.md": [
+      {
+        "blob_id": "eeccbb99c8e0a9977927fd3632fb06e7f61f33b1",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/russian-platform-artifacts.md": [
+      {
+        "blob_id": "731bc097758289a924cf5fdff43019f92e52b8c8",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ],
+    "workflow/test-evidence/simple-model-task-evidence.md": [
+      {
+        "blob_id": "9811ecc3ab774d56aad48c542c6fdc66fe392531",
+        "mode": "100644",
+        "stage": "0"
+      }
+    ]
+  },
+  "lane_identity": "platform:android:my-profile:my-profile:task:task-001",
+  "lane_projection": {
+    "immutable": [
+      ".agents/skills/implement",
+      ".agents/skills/verify",
+      "AGENTS.md",
+      "Android/AGENTS.md",
+      "Android/specs/my-profile/changes/my-profile",
+      "Android/workflow",
+      "Android/workflow/platform-contract.json",
+      "Android/workflow/rules/accessibility.md",
+      "Android/workflow/rules/android-pitfalls.md",
+      "Android/workflow/rules/architecture.md",
+      "Android/workflow/rules/architecture/data-layer.md",
+      "Android/workflow/rules/architecture/dependency-injection.md",
+      "Android/workflow/rules/architecture/domain-layer.md",
+      "Android/workflow/rules/architecture/modularization.md",
+      "Android/workflow/rules/architecture/ui-layer.md",
+      "Android/workflow/rules/compose.md",
+      "Android/workflow/rules/coroutines-flows.md",
+      "Android/workflow/rules/emulator.md",
+      "Android/workflow/rules/gradle-build.md",
+      "Android/workflow/rules/kotlin-style.md",
+      "Android/workflow/rules/localization.md",
+      "Android/workflow/rules/ui-design-system.md",
+      "Android/workflow/rules/ui-testing.md",
+      "Android/workflow/rules/unit-testing.md",
+      "specs/product/my-profile/spec.md",
+      "workflow",
+      "workflow/rules/artifact-language.md",
+      "workflow/rules/code-comments.md",
+      "workflow/rules/coding-standards.md",
+      "workflow/rules/specification-layers.md",
+      "workflow/rules/system-design.md",
+      "workflow/rules/system-design/modularity.md",
+      "workflow/rules/tdd-first.md",
+      "workflow/rules/test-execution.md",
+      "workflow/rules/verification-matrix.md"
+    ],
+    "mutable": [
+      "Android/my-profile/build.gradle.kts",
+      "Android/my-profile/src/main/AndroidManifest.xml",
+      "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileRoute.kt",
+      "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileState.kt",
+      "Android/my-profile/src/test/java/ru/home/sysdevsc/myprofile/ProfileContractTest.kt",
+      "Android/settings.gradle.kts",
+      "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json",
+      "Android/specs/my-profile/changes/my-profile/evidence/task-001.md",
+      "Android/specs/my-profile/changes/my-profile/meta.json",
+      "Android/specs/my-profile/changes/my-profile/plan/task-001.md",
+      "Android/specs/my-profile/changes/my-profile/verification.md"
+    ],
+    "watched": [
+      ".agents/skills/implement",
+      ".agents/skills/verify",
+      "AGENTS.md",
+      "Android/AGENTS.md",
+      "Android/my-profile/build.gradle.kts",
+      "Android/my-profile/src/main/AndroidManifest.xml",
+      "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileRoute.kt",
+      "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileState.kt",
+      "Android/my-profile/src/test/java/ru/home/sysdevsc/myprofile/ProfileContractTest.kt",
+      "Android/settings.gradle.kts",
+      "Android/specs/my-profile/changes/my-profile",
+      "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json",
+      "Android/specs/my-profile/changes/my-profile/evidence/task-001.md",
+      "Android/specs/my-profile/changes/my-profile/meta.json",
+      "Android/specs/my-profile/changes/my-profile/plan/task-001.md",
+      "Android/specs/my-profile/changes/my-profile/verification.md",
+      "Android/workflow",
+      "Android/workflow/platform-contract.json",
+      "Android/workflow/rules/accessibility.md",
+      "Android/workflow/rules/android-pitfalls.md",
+      "Android/workflow/rules/architecture.md",
+      "Android/workflow/rules/architecture/data-layer.md",
+      "Android/workflow/rules/architecture/dependency-injection.md",
+      "Android/workflow/rules/architecture/domain-layer.md",
+      "Android/workflow/rules/architecture/modularization.md",
+      "Android/workflow/rules/architecture/ui-layer.md",
+      "Android/workflow/rules/compose.md",
+      "Android/workflow/rules/coroutines-flows.md",
+      "Android/workflow/rules/emulator.md",
+      "Android/workflow/rules/gradle-build.md",
+      "Android/workflow/rules/kotlin-style.md",
+      "Android/workflow/rules/localization.md",
+      "Android/workflow/rules/ui-design-system.md",
+      "Android/workflow/rules/ui-testing.md",
+      "Android/workflow/rules/unit-testing.md",
+      "specs/product/my-profile/spec.md",
+      "workflow",
+      "workflow/rules/artifact-language.md",
+      "workflow/rules/code-comments.md",
+      "workflow/rules/coding-standards.md",
+      "workflow/rules/specification-layers.md",
+      "workflow/rules/system-design.md",
+      "workflow/rules/system-design/modularity.md",
+      "workflow/rules/tdd-first.md",
+      "workflow/rules/test-execution.md",
+      "workflow/rules/verification-matrix.md"
+    ]
+  },
+  "platform": "android",
+  "preexisting_status": {
+    "Android/my-profile/build.gradle.kts": "??",
+    "Android/my-profile/src/main/AndroidManifest.xml": "??",
+    "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileRoute.kt": "??",
+    "Android/my-profile/src/main/java/ru/home/sysdevsc/myprofile/ProfileState.kt": "??",
+    "Android/my-profile/src/test/java/ru/home/sysdevsc/myprofile/ProfileContractTest.kt": "??",
+    "Android/settings.gradle.kts": " M",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-APPEARANCE.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-ASSISTIVE-SEMANTICS.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-AVAILABILITY-FALLBACK.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-DARK.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-DEVICE-ADAPTATION.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-INCREASED-CONTRAST.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-LIGHT.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-MOTION.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/native-NATIVE-TEXT-SCALING.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-001.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-002.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-003.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-004.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/scope-baseline-task-005.json": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-001.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-002.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-003.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-004.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/task-005.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-code-inspection.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-local-commands.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-runtime-app.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-runtime-my-profile.md": "??",
+    "Android/specs/my-profile/changes/my-profile/evidence/verify-scope-baseline.json": "??",
+    "Android/specs/my-profile/changes/my-profile/meta.json": " M",
+    "Android/specs/my-profile/changes/my-profile/plan/README.md": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/rule-selection.json": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/task-001.md": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/task-002.md": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/task-003.md": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/task-004.md": "??",
+    "Android/specs/my-profile/changes/my-profile/plan/task-005.md": "??",
+    "Android/specs/my-profile/changes/my-profile/verification.md": " M"
+  },
+  "schema_version": 3,
+  "snapshot_algorithm": "git-visible-lane-v1",
+  "task": "task-001"
+}

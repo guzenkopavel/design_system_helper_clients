@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-AVAILABILITY-FALLBACK",
+  "status": "UNKNOWN",
+  "observation": "Native fallback behavior для unavailable runtime проверен только как отсутствие устройства; визуальный soft-blue fallback и availability UI не наблюдались на device/emulator.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md",
+    "evidence/verify-runtime-app.md"
+  ]
+}

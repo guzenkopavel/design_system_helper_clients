@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-APPEARANCE",
+  "status": "PASS",
+  "observation": "Runtime-проверка профиля на эмуляторе Pixel_6 подтвердила отображение профильного content, email и действий профиля.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-runtime-app.md"
+  ]
+}

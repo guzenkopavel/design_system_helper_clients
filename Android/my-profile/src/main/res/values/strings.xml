@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="my_profile_account_marker">Профиль пользователя</string>
+    <string name="my_profile_account_marker_symbol">◉</string>
+    <string name="my_profile_email_semantics">Текущий профиль</string>
+    <string name="my_profile_email_loading">Загрузка профиля</string>
+    <string name="my_profile_history_loading">Загрузка истории интервью</string>
+    <string name="my_profile_history_unknown">Количество интервью пока неизвестно</string>
+    <string name="my_profile_history_empty">Интервью пока нет</string>
+    <string name="my_profile_recovery_offline">Нет сетевого подключения</string>
+    <string name="my_profile_my_interviews">Мои интервью</string>
+    <string name="my_profile_my_interviews_disabled_semantics">Недоступно, пока количество интервью не определено или равно нулю</string>
+    <string name="my_profile_interviews_count">Интервью: %1$d</string>
+    <string name="my_profile_logout">Выход</string>
+    <string name="my_profile_logout_busy_semantics">Выполняется выход</string>
+</resources>

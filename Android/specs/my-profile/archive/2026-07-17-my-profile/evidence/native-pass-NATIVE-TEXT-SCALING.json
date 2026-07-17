@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-TEXT-SCALING",
+  "status": "PASS",
+  "observation": "Profile UI ограничивает email двумя строками с ellipsis, использует full-width actions и прошёл runtime suite внутри shell.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-runtime-app.md",
+    "evidence/verify-pass-code-inspection.md"
+  ]
+}

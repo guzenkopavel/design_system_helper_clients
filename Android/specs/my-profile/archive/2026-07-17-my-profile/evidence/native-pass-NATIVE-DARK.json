@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-DARK",
+  "status": "PASS",
+  "observation": "Код профиля и shell используют MaterialTheme color roles; runtime suite прошёл без rendering failures на подключённом эмуляторе.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-runtime-app.md",
+    "evidence/verify-pass-code-inspection.md"
+  ]
+}

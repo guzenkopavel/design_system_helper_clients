@@ -28,6 +28,7 @@ fun AppShell(
     onDestinationSelected: (AppShellDestination) -> Unit,
     modifier: Modifier = Modifier,
     darkTheme: Boolean = false,
+    profileContent: (@Composable () -> Unit)? = null,
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) appShellDarkColorScheme() else appShellLightColorScheme(),
@@ -44,6 +45,7 @@ fun AppShell(
             AppShellDestinationSurface(
                 destination = state.selectedDestination,
                 contentPadding = innerPadding,
+                profileContent = profileContent,
             )
         }
     }
@@ -89,6 +91,7 @@ private fun AppShellNavigationBar(
 private fun AppShellDestinationSurface(
     destination: AppShellDestination,
     contentPadding: PaddingValues,
+    profileContent: (@Composable () -> Unit)?,
 ) {
     Surface(
         modifier = Modifier
@@ -98,20 +101,24 @@ private fun AppShellDestinationSurface(
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-        ) {
-            Text(
-                text = stringResource(destination.labelResId()),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = stringResource(destination.surfaceTextResId()),
-                modifier = Modifier.padding(top = 12.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
+        if (destination == AppShellDestination.Profile && profileContent != null) {
+            profileContent()
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+            ) {
+                Text(
+                    text = stringResource(destination.labelResId()),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    text = stringResource(destination.surfaceTextResId()),
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
     }
 }

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-ASSISTIVE-SEMANTICS",
+  "status": "UNKNOWN",
+  "observation": "TalkBack/assistive semantics не проверены на репрезентативном runtime; connected tests не запустились из-за отсутствия устройства.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md",
+    "evidence/verify-runtime-app.md"
+  ]
+}

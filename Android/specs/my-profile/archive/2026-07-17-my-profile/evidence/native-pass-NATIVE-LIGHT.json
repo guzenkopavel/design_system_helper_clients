@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-LIGHT",
+  "status": "PASS",
+  "observation": "Runtime-команды прошли на стандартной светлой теме Material 3 с profile content внутри shell.",
+  "evidence_refs": [
+    "evidence/verify-pass-runtime-my-profile.md",
+    "evidence/verify-pass-runtime-app.md"
+  ]
+}

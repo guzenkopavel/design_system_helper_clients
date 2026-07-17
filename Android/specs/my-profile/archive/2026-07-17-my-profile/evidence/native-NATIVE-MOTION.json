@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "obligation_id": "NATIVE-MOTION",
+  "status": "UNKNOWN",
+  "observation": "Motion и transient feedback behavior не наблюдались на runtime, потому что connected tests не запустились без устройства.",
+  "evidence_refs": [
+    "evidence/verify-runtime-my-profile.md"
+  ]
+}
