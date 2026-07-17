@@ -61,6 +61,8 @@ RECEIPT_SCHEMA_VERSION = 1
 RECEIPT_TTL_SECONDS = 300
 RECEIPT_DIRECTORY_MODE = 0o700
 RECEIPT_FILE_MODE = 0o600
+RECONCILE_RECEIPT_SCHEMA_VERSION = 1
+RECONCILE_RECEIPT_TTL_SECONDS = 300
 
 
 def git(repo: Path, *args: str, input_bytes: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
@@ -129,6 +131,149 @@ def receipt_path(repo: Path, *, create_directory: bool = False) -> Path:
         (str(repo.resolve()) + "\0" + git_directory(repo)).encode("utf-8")
     ).hexdigest()
     return root / f"{identity}.json"
+
+
+def reconcile_receipt_directory(*, create: bool) -> Path:
+    root = Path(tempfile.gettempdir()) / f"mobile-harness-reconcile-precommit-{os.getuid()}"
+    if create:
+        try:
+            root.mkdir(mode=RECEIPT_DIRECTORY_MODE)
+        except FileExistsError:
+            pass
+    try:
+        metadata = root.lstat()
+    except FileNotFoundError as error:
+        raise ReceiptError("reconcile receipt is absent") from error
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != RECEIPT_DIRECTORY_MODE
+        or metadata.st_uid != os.getuid()
+    ):
+        raise ReceiptError("reconcile receipt directory is not private mode 0700")
+    return root
+
+
+def reconcile_receipt_path(repo: Path) -> Path:
+    root = reconcile_receipt_directory(create=False)
+    identity = hashlib.sha256(
+        (str(repo.resolve()) + "\0" + git_directory(repo)).encode("utf-8")
+    ).hexdigest()
+    return root / f"{identity}.json"
+
+
+def read_reconcile_receipt(repo: Path) -> dict[str, object] | None:
+    try:
+        target = reconcile_receipt_path(repo)
+        metadata = target.lstat()
+    except (FileNotFoundError, ReceiptError):
+        return None
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != RECEIPT_FILE_MODE
+        or metadata.st_uid != os.getuid()
+        or metadata.st_nlink != 1
+    ):
+        return None
+    try:
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(target, flags)
+        with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
+            payload = json.load(stream, parse_constant=reject_non_finite_json)
+    except (OSError, json.JSONDecodeError, ReceiptError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def staged_content_hash(repo: Path, raw: str) -> str | None:
+    blob, _mode = staged_blob(repo, raw)
+    if blob is None:
+        return None
+    return hashlib.sha256(blob).hexdigest()
+
+
+def valid_reconcile_receipt_for_staged_set(
+    repo: Path, payload: dict[str, object] | None, staged_paths: set[str]
+) -> dict[str, object] | None:
+    if not payload:
+        return None
+    expected = {
+        "schema_version", "repo", "git_dir", "platform_root", "platform", "feature",
+        "change", "package", "outcome", "coverage_mode", "intended_paths",
+        "mutable_paths", "content_hashes", "created_at", "expires_at",
+    }
+    if set(payload) != expected or payload.get("schema_version") != RECONCILE_RECEIPT_SCHEMA_VERSION:
+        return None
+    if payload.get("repo") != str(repo.resolve()) or payload.get("git_dir") != git_directory(repo):
+        return None
+    if payload.get("outcome") != "ALIGNED" or payload.get("coverage_mode") != "verified-archive-package":
+        return None
+    intended = payload.get("intended_paths")
+    mutable = payload.get("mutable_paths")
+    hashes = payload.get("content_hashes")
+    if (
+        not isinstance(intended, list)
+        or not intended
+        or any(not isinstance(item, str) for item in intended)
+        or sorted(set(intended)) != intended
+        or set(intended) != staged_paths
+        or not isinstance(mutable, list)
+        or any(not isinstance(item, str) for item in mutable)
+        or not set(mutable) <= staged_paths
+        or not isinstance(hashes, dict)
+    ):
+        return None
+    created = payload.get("created_at")
+    expires = payload.get("expires_at")
+    now = time.time()
+    if (
+        isinstance(created, bool)
+        or isinstance(expires, bool)
+        or not isinstance(created, (int, float))
+        or not isinstance(expires, (int, float))
+        or not math.isfinite(created)
+        or not math.isfinite(expires)
+        or created > now + 5
+        or expires <= created
+        or expires - created > RECONCILE_RECEIPT_TTL_SECONDS
+        or now > expires
+    ):
+        return None
+    for raw in mutable:
+        expected_hash = hashes.get(raw)
+        if expected_hash is not None and not isinstance(expected_hash, str):
+            return None
+        if staged_content_hash(repo, raw) != expected_hash:
+            return None
+    return payload
+
+
+def reconcile_receipt_trail(
+    receipt: dict[str, object] | None, adapter: dict[str, object], candidate: str
+) -> dict[str, object] | None:
+    if not receipt:
+        return None
+    if receipt.get("platform_root") != str(adapter.get("platform_root")):
+        return None
+    mutable = receipt.get("mutable_paths")
+    if not isinstance(mutable, list) or candidate not in mutable:
+        return None
+    package = receipt.get("package")
+    if not isinstance(package, str) or not package:
+        return None
+    return {
+        "package": package,
+        "task": "reconcile-receipt",
+        "done": True,
+        "evidence": True,
+        "scopes": [],
+        "command": "reconcile-implementation inspect",
+        "source": "archived-package",
+        "current": True,
+    }
 
 
 def staged_path_set(repo: Path, intended: list[str] | None = None) -> tuple[list[str], list[str]]:
@@ -751,6 +896,9 @@ def evaluate(
     adapters, adapter_errors = load_adapter_state(repo, from_index=True)
     changed_paths = set(entry_sets["identity_paths"])
     indexed_paths = set(index_paths(repo))
+    reconcile_receipt = valid_reconcile_receipt_for_staged_set(
+        repo, read_reconcile_receipt(repo), changed_paths
+    )
     production_seen = False
     harness_seen = False
     trails_by_platform: dict[str, list[dict[str, object]]] = {}
@@ -816,6 +964,9 @@ def evaluate(
                 continue
             trails = task_trails(repo, candidate_adapter, candidate, changed_paths)
             trails.extend(archived_task_trails(repo, candidate_adapter, candidate, changed_paths))
+            receipt_trail = reconcile_receipt_trail(reconcile_receipt, candidate_adapter, candidate)
+            if receipt_trail:
+                trails.append(receipt_trail)
             trail, owner_packages = select_package_trail(trails)
             if len(owner_packages) > 1:
                 add(

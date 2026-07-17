@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path, PurePosixPath
 
 import git_change_paths as change_paths
@@ -45,6 +46,10 @@ RECONCILIATION_EVIDENCE_RE = re.compile(
     r"^evidence/reconciliation-[0-9]{8}T[0-9]{6}Z-task-[0-9]{3}(?:-[a-z0-9-]+)?\.md$"
 )
 TOKEN_RE = re.compile(r"^[a-f0-9]{32}$")
+PRECOMMIT_RECONCILE_RECEIPT_SCHEMA_VERSION = 1
+PRECOMMIT_RECONCILE_RECEIPT_TTL_SECONDS = 300
+PRIVATE_RECEIPT_DIRECTORY_MODE = 0o700
+PRIVATE_RECEIPT_FILE_MODE = 0o600
 EXCLUDED_DIRS = {
     ".git", ".build", ".gradle", ".idea", ".kotlin", ".swiftpm",
     "DerivedData", "__pycache__", "build", "node_modules",
@@ -84,6 +89,110 @@ def repository_root(start: Path | None = None) -> Path:
     if result.returncode:
         raise ReconcileError("not inside a Git repository")
     return Path(result.stdout.decode().strip()).resolve()
+
+
+def git_directory(repo: Path) -> str:
+    result = git(repo, "rev-parse", "--absolute-git-dir")
+    if result.returncode:
+        raise ReconcileError("repository Git directory is unavailable")
+    return str(Path(result.stdout.decode().strip()).resolve())
+
+
+def precommit_reconcile_receipt_directory(*, create: bool) -> Path:
+    root = Path(tempfile.gettempdir()) / f"mobile-harness-reconcile-precommit-{os.getuid()}"
+    if create:
+        try:
+            root.mkdir(mode=PRIVATE_RECEIPT_DIRECTORY_MODE)
+        except FileExistsError:
+            pass
+    try:
+        metadata = root.lstat()
+    except FileNotFoundError as error:
+        raise ReconcileError("pre-commit reconcile receipt directory is absent") from error
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != PRIVATE_RECEIPT_DIRECTORY_MODE
+        or metadata.st_uid != os.getuid()
+    ):
+        raise ReconcileError("pre-commit reconcile receipt directory is not private mode 0700")
+    return root
+
+
+def precommit_reconcile_receipt_path(repo: Path, *, create_directory: bool = False) -> Path:
+    root = precommit_reconcile_receipt_directory(create=create_directory)
+    identity = hashlib.sha256(
+        (str(repo.resolve()) + "\0" + git_directory(repo)).encode("utf-8")
+    ).hexdigest()
+    return root / f"{identity}.json"
+
+
+def worktree_content_hash(repo: Path, raw: str, status_record: dict[str, str] | None) -> str | None:
+    if status_record and status_record.get("status") == "D":
+        return None
+    path = repo / raw
+    if not path.exists() and not path.is_symlink():
+        return None
+    if path.is_symlink():
+        payload = os.readlink(path).encode("utf-8", errors="surrogateescape")
+    else:
+        payload = path.read_bytes()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def write_precommit_reconcile_receipt(repo: Path, context: dict[str, object]) -> None:
+    if context.get("outcome") != ALIGNED or context.get("coverage_mode") != "verified-archive-package":
+        return
+    intended = [str(item) for item in context.get("intended_paths", [])]
+    mutable = [str(item) for item in context.get("mutable_paths", intended)]
+    path_status = context.get("path_status", {})
+    if not intended or not isinstance(path_status, dict):
+        return
+    adapter = context.get("_adapter", {})
+    if not isinstance(adapter, dict):
+        return
+    content_hashes = {
+        raw: worktree_content_hash(repo, raw, path_status.get(raw) if isinstance(path_status.get(raw), dict) else None)
+        for raw in mutable
+    }
+    now = time.time()
+    platform_root = str(adapter.get("platform_root") or "")
+    if not platform_root and mutable:
+        platform_root = PurePosixPath(mutable[0]).parts[0]
+    payload = {
+        "schema_version": PRECOMMIT_RECONCILE_RECEIPT_SCHEMA_VERSION,
+        "repo": str(repo.resolve()),
+        "git_dir": git_directory(repo),
+        "platform_root": platform_root,
+        "platform": context.get("platform_input") or context.get("platform"),
+        "feature": context.get("feature"),
+        "change": context.get("change"),
+        "package": context.get("package"),
+        "outcome": context.get("outcome"),
+        "coverage_mode": context.get("coverage_mode"),
+        "intended_paths": sorted(intended),
+        "mutable_paths": sorted(mutable),
+        "content_hashes": content_hashes,
+        "created_at": now,
+        "expires_at": now + PRECOMMIT_RECONCILE_RECEIPT_TTL_SECONDS,
+    }
+    target = precommit_reconcile_receipt_path(repo, create_directory=True)
+    temporary = target.parent / f".{target.name}.{secrets.token_hex(8)}.tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(temporary, flags, PRIVATE_RECEIPT_FILE_MODE)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, sort_keys=True, separators=(",", ":"))
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+        os.chmod(target, PRIVATE_RECEIPT_FILE_MODE, follow_symlinks=False)
+    finally:
+        if temporary.exists() and not temporary.is_symlink():
+            temporary.unlink()
 
 
 def safe_path(raw: str) -> str:
@@ -1761,6 +1870,9 @@ def main() -> int:
             }
         else:
             report = start_guard(context, repo) if args.command == "start" else public_report(context)
+        if report.get("outcome") == ALIGNED and context.get("coverage_mode") == "verified-archive-package":
+            write_precommit_reconcile_receipt(repo, context)
+            report["pre_commit_reconcile_receipt"] = "created"
     except (OSError, ReconcileError, json.JSONDecodeError) as error:
         report = {"outcome": ROUTE_REQUIRED, "errors": [str(error)]}
     emit(report, args.as_json)

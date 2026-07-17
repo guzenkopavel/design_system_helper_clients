@@ -50,7 +50,10 @@ verified implementation archive receipt. Exact archived tasks or verified
 scope are preferred and reported, but the verified receipt may cover the
 coherent platform package at package level with warnings; retirement, invalid
 or non-PASS archived receipts still route to a new change/repair with zero
-writes. `planned` may start but a successful result must become
+writes. For read-only post-archive `ALIGNED`, `inspect` also writes a private
+short-lived pre-commit reconciliation receipt outside the repository so the
+staged gate can bind the exact intended paths and content hashes without
+restaging immutable archive evidence. `planned` may start but a successful result must become
 `implementing`; an `implementing` baseline must remain `implementing`.
 
 For a supported class, run `start` with that exact classification. Use the

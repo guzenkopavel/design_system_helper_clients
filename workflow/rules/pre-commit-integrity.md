@@ -14,9 +14,12 @@ platform/feature/change identity → reconciliation report → staging approved 
 verified implementation archive receipt trail. Exact archived task/verified
 scope coverage остаётся preferred evidence, но цельный post-archive delivery
 slice может опираться на валидный verified package receipt как package-level
-terminal proof, если staged set включает выбранный archive/tombstone trail.
-Gate не вызывает reconciliation и не изменяет worktree/package; uncovered
-production trail получает только actionable hint.
+terminal proof. Для такого fallback coordinator сначала запускает
+`reconcile-implementation inspect` с exact intended paths; inspect создаёт
+private short-lived reconciliation receipt вне репозитория, привязанный к
+repository/Git-dir identity, feature/change/package, intended paths и текущим
+content hashes. Gate не вызывает reconciliation и не изменяет worktree/package;
+без свежего receipt uncovered production trail получает только actionable hint.
 
 Ownership и `git status` проверяются до staging. Затем machine gate анализирует
 staged index, а не worktree: entries, modes, blob content и binary diff образуют
@@ -59,8 +62,9 @@ destination, требует либо completed active task with staged evidence,
 verified implementation archive receipt. Для post-archive цельного platform
 delivery preferred path остаётся completed archived task/verified scope; если
 они уже не перечисляют весь финальный production set, валидный текущий
-verified archive/tombstone trail допускает package-level coverage и gate
-выдаёт предупреждение вместо блокировки. Implementation-retirement receipts do not satisfy delivery coverage.
+verified archive/tombstone trail вместе со свежим reconciliation receipt
+допускает package-level coverage и gate выдаёт предупреждение вместо
+блокировки. Implementation-retirement receipts do not satisfy delivery coverage.
 Copy source не требует task write ownership/evidence, но обязан быть explicit,
 byte-equal, unchanged, safe, no-symlink и принадлежать тому же adapter; его
 regular stage-0 mode/blob в index и worktree обязаны точно совпадать с HEAD,
