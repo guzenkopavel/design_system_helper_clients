@@ -1,9 +1,9 @@
 # my-profile — shared product specification
 
-- **Status:** `DRAFT`
-- **Product approval:** `PENDING`
-- **Approved by:** `PENDING`
-- **Approval evidence:** `PENDING`
+- **Status:** `READY`
+- **Product approval:** `APPROVED`
+- **Approved by:** `Pavel Guzenko (product owner)`
+- **Approval evidence:** Явный ответ пользователя в текущей Codex-сессии от 2026-07-17: `APPROVED my-profile`
 - **Applies to:** `iOS, Android`
 - **Source brief:** `brief.md`
 - **UX artifact:** `ux.md`
@@ -212,8 +212,8 @@ None.
 
 ## Readiness Decision
 
-- **Decision:** `DRAFT`
-- **Blocking reasons:** `pending explicit product approval and final independent product review receipt`
+- **Decision:** `READY`
+- **Blocking reasons:** `none`
 
 Каждый критерий задаёт ровно один наблюдаемый исход и одну уникальную
 `Verification dimension`; внешний вид, ассистивная семантика, масштаб текста,
