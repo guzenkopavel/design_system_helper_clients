@@ -1,0 +1,18 @@
+{
+  "feature": "my-profile",
+  "reason": "completed",
+  "retirement_approval": {
+    "approved_by": "Pavel Guzenko (product owner)",
+    "evidence": "Явная команда пользователя в текущей Codex-сессии от 2026-07-17: `$archive product my-profile`, затем `поправить и архивируй`; продуктовый пакет закрывается как завершённый после проверенных архивных квитанций реализации для iOS и Android."
+  },
+  "platforms": {
+    "ios": {
+      "disposition": "archived",
+      "evidence": "iOS/specs/my-profile/archive/2026-07-17-my-profile/archive-receipt.json"
+    },
+    "android": {
+      "disposition": "archived",
+      "evidence": "Android/specs/my-profile/archive/2026-07-17-my-profile/archive-receipt.json"
+    }
+  }
+}
